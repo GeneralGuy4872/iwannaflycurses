@@ -1,5 +1,5 @@
 **prealpha stats:**
-- > *outline*
+- ➤ *outline*
 - ⌛ implementation
 - ⌛ syntax fixing
 - ⌛ debugging
