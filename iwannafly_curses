@@ -1,0 +1,505 @@
+setlocale(LC_ALL, "");
+
+#define BRIGHT 8
+//example: BRIGHT+COLOR_RED
+
+#ifndef _XOPEN_SOURCE_EXTENDED
+#define _XOPEN_SOURCE_EXTENDED
+#endif
+
+import //SYNTAX VARIENCE DETECTED!
+main.h::roll
+main.h::bonus
+main.h::flip
+main.h::file_cat
+/* note: my convention for C header namespaces is actually 2 underscores,
+ * since there is no such thing in C and it thus has to be in the function's name
+ */
+
+pseudosubroutine ERROR_GRAPHIC("short text") //should also output __FILE__ and __LINE__, which will likely be the program's version of undecipherable hex codes to everyone but me
+*╮  Error
+╭┴╮  "short text"
+│!│ File: file.c
+╰─╯ Line: 19
+
+playertyp PLAYER
+roomtyp ROOM
+unsigned long long TURN
+unsigned long KILLS
+char* SAVEPATH
+
+struct coord3:
+unsigned char x
+unsigned char y
+unsigned char z
+
+struct coord2:
+unsigned char x
+unsigned char y
+
+struct scoord3:
+signed char x
+signed char y
+signed char z
+
+struct scoord2:
+signed char x
+signed char y
+
+struct mapcoord:
+signed short lat
+signed short lon
+unsigned char dep
+
+struct startaligntyp:
+good : b1
+evil : b1
+y : u2
+law : b1
+chaos : b1
+x : u2
+
+
+typedef char* stabs[256] //symbol table strings
+typedef void* fstab[256] //filesystem table
+typedef unsigned char symtabref
+
+typedef char* lowtileset[32]
+typedef char* hightileset[128]
+typedef signed char tilesetref
+
+stabs itemstabs //stuff that doesn't go anywhere else
+stabs spellstabs //languages and spells
+stabs armstabs //armor and weapons
+stabs baubstabs //rings and amulets
+fstab itemtable
+fstab spelltable
+fstab armtable
+fstab baubtable
+
+stabs classnames
+fstab classtable //is freed after startup; initial values for PLAYER
+
+fstab polytable //contains all polymorphable monsters, of type BASENTYPE
+
+struct the8stats:
+stren : 5
+dex : 5
+tough : 5
+fort : 5
+intl : 5
+wis : 5
+bluff : 5
+cast : 5
+
+struct conlangtype:
+unsigned char id : 6
+bool r : 1
+bool w : 1
+
+struct playertyp:
+symtabref class
+symtabref startrace
+symtabref polyrace
+startaligntyp startalign
+coord3 loc
+paffectyp permenent
+effectyp fromequip
+scoord2 align
+unsigned char lvl
+signed short food
+unsigned short gold
+heldobjtyp *lang_head
+heldobjtyp *lang_tail
+heldobjtyp *spell_head
+heldobjtyp *spell_tail
+heldobjtyp *bag_head
+heldobjtyp *bag_tail
+subobjtyp weap_left
+subobjtyp weap_right
+subobjtyp *armor
+subobjtyp *cape
+subobjtyp *helm
+subobjtyp *gloves
+subobjtyp *boots
+subobjtyp *amul
+subobjtyp *ringl
+subobjtyp *ringr
+
+psudosubroutine update_player
+/* resets .fromequip , then iterates through the entire equipment list to regenerate it.
+ * must be called every time equipment is changed to ensure that it is up to date
+ * effects in .permenent can only be removed by finding something that affects the opposite change
+ * changes to your starting alignment or base race are generally rare and disasterous, as they represent
+ * the corruption of the character in some way (i.e. if you recursively polymorph, you may forget who you are.
+ * if this happens and you become a race that is not a c0 control character,
+ * your class will be set to $00:changling
+ */
+
+struct basentyp:
+char* name
+effectyp base
+scoord2 align
+unsigned short hp
+unsigned char hplvl
+unsigned short mp
+unsigned char mplvl
+unsigned long xp
+unsigned char xplvl
+heldobjtyp *lang_head
+heldobjtyp *lang_tail
+heldobjtyp *spell_head
+heldobjtyp *spell_tail
+
+struct enttyp:
+(self) *prev
+(self) *next
+basentype* race
+coord3 loc
+effectyp bonus
+startaligntyp align
+unsigned char lvl
+signed short food
+unsigned short gold
+heldobjtyp *lang_head
+heldobjtyp *lang_tail
+heldobjtyp *spell_head
+heldobjtyp *spell_tail
+heldobjtyp *bag_head
+heldobjtyp *bag_tail
+subobjtyp weap_left
+subobjtyp weap_right
+subobjtyp *armor
+subobjtyp *cape
+subobjtyp *helm
+subobjtyp *gloves
+subobjtyp *boots
+subobjtyp *amul
+subobjtyp *ringl
+subobjtyp *ringr
+
+struct heldobjtyp:
+(self) *prev
+(self) *next
+objid type
+void* data
+
+struct subobject:
+symtabref itemid
+bool cursed : 1
+bool oxide : 1
+bool burned : 1
+signed char bonus : 5
+unsigned char metadata : 8
+
+struct magictyp:
+fire
+air
+water
+earth
+entro
+light
+dark
+energy
+
+struct spelltyp:
+symtabref itemid : 8
+bool fire : 1
+bool air : 1
+bool water : 1
+bool earth : 1
+bool entro : 1
+bool light : 1
+bool dark : 1
+bool energy : 1
+unsigned char damage : 6
+signed char recoil : 7
+unsigned char cost : 4
+unsigned char spread : 2 //0 = line, 1 = narrow, 2 = wide, 3 = very wide
+unsigned char splash : 3 //taxicab radius of damage on impact
+bool spz : 1 //spread and splash in the z plane. OP PLZ NRF
+bool dig : 1 
+
+struct baseweaptyp:
+bool fire : 1
+bool air : 1
+bool water : 1
+bool earth : 1
+bool entro : 1
+bool light : 1
+bool dark : 1
+bool fireproof : 1
+bool waterproof : 1
+bool elecproof : 1
+bool iceproof : 1
+bool warded : 1
+bool unbreak : 1
+unsigned char skill : 3
+unsigned char damage : 8
+
+struct basearmortyp:
+effectyp
+unsigned char def : 8
+unsigned char spdef : 8
+unsigned char extfort : 8
+
+struct stattyp:
+caster
+gills
+wings
+nolegs
+psn
+brn
+blind
+whoami
+
+struct ailmntyp:
+dizzy : u4
+psn : u4
+prlz : u4
+frz : u4
+brn : u4
+stone : u4
+slp : u8
+blind : u8
+poly : u8
+
+struct elixtyp:
+dizzy : b
+psn : b
+prlz : b
+frz : b
+brn : b
+stone : b
+slp : b
+blind : b
+poly : u
+lvl : s
+
+struct resistyp:
+bool fireproof : 1
+bool waterproof : 1
+bool elecproof : 1
+bool iceproof : 1
+stoneproof
+polyproof 
+sleepproof
+poisonproof
+
+struct sensetyp:
+trouble
+hidden
+invis
+gold
+good
+evil
+law
+chaos
+
+struct basestattyp:
+the8stats eight
+stattyp stat
+ailmntyp ailsya
+resistyp resist
+senstyp sense
+skilltyp skill
+magictyp asp
+signed char atk
+signed char spatk
+signed char def
+signed char spdef
+
+struct effectyp:
+the8stats eight
+stattyp stat
+ailmntyp ailsya
+resistyp resist
+senstyp sense
+skilltyp skill
+magictyp asp
+signed char atk
+signed char spatk
+signed char def
+signed char spdef
+
+struct paffectyp
+the8stats eight
+stattyp stat
+resistyp resist
+senstyp sense
+skilltyp skill
+magictyp asp
+
+struct potiontyp:
+stattyp stat
+elixtyp ailsya
+resistyp resist
+senstyp sense
+signed short hp
+signed short mp
+
+struct skilltyp:
+nibble sword
+nibble stave
+nibble club
+nibble shield
+nibble bow
+nibble throw
+nibble locks
+nibble monk
+
+readtyp:
+unsigned char locale : 6
+bool multiuse : 1
+bool scroll : 1
+unsigned char subject : 2 //0 = calculus, 1 = weapons, 2 = language, 3 = spellcraft
+unsigned char uses : 6
+*void contents
+//can be 
+
+//baubobjtype : ring/amulet, effect, the8stats
+
+struct room: //top-down display of a 3d space
+mapcoord gridsquare
+char pallette[2][8]
+lowtileset *lowtiles
+hightileset *hightiles
+tilemeta *tiledata[8][16][80]
+tilesetref ground
+enttype *ent_head
+enttype *ent_tail
+mapobjtyp *obj_head
+mapobjtyp *obj_tail
+/*  r8 : binary data that is organized into 8 bit segments
+ * r16 : binary data that is organized into 16 bit segments
+ * hex : binary data that is not organized
+ * csv : text data seperated with commas and line breaks
+ * dat : text data seperated with line breaks
+ * tsv : text data seperated with tabs and line breaks
+ * tab : text data seperated with tabs and line breaks that represents a string table
+ */
+
+struct tilemeta:
+bool climb
+bool solid
+bool water
+bool hot
+bool cold
+bool elec
+bool hurts
+bool breaks
+unsigned char color
+tilesetref sym
+
+pseudosubroutine getsym
+	{
+	if (sym < 0)
+		{
+		cursesprint(hightileset[~sym]) //bit inverse intentional
+		}
+	else
+		{
+		if (sym < ' ')
+			{
+			cursesprint(lowtileset[sym]) //catch c0 characters
+			}
+		else
+			{
+			cursesprint(sym) //if ascii leave as is
+			}
+		}
+	}
+
+struct mapobjtyp:
+(self) *prev
+(self) *next
+coord3 pos
+objid type
+void* data
+bool cursed : 1
+bool oxi : 1
+bool burned : 1
+signed char bonus : 5
+unsigned char metadata : 8
+
+struct eventtyp:
+(self) *prev
+(self) *next
+triggerfunc ifthis(unsigned short,unsigned short,unsigned short,unsigned short)
+eventfunc dothis(unsigned short,unsigned short,unsigned short,unsigned short)
+unsigned short params[4]
+const char* name
+coord3 dim
+unsigned short duration
+
+struct traptyp:
+(self) *prev
+(self) *next
+mapcoord gridsquare
+coord3 loc
+unsigned short duration
+magictyp
+stattyp stat
+elixtyp ailsya
+bool fireproof : 1
+bool waterproof : 1
+bool elecproof : 1
+bool iceproof : 1
+bool tamperproof
+bool stoneproof
+bool warded
+bool multiuse
+senstyp sense
+signed short hp
+signed short mp
+
+struct warptyp:
+(self) *prev
+(self) *next
+mapcoord gridsquare
+coord3 loc
+unsigned short duration
+
+struct gemstonetyp:
+nibble color : 4
+unsigned short value : 12
+
+always (unsigned short,unsigned short,unsigned short,unsigned short) {return 1}
+
+enum objid:
+WEAPON_FLAG : contains subobjtyp calling baseweaptyp
+POTION_FLAG : contains potiontyp
+READ_FLAG : contains readtyp
+MEAT_FLAG : contains meattyp
+ARMOR_FLAG : contains subobjtyp calling basearmortyp
+BAUB_FLAG : contains subobjtyp calling baubtyp
+CONLANG_FLAG : contains conlangtyp
+SPELL_FLAG : contains spelltyp
+SPECIAL_FLAG : contains specitemtyp
+GEM_FLAG : contains gemstonetyp
+TRAP_FLAG : contains traptyp
+EVENT_FLAG : contains eventtyp
+WARP_FLAG : contains warptyp
+GOLD_FLAG : contains an unsigned interger stored as a pointer
+
+lowtileset ibmpc:
+␀☺☻♥♦♣♠•◘○◙♂♀♪♫☼
+►◄↕‼¶§▬↨↑↓→←∟↔▲▼
+
+lowtileset blockelements:
+▀▁▂▃▄▅▆▇█▉▊▋▌▍▎▏
+▐░▒▓▔▕▖▗▘▙▚▛▜▝▞▟
+
+hightileset boxdrawings:
+─━│┃┄┅┆┇┈┉┊┋┌┍┎┏
+┐┑┒┓└┕┖┗┘┙┚┛├┝┞┟
+┠┡┢┣┤┥┦┧┨┩┪┫┬┭┮┯
+┰┱┲┳┴┵┶┷┸┹┺┻┼┽┾┿
+╀╁╂╃╄╅╆╇╈╉╊╋╌╍╎╏
+═║╒╓╔╕╖╗╘╙╚╛╜╝╞╟
+╠╡╢╣╤╥╦╧╨╩╪╫╬╭╮╯
+╰╱╲╳╴╵╶╷╸╹╺╻╼╽╾╿
+
+hightileset curses_acs:
+*self-explainatory*
+
