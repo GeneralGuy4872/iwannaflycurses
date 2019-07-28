@@ -51,14 +51,19 @@ signed short lat
 signed short lon
 unsigned char dep
 
-struct startaligntyp:
-good : b1
-evil : b1
-y : u2
-law : b1
-chaos : b1
-x : u2
+struct cylinder:
+unsigned char r
+unsigned char z
 
+struct aligntyp:
+isgood : b1
+isevil : b1
+islaw : b1
+ischaos : b1
+nogood : b1
+noevil : b1
+nolaw : b1
+nochaos : b1
 
 typedef char* stabs[256] //symbol table strings
 typedef void* fstab[256] //filesystem table
@@ -69,7 +74,7 @@ typedef char* hightileset[128]
 typedef signed char tilesetref
 
 stabs itemstabs //stuff that doesn't go anywhere else
-stabs spellstabs //languages and spells
+stabs spellstabs //spells
 stabs armstabs //armor and weapons
 stabs baubstabs //rings and amulets
 fstab itemtable
@@ -77,10 +82,15 @@ fstab spelltable
 fstab armtable
 fstab baubtable
 
-stabs classnames
+stabs classnames //$00 is changeling, $01 is fighter, $02 is valkyrie, $03 is magic-user, $03 is rogue...
 fstab classtable //is freed after startup; initial values for PLAYER
 
-fstab polytable //contains all polymorphable monsters, of type BASENTYPE
+fstab polytable
+/* contains all polymorphable monsters, of type BASENTYPE.
+ * 	$00 is human,	$01 is elf,	$02 is dwarf,	$03 is gnome,	$04 is hobbit,	$05 is halfelf,	$06 is drow,	$07 is avian,	$08 is halforc,	$09 is halfdragon,	$0A is halfcelestial,	$0B is halffiend,	$0C is halfelemental(air),	$0D is halfelemental(water),	$0E is halfelemental(earth),	$0F is halfelemental(fire),
+ *	$10 is merfolk,	$11 is seaelf,	$12 is dryad,	$13 is *cubus,	$14 is faerie...
+ * Only C0 control characters may be initial races. any polymorphable race can BECOME your base race...
+ */
 
 struct the8stats:
 stren : 5
@@ -93,19 +103,26 @@ bluff : 5
 cast : 5
 
 struct conlangtype:
-unsigned char id : 6
+symtabref id : 6
 bool r : 1
 bool w : 1
+//nothing to X-ecut, so no x
+
+char* conlangtab[64] ={lingua franca,thieves cant,middle elvish,old elvish,dwarvish,gnomish,gothic,orkish,draconic,fey,celestic,blackspeech,skyspeak,waterspeak,earthspeak,firespeak}
 
 struct playertyp:
 symtabref class
 symtabref startrace
 symtabref polyrace
-startaligntyp startalign
+toomuchpolytyp polycounter
 coord3 loc
 paffectyp permenent
 effectyp fromequip
+aligntyp basealign
 scoord2 align
+unsigned short hp
+unsigned short mp
+unsigned long xp
 unsigned char lvl
 signed short food
 unsigned short gold
@@ -138,18 +155,18 @@ psudosubroutine update_player
 
 struct basentyp:
 char* name
+aligntyp alignmask
 effectyp base
-scoord2 align
-unsigned short hp
+float spd
+float fly //distance calculations use M_SQRT2 for diagonals
 unsigned char hplvl
-unsigned short mp
 unsigned char mplvl
-unsigned long xp
 unsigned char xplvl
-heldobjtyp *lang_head
-heldobjtyp *lang_tail
-heldobjtyp *spell_head
-heldobjtyp *spell_tail
+symtabref lang0 : 6
+symtabref lang1 : 6
+symtabref spell0
+symtabref spell1
+
 
 struct enttyp:
 (self) *prev
@@ -157,7 +174,9 @@ struct enttyp:
 basentype* race
 coord3 loc
 effectyp bonus
-startaligntyp align
+unsigned short hp
+unsigned short mp
+unsigned long xp
 unsigned char lvl
 signed short food
 unsigned short gold
@@ -201,6 +220,11 @@ entro
 light
 dark
 energy
+
+struct toomuchpolytyp:
+unsigned char count : 8
+unsigned char depth : 8
+
 
 struct spelltyp:
 symtabref itemid : 8
@@ -429,7 +453,7 @@ triggerfunc ifthis(unsigned short,unsigned short,unsigned short,unsigned short)
 eventfunc dothis(unsigned short,unsigned short,unsigned short,unsigned short)
 unsigned short params[4]
 const char* name
-coord3 dim
+cylinder dim
 unsigned short duration
 
 struct traptyp:
