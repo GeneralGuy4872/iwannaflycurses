@@ -7,12 +7,12 @@ setlocale(LC_ALL, "");
 #define _XOPEN_SOURCE_EXTENDED
 #endif
 
-import //SYNTAX VARIENCE DETECTED!
-main.h::roll
-main.h::bonus
-main.h::flip
-main.h::file_cat
-/* note: my convention for C header namespaces is actually 2 underscores,
+import //psudocode, not python
+mainh__roll
+mainh__bonus
+mainh__flip
+mainh__file_cat
+/* note: my convention for C header is 2 underscores,
  * since there is no such thing in C and it thus has to be in the function's name
  */
 
@@ -46,14 +46,48 @@ struct scoord2:
 signed char x
 signed char y
 
-struct mapcoord: //surface terrain generation by dice roll from pregenerated blocks. doungeon generation by algorithem tbd
-signed short lat
-signed short lon
+struct planecoord:
+bool shadow : 1 //dark world
+bool moon : 1 //are you on the moon?
+bool shift : 1 //are you plane shifted?
+unigned char az : 3 //azimuth on a plane chart
+signed char el : 2
+
+struct mapcoord: //surface terrain generation by dice roll from pregenerated blocks. doungeon generation by algorithem tbd. some coords will generate fixed special rooms
+signed char lat
+signed char lon
 unsigned char dep
-bool moon : 1
-bool shift : 1
-signed char az : 3
-signed char el : 3
+planecoord plane
+
+/* when combined with shift, moon becomes outer planes, and shadow becomes off-plane
+ *
+ * az	elemental	afterlife	corrilation
+ * 0	water		neutral good	nurtures
+ * 1	ice		chaotic good	the ends justify the means
+ * 2	air		chaotic neutral	blows your kite into trees
+ * 3	electricity	chaotic evil	the dark side is strong with this one
+ * 4	fire		neutral evil	obviously
+ * 5	metal		lawful evil	greed
+ * 6	earth		lawful neutral	stubborn
+ * 7	trees		lawful good	knowladge
+ *
+ * az rotates by 45 degree steps and el by 90 degree steps.
+ * a nonzero el causes az to gimbal lock.
+ * also best not to think about where exactly -2 is pointing;
+ * perhaps it's a doughnut?
+ *
+ * el	"		"		"
+ * +1	light		true neutral	enlightenment
+ * -1	darkness	mindless	mold can't see
+ * -2	entropy		betrayers	abandon all hope ye who enter here
+ *
+ * by combining the shift and shadow fields, you can go to the
+ * ethereal (inner) and asteral (outer) planes,
+ * but only the worthy can withstand the inter-planer energy.
+ * all others are instantly blasted with all permenent status effects, including stoning.
+ *
+ * errors related to this area generate the string "froze to death on pluto"
+ */
 
 struct cylinder:
 unsigned char r
@@ -71,7 +105,7 @@ nochaos : b1
 
 typedef char* stabs[256] //symbol table strings
 typedef void* fstab[256] //filesystem table
-typedef unsigned char symtabref
+typedef unsigned char symtabref //beware of missingno glitches!
 
 stabs itemstabs //stuff that doesn't go anywhere else
 stabs spellstabs //spells
@@ -85,10 +119,11 @@ fstab baubtable
 stabs classnames //$00 is changeling, $01 is fighter, $02 is valkyrie, $03 is magic-user, $03 is rogue...
 fstab classtable //is freed after startup; initial values for PLAYER
 
-fstab polytable
+fstab polytable =
+{"human","elf","dwarf","gnome","hobbit","half elf","drow","avian","half orc","half dragon","half celestial","half fiend","half air elemental","half water elemental","half earth elemental","half fire elemental",
+"merfolk","seaelf","dryad","foocubus","faerie"}; //...
+
 /* contains all polymorphable monsters, of type BASENTYPE.
- * 	$00 is human,	$01 is elf,	$02 is dwarf,	$03 is gnome,	$04 is hobbit,	$05 is halfelf,	$06 is drow,	$07 is avian,	$08 is halforc,	$09 is halfdragon,	$0A is halfcelestial,	$0B is halffiend,	$0C is halfelemental(air),	$0D is halfelemental(water),	$0E is halfelemental(earth),	$0F is halfelemental(fire),
- *	$10 is merfolk,	$11 is seaelf,	$12 is dryad,	$13 is *cubus,	$14 is faerie...
  * Only C0 control characters may be initial races. any polymorphable race can BECOME your base race...
  */
 
@@ -134,14 +169,16 @@ heldobjtyp *bag_head
 heldobjtyp *bag_tail
 subobjtyp weap_left
 subobjtyp weap_right
-subobjtyp *armor
-subobjtyp *cape
-subobjtyp *helm
-subobjtyp *gloves
-subobjtyp *boots
-subobjtyp *amul
-subobjtyp *ringl
-subobjtyp *ringr
+subobjtyp shield
+subobjtyp bow
+subobjtyp armor
+subobjtyp cape
+subobjtyp helm
+subobjtyp gloves
+subobjtyp boots
+subobjtyp amul
+subobjtyp ringl
+subobjtyp ringr
 
 psudosubroutine update_player
 /* resets .fromequip , then iterates through the entire equipment list to regenerate it.
@@ -166,7 +203,8 @@ symtabref lang0 : 6
 symtabref lang1 : 6
 symtabref spell0
 symtabref spell1
-
+unsigned char color
+?wchar? symbol
 
 struct enttyp:
 (self) *prev
@@ -180,14 +218,11 @@ unsigned long xp
 unsigned char lvl
 signed short food
 unsigned short gold
-heldobjtyp *lang_head
-heldobjtyp *lang_tail
-heldobjtyp *spell_head
-heldobjtyp *spell_tail
-heldobjtyp *bag_head
-heldobjtyp *bag_tail
+subobjtyp loot
 subobjtyp weap_left
 subobjtyp weap_right
+subobjtyp shield
+subobjtyp bow
 subobjtyp *armor
 subobjtyp *cape
 subobjtyp *helm
@@ -219,7 +254,7 @@ earth
 entro
 light
 dark
-energy
+planer
 
 struct toomuchpolytyp:
 unsigned char count : 8
@@ -228,14 +263,10 @@ unsigned char depth : 8
 
 struct spelltyp:
 symtabref itemid : 8
-bool fire : 1
-bool air : 1
-bool water : 1
-bool earth : 1
-bool entro : 1
-bool light : 1
-bool dark : 1
-bool energy : 1
+magictyp : 8
+void* effect //either missiletyp or mapcoord; mapcoord always iff planer, set the type flag accordingly for the inner planes
+
+struct missiletyp:
 unsigned char damage : 6
 signed char recoil : 7
 unsigned char cost : 4
@@ -288,7 +319,7 @@ slp : u8
 blind : u8
 poly : u8
 
-struct elixtyp:
+struct cursetyp:
 dizzy : b
 psn : b
 prlz : b
@@ -297,18 +328,21 @@ brn : b
 stone : b
 slp : b
 blind : b
-poly : u
-lvl : s
+
+struct elixtyp:
+cursetyp type
+unsigned char poly
+signed char lvl
 
 struct resistyp:
 bool fireproof : 1
 bool waterproof : 1
 bool elecproof : 1
 bool iceproof : 1
-stoneproof
-polyproof 
-sleepproof
-poisonproof
+bool stoneproof : 1
+bool polyproof : 1
+bool sleepproof : 1
+bool poisonproof : 1
 
 struct sensetyp:
 trouble
@@ -323,7 +357,7 @@ chaos
 struct basestattyp:
 the8stats eight
 stattyp stat
-ailmntyp ailsya
+ailmntyp ails_ya
 resistyp resist
 senstyp sense
 skilltyp skill
@@ -336,7 +370,7 @@ signed char spdef
 struct effectyp:
 the8stats eight
 stattyp stat
-ailmntyp ailsya
+ailmntyp ails_ya
 resistyp resist
 senstyp sense
 skilltyp skill
@@ -349,6 +383,7 @@ signed char spdef
 struct paffectyp
 the8stats eight
 stattyp stat
+cursetyp curse
 resistyp resist
 senstyp sense
 skilltyp skill
@@ -356,7 +391,7 @@ magictyp asp
 
 struct potiontyp:
 stattyp stat
-elixtyp ailsya
+elixtyp ails_ya
 resistyp resist
 senstyp sense
 signed short hp
@@ -379,12 +414,18 @@ bool scroll : 1
 unsigned char subject : 2 //0 = calculus, 1 = weapons, 2 = language, 3 = spellcraft
 unsigned char uses : 6
 *void contents
-//can be 
+
+char* wandmaterials[16] = {"oak","ash","yew","honeylocust","silver","bronze","iron","orichalcum","marble","bone","dragon fang","unicorn horn","glass","lead crystal","adamantine","stardust"}
+
+wandtyp:
+unsigned char material : 4
+unsigned char uses : 4
+*spelltyp bound //null is a valid value, meaning empty
 
 //baubobjtype : ring/amulet, effect, the8stats
 
 struct room: //top-down display of a 3d space
-mapcoord gridsquare
+mapcoord latlon
 char pallette[2][8]
 tileset *lowtiles
 tileset *hightiles
@@ -394,6 +435,13 @@ enttype *ent_head
 enttype *ent_tail
 mapobjtyp *obj_head
 mapobjtyp *obj_tail
+coord2 downstair
+coord3 upstair
+/* z coord of the upstair is the maximum height of the map, obviously.
+ * upstair is not rendered on dep=0, but must still be present.
+ * if invalid coords are given for a warp (typically {$FF,$FF}),
+ * then the player is dumped at the downstair.
+ */
 /*      r8 : binary data that is organized into 8 bit segments
  *     r16 : binary data that is organized into 16 bit segments
  *     hex : binary data that is not organized
@@ -401,7 +449,8 @@ mapobjtyp *obj_tail
  *     dat : text data seperated with line breaks
  *     tsv : text data seperated with tabs and line breaks
  *     tab : text data seperated with tabs and line breaks that represents a string table
- * tar.bz2 : if tar is present in path, each room's directory is automatically compressed using an os call to prevent disk hogging (tar -xjf to open, or tar -cjf to store)
+ *  tar.gz : by default, each room's directory is automatically compressed using an os call to prevent disk hogging (tar -xzf to open, or tar -czf to store)
+ * tar.bz2 : by default, each plane's directory is further compressed (tar -xzf to open, or tar -czf to store)
  */
 
 typedef tilemeta* tileset[128]
@@ -452,6 +501,8 @@ unsigned char metadata : 8
 struct eventtyp:
 (self) *prev
 (self) *next
+unsigned char color
+?wchar? symbol
 triggerfunc ifthis(unsigned short,unsigned short,unsigned short,unsigned short)
 eventfunc dothis(unsigned short,unsigned short,unsigned short,unsigned short)
 unsigned short params[4]
@@ -462,12 +513,13 @@ unsigned short duration
 struct traptyp:
 (self) *prev
 (self) *next
-mapcoord gridsquare
+unsigned char color
+?wchar? symbol
 coord3 loc
 unsigned short duration
 magictyp
 stattyp stat
-elixtyp ailsya
+elixtyp ails_ya
 bool fireproof : 1
 bool waterproof : 1
 bool elecproof : 1
@@ -483,8 +535,11 @@ signed short mp
 struct warptyp:
 (self) *prev
 (self) *next
-mapcoord gridsquare
+unsigned char color
+?wchar? symbol
+mapcoord latlon
 coord3 loc
+coord3 dest
 unsigned short duration
 
 struct gemstonetyp:
@@ -508,3 +563,17 @@ TRAP_FLAG : contains traptyp
 EVENT_FLAG : contains eventtyp
 WARP_FLAG : contains warptyp
 GOLD_FLAG : contains an unsigned interger stored as a pointer
+
+each layer is drawn translated +1y if it is above the player and -1y if it is below.
+a shadow is drawn under the player
+layers are drawn from ground to sky; if the player or their shadow would be covered by a tile,
+drawing is stopped and the player is drawn if they have not been already
+to avoid confusion, the player always uses a unique character: ☻, and their shadow: ☺.
+(humans,elves,seaelvs,drow,halfelves are otherwise represented by the traditional @
+other playable races are as follows: § avian,halfdragon,halfelemental,halfoutsider
+other playable races as follows: & foocubus  n faerie,merfolk,dryad  d dwarf  g gnome  o halforc)
+¶ is the shadow of something with wings, ∅ is the shadow of something that...err...doesn't.
+♠ represents weapons. [ is a shield or armor. ♮ represents tools. ¿ represents potions. ∫ is a scroll. ≣ represents books,tablets.
+$ is gold. ◊ is a gemstone. ° is a ring. ª is an amulet. / is a wand. ♒ is a liquid. ⑆ is spikes.
+⌁ is fire or electricity. * is ice. ⏍ is a chest. ⍝ is a door or a tombstone.
+(recommended font: GNU fixed or the unifont. recommended terminal: xterm 256colors)
