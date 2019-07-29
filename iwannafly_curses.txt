@@ -46,10 +46,14 @@ struct scoord2:
 signed char x
 signed char y
 
-struct mapcoord:
+struct mapcoord: //surface terrain generation by dice roll from pregenerated blocks. doungeon generation by algorithem tbd
 signed short lat
 signed short lon
 unsigned char dep
+bool moon : 1
+bool shift : 1
+signed char az : 3
+signed char el : 3
 
 struct cylinder:
 unsigned char r
@@ -68,10 +72,6 @@ nochaos : b1
 typedef char* stabs[256] //symbol table strings
 typedef void* fstab[256] //filesystem table
 typedef unsigned char symtabref
-
-typedef char* lowtileset[32]
-typedef char* hightileset[128]
-typedef signed char tilesetref
 
 stabs itemstabs //stuff that doesn't go anywhere else
 stabs spellstabs //spells
@@ -120,7 +120,7 @@ paffectyp permenent
 effectyp fromequip
 aligntyp basealign
 scoord2 align
-unsigned short hp
+unsigned short hp //they're fun and easy to...wait
 unsigned short mp
 unsigned long xp
 unsigned char lvl
@@ -386,22 +386,25 @@ unsigned char uses : 6
 struct room: //top-down display of a 3d space
 mapcoord gridsquare
 char pallette[2][8]
-lowtileset *lowtiles
-hightileset *hightiles
-tilemeta *tiledata[8][16][80]
-tilesetref ground
+tileset *lowtiles
+tileset *hightiles
+signed char *tiledata[8][16][80]
+signed char *ground
 enttype *ent_head
 enttype *ent_tail
 mapobjtyp *obj_head
 mapobjtyp *obj_tail
-/*  r8 : binary data that is organized into 8 bit segments
- * r16 : binary data that is organized into 16 bit segments
- * hex : binary data that is not organized
- * csv : text data seperated with commas and line breaks
- * dat : text data seperated with line breaks
- * tsv : text data seperated with tabs and line breaks
- * tab : text data seperated with tabs and line breaks that represents a string table
+/*      r8 : binary data that is organized into 8 bit segments
+ *     r16 : binary data that is organized into 16 bit segments
+ *     hex : binary data that is not organized
+ *     csv : text data seperated with commas and line breaks
+ *     dat : text data seperated with line breaks
+ *     tsv : text data seperated with tabs and line breaks
+ *     tab : text data seperated with tabs and line breaks that represents a string table
+ * tar.bz2 : if tar is present in path, each room's directory is automatically compressed using an os call to prevent disk hogging (tar -xjf to open, or tar -cjf to store)
  */
+
+typedef tilemeta* tileset[128]
 
 struct tilemeta:
 bool climb
@@ -413,7 +416,7 @@ bool elec
 bool hurts
 bool breaks
 unsigned char color
-tilesetref sym
+?wchar? symbol
 
 pseudosubroutine getsym
 	{
@@ -505,25 +508,3 @@ TRAP_FLAG : contains traptyp
 EVENT_FLAG : contains eventtyp
 WARP_FLAG : contains warptyp
 GOLD_FLAG : contains an unsigned interger stored as a pointer
-
-lowtileset ibmpc:
-␀☺☻♥♦♣♠•◘○◙♂♀♪♫☼
-►◄↕‼¶§▬↨↑↓→←∟↔▲▼
-
-lowtileset blockelements:
-▀▁▂▃▄▅▆▇█▉▊▋▌▍▎▏
-▐░▒▓▔▕▖▗▘▙▚▛▜▝▞▟
-
-hightileset boxdrawings:
-─━│┃┄┅┆┇┈┉┊┋┌┍┎┏
-┐┑┒┓└┕┖┗┘┙┚┛├┝┞┟
-┠┡┢┣┤┥┦┧┨┩┪┫┬┭┮┯
-┰┱┲┳┴┵┶┷┸┹┺┻┼┽┾┿
-╀╁╂╃╄╅╆╇╈╉╊╋╌╍╎╏
-═║╒╓╔╕╖╗╘╙╚╛╜╝╞╟
-╠╡╢╣╤╥╦╧╨╩╪╫╬╭╮╯
-╰╱╲╳╴╵╶╷╸╹╺╻╼╽╾╿
-
-hightileset curses_acs:
-*self-explainatory*
-
