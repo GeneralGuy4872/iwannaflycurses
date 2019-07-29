@@ -575,5 +575,5 @@ other playable races as follows: & foocubus  n faerie,merfolk,dryad  d dwarf  g 
 ¶ is the shadow of something with wings, ∅ is the shadow of something that...err...doesn't.
 ♠ represents weapons. [ is a shield or armor. ♮ represents tools. ¿ represents potions. ∫ is a scroll. ≣ represents books,tablets.
 $ is gold. ◊ is a gemstone. ° is a ring. ª is an amulet. / is a wand. ♒ is a liquid. ⑆ is spikes.
-⌁ is fire or electricity. * is ice. ⏍ is a chest. ⍝ is a door or a tombstone.
+⌁ is fire or electricity. * is ice. ⏍ is a chest. ⍝ is a door or a tombstone. ! or ? represent events, like quests.
 (recommended font: GNU fixed or the unifont. recommended terminal: xterm 256colors)
