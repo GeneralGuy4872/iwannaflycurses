@@ -1,10 +1,37 @@
+/* Hey, you. yeah, you. who do you think I'm talking to; the mouse?
+ *
+ * you found the seeecret extended documentation, aka the source code!
+ * the sorce code, and witty comments, are intended to supplement the
+ * manpages, as well as give a deeper understanding of the program.
+ */
+
+/* the 3d version of Iwannafly started off as a general RT-RPG library that
+ * then became narrowed to a specific game. this version was originally
+ * supposed to be the same game reworked for ncurses,
+ * but is now becoming closer to the general library concept,
+ * similar to a RPG ruleset that allows creation of
+ * your own setting and plot (you know the one).
+ * a default one will be provided, however, based on the 3d game's concept,
+ * but extended well beyond the projected capabilities of that engine.
+ */
+
 setlocale(LC_ALL, "");
 
 #define BRIGHT 8
 //example: BRIGHT+COLOR_RED
 
+#include <math.h>
+#ifndef M_SQRT2
+#error enviroment is not sane (math.h)
+#endif
+//IT. HAS. ONE JOB.
+
 #ifndef _XOPEN_SOURCE_EXTENDED
 #define _XOPEN_SOURCE_EXTENDED
+#endif
+
+#ifndef _Rune
+typedef unsigned short Rune //I'll do it this way and let C take it from there.
 #endif
 
 import //psudocode, not python
@@ -16,17 +43,22 @@ mainh__file_cat
  * since there is no such thing in C and it thus has to be in the function's name
  */
 
-pseudosubroutine ERROR_GRAPHIC("short text") //should also output __FILE__ and __LINE__, which will likely be the program's version of undecipherable hex codes to everyone but me
+pseudosubroutine ERROR_GRAPHIC("short text",int foo,int bar) //should also output __FILE__ and __LINE__, which will likely be the program's version of undecipherable hex codes to everyone but me
 *╮  Error
 ╭┴╮  "short text"
-│!│ File: file.c
-╰─╯ Line: 19
+│!│ N1 = foo
+╰─╯ N2 = bar
+File: file.c
+Line: 19
 
 playertyp PLAYER
 roomtyp ROOM
 unsigned long long TURN
+unsigned char ROOMTURN
 unsigned long KILLS
 char* SAVEPATH
+enttype *PURS_head //pursuers, i.e. paid assasins, ninjas, the reaper...
+enttype *PURS_tail
 
 struct coord3:
 unsigned char x
@@ -62,10 +94,10 @@ planecoord plane
 /* when combined with shift, moon becomes outer planes, and shadow becomes off-plane
  *
  * az	elemental	afterlife	corrilation
- * 0	water		neutral good	nurtures
+ * 0	water		neutral good	nurturer
  * 1	ice		chaotic good	the ends justify the means
- * 2	air		chaotic neutral	blows your kite into trees
- * 3	electricity	chaotic evil	the dark side is strong with this one
+ * 2	air		chaotic neutral	those dang wind mages, always stealing princesses...
+ * 3	electricity	chaotic evil	force lightning
  * 4	fire		neutral evil	obviously
  * 5	metal		lawful evil	greed
  * 6	earth		lawful neutral	stubborn
@@ -79,20 +111,27 @@ planecoord plane
  * el	"		"		"
  * +1	light		true neutral	enlightenment
  * -1	darkness	mindless	mold can't see
- * -2	entropy		betrayers	abandon all hope ye who enter here
+ * -2	entropy		oathbreakers	abandon all hope ye who enter here
  *
  * by combining the shift and shadow fields, you can go to the
  * ethereal (inner) and asteral (outer) planes,
  * but only the worthy can withstand the inter-planer energy.
  * all others are instantly blasted with all permenent status effects, including stoning.
  *
- * errors related to this area generate the string "froze to death on pluto"
+ * errors related to this section generate the string "froze to death on pluto", N1=az,N2=el
  */
 
 struct cylinder:
-unsigned char r
-unsigned char z
-
+unsigned char r : 6
+unsigned char z : 3
+unsigned char _z : 3
+bool show : 1
+unsigned char color : 3
+ /* cylinders, (the shape, not this datatype) are used extensively.
+  * players move in cylindrical coordinate space.
+  * event areas are specified as cylinders
+  * monster aggro ranges are a cylinder
+  */
 struct aligntyp:
 isgood : b1
 isevil : b1
@@ -105,27 +144,39 @@ nochaos : b1
 
 typedef char* stabs[256] //symbol table strings
 typedef void* fstab[256] //filesystem table
+typedef void* tabtab[8]
 typedef unsigned char symtabref //beware of missingno glitches!
 
 stabs itemstabs //stuff that doesn't go anywhere else
 stabs spellstabs //spells
-stabs armstabs //armor and weapons
+stabs weapstabs //weapons
+stabs armstabs //armor
+stabs shldstabs //shield, cannon, greeves
 stabs baubstabs //rings and amulets
 fstab itemtable
 fstab spelltable
+fstab weaptable
 fstab armtable
+fstab shldtable
 fstab baubtable
 
 stabs classnames //$00 is changeling, $01 is fighter, $02 is valkyrie, $03 is magic-user, $03 is rogue...
 fstab classtable //is freed after startup; initial values for PLAYER
 
-fstab polytable =
+stabs polystabs =
 {"human","elf","dwarf","gnome","hobbit","half elf","drow","avian","half orc","half dragon","half celestial","half fiend","half air elemental","half water elemental","half earth elemental","half fire elemental",
 "merfolk","seaelf","dryad","foocubus","faerie"}; //...
-
+fstab polytable
 /* contains all polymorphable monsters, of type BASENTYPE.
  * Only C0 control characters may be initial races. any polymorphable race can BECOME your base race...
  */
+stabs verminstabs
+fstab vermintable
+stabs outsiderstabs
+fstab outsidertable
+
+tabtab racemasterstabs = {&polystabs,&verminstabs,&outsiderstabs} //...
+tabtab racemastertable = {&polytable,&vermintable,&outsidertable} //...
 
 struct the8stats:
 stren : 5
@@ -167,35 +218,38 @@ heldobjtyp *spell_head
 heldobjtyp *spell_tail
 heldobjtyp *bag_head
 heldobjtyp *bag_tail
-subobjtyp weap_left
-subobjtyp weap_right
-subobjtyp shield
-subobjtyp bow
-subobjtyp armor
-subobjtyp cape
-subobjtyp helm
-subobjtyp gloves
-subobjtyp boots
-subobjtyp amul
-subobjtyp ringl
-subobjtyp ringr
+subobjtyp weap_left	//weapon
+subobjtyp weap_right	//weapon
+subobjtyp shield	//shld
+subobjtyp bow	//weapon
+subobjtyp armor	//armor
+subobjtyp cape	//armor
+subobjtyp helm	//armor
+subobjtyp gloves	//armor
+subobjtyp cannon	//shld
+subobjtyp boots	//armor
+subobjtyp greev	//shld
+subobjtyp amul	//baub
+subobjtyp ringl	//baub
+subobjtyp ringr	//baub
 
 psudosubroutine update_player
 /* resets .fromequip , then iterates through the entire equipment list to regenerate it.
  * must be called every time equipment is changed to ensure that it is up to date
  * effects in .permenent can only be removed by finding something that affects the opposite change
  * changes to your starting alignment or base race are generally rare and disasterous, as they represent
- * the corruption of the character in some way (i.e. if you recursively polymorph, you may forget who you are.
+ * the corruption of the character in some way (i.e. if you recursively polymorph,
+ * or are polymorphed while turning to stone, you may forget who you are. this does cure stoning.
  * if this happens and you become a race that is not a c0 control character,
- * your class will be set to $00:changling
+ * your class will be set to $00:changling.)
+ * other entities can only be polymorphed into things in their own symbol table.
  */
 
 struct basentyp:
-char* name
 aligntyp alignmask
 effectyp base
-float spd
-float fly //distance calculations use M_SQRT2 for diagonals
+unsigned char spd //distance calculations use M_SQRT2 for diagonals
+unsigned char fly
 unsigned char hplvl
 unsigned char mplvl
 unsigned char xplvl
@@ -204,33 +258,42 @@ symtabref lang1 : 6
 symtabref spell0
 symtabref spell1
 unsigned char color
-?wchar? symbol
+Rune symbol
+
+struct aggrotyp:
+bool trig : 1
+unsigned char r : 6
+unsigned char z : 3
+unsigned char _z : 3
+unsigned char cooldn : 3
 
 struct enttyp:
 (self) *prev
 (self) *next
-basentype* race
+symtabref tableid
+symtabref race
 coord3 loc
-effectyp bonus
+effectyp effect
 unsigned short hp
-unsigned short mp
-unsigned long xp
+unsigned short xp
 unsigned char lvl
-signed short food
-unsigned short gold
+unsigned char gold
+aggrotyp aggro
 subobjtyp loot
 subobjtyp weap_left
 subobjtyp weap_right
 subobjtyp shield
 subobjtyp bow
-subobjtyp *armor
-subobjtyp *cape
-subobjtyp *helm
-subobjtyp *gloves
-subobjtyp *boots
-subobjtyp *amul
-subobjtyp *ringl
-subobjtyp *ringr
+subobjtyp armor
+subobjtyp cape
+subobjtyp helm
+subobjtyp gloves
+subobjtyp cannon
+subobjtyp boots
+subobjtyp greev
+subobjtyp amul
+subobjtyp ringl
+subobjtyp ringr
 
 struct heldobjtyp:
 (self) *prev
@@ -270,10 +333,11 @@ struct missiletyp:
 unsigned char damage : 6
 signed char recoil : 7
 unsigned char cost : 4
-unsigned char spread : 2 //0 = line, 1 = narrow, 2 = wide, 3 = very wide
-unsigned char splash : 3 //taxicab radius of damage on impact
-bool spz : 1 //spread and splash in the z plane. OP PLZ NRF
+unsigned char spread : 2 //0 = line, 1 = narrow (1:3), 2 = wide (1:2), 3 = very wide (1:1)
+unsigned char splash : 3 //radius of damage on impact
+bool spz : 1 //spread and splash in the z plane. spread on the z plane is capped to ± spread (literal)
 bool dig : 1 
+//if (.spread != 0), slope = 4-.spreaad
 
 struct baseweaptyp:
 bool fire : 1
@@ -297,6 +361,19 @@ effectyp
 unsigned char def : 8
 unsigned char spdef : 8
 unsigned char extfort : 8
+
+struct baseshldtyp:
+bool fireproof : 1
+bool waterproof : 1
+bool elecproof : 1
+bool iceproof : 1
+bool reflect : 1
+bool entro : 1
+bool light : 1
+bool dark : 1
+effectyp
+unsigned char def : 8
+unsigned char spdef : 8
 
 struct stattyp:
 caster
@@ -437,20 +514,24 @@ mapobjtyp *obj_head
 mapobjtyp *obj_tail
 coord2 downstair
 coord3 upstair
+coord3 home
 /* z coord of the upstair is the maximum height of the map, obviously.
  * upstair is not rendered on dep=0, but must still be present.
  * if invalid coords are given for a warp (typically {$FF,$FF}),
- * then the player is dumped at the downstair.
+ * then the player is dumped at the location indicated by home.
+ *
+ * if the player has invalid coords, then the error string "fell out of terminal",N1=x,N2=y is generated.
  */
-/*      r8 : binary data that is organized into 8 bit segments
- *     r16 : binary data that is organized into 16 bit segments
- *     hex : binary data that is not organized
- *     csv : text data seperated with commas and line breaks
- *     dat : text data seperated with line breaks
- *     tsv : text data seperated with tabs and line breaks
- *     tab : text data seperated with tabs and line breaks that represents a string table
- *  tar.gz : by default, each room's directory is automatically compressed using an os call to prevent disk hogging (tar -xzf to open, or tar -czf to store)
- * tar.bz2 : by default, each plane's directory is further compressed (tar -xzf to open, or tar -czf to store)
+
+/*      .r8 : binary data that is organized into 8 bit segments
+ *     .r16 : binary data that is organized into 16 bit segments
+ *     .hex : binary data that is not organized
+ *     .csv : text data seperated with commas and line breaks
+ *     .dat : text data seperated with line breaks only
+ *     .tsv : text data seperated with tabs and line breaks
+ *     .tab : text data seperated with tabs and line breaks that represents a string table
+ *  .tar.gz : by default, each room's directory is automatically compressed using an os call to prevent disk hogging (tar -xzf to open, or tar -czf to store)
+ * .tar.bz2 : by default, each plane's directory is further compressed (tar -xzf to open, or tar -czf to store)
  */
 
 typedef tilemeta* tileset[128]
@@ -465,7 +546,7 @@ bool elec
 bool hurts
 bool breaks
 unsigned char color
-?wchar? symbol
+Rune symbol
 
 pseudosubroutine getsym
 	{
@@ -496,13 +577,13 @@ bool cursed : 1
 bool oxi : 1
 bool burned : 1
 signed char bonus : 5
-unsigned char metadata : 8
+bool qflag : 1
+unsigned char metadata : 7
 
 struct eventtyp:
 (self) *prev
 (self) *next
-unsigned char color
-?wchar? symbol
+Rune symbol
 triggerfunc ifthis(unsigned short,unsigned short,unsigned short,unsigned short)
 eventfunc dothis(unsigned short,unsigned short,unsigned short,unsigned short)
 unsigned short params[4]
@@ -514,7 +595,7 @@ struct traptyp:
 (self) *prev
 (self) *next
 unsigned char color
-?wchar? symbol
+Rune symbol
 coord3 loc
 unsigned short duration
 magictyp
@@ -536,7 +617,7 @@ struct warptyp:
 (self) *prev
 (self) *next
 unsigned char color
-?wchar? symbol
+Rune symbol
 mapcoord latlon
 coord3 loc
 coord3 dest
@@ -552,8 +633,10 @@ enum objid:
 WEAPON_FLAG : contains subobjtyp calling baseweaptyp
 POTION_FLAG : contains potiontyp
 READ_FLAG : contains readtyp
+FOOD_FLAG : contains foodtyp
 MEAT_FLAG : contains meattyp
 ARMOR_FLAG : contains subobjtyp calling basearmortyp
+SHLD_FLAG : contains subobjtyp calling baseshldtyp
 BAUB_FLAG : contains subobjtyp calling baubtyp
 CONLANG_FLAG : contains conlangtyp
 SPELL_FLAG : contains spelltyp
@@ -564,16 +647,28 @@ EVENT_FLAG : contains eventtyp
 WARP_FLAG : contains warptyp
 GOLD_FLAG : contains an unsigned interger stored as a pointer
 
+pseudosubroutine radius
+uses floats to define a circle,
+terminating on the pixal that is
+GE than the input. one function won't
+cover all use cases.
+
 each layer is drawn translated +1y if it is above the player and -1y if it is below.
 a shadow is drawn under the player
 layers are drawn from ground to sky; if the player or their shadow would be covered by a tile,
 drawing is stopped and the player is drawn if they have not been already
-to avoid confusion, the player always uses a unique character: ☻, and their shadow: ☺.
+to avoid confusion, by default the player always uses a unique character: ☻, and their shadow: ☺.
 (humans,elves,seaelvs,drow,halfelves are otherwise represented by the traditional @
 other playable races are as follows: § avian,halfdragon,halfelemental,halfoutsider
 other playable races as follows: & foocubus  n faerie,merfolk,dryad  d dwarf  g gnome  o halforc)
-¶ is the shadow of something with wings, ∅ is the shadow of something that...err...doesn't.
-♠ represents weapons. [ is a shield or armor. ♮ represents tools. ¿ represents potions. ∫ is a scroll. ≣ represents books,tablets.
-$ is gold. ◊ is a gemstone. ° is a ring. ª is an amulet. / is a wand. ♒ is a liquid. ⑆ is spikes.
-⌁ is fire or electricity. * is ice. ⏍ is a chest. ⍝ is a door or a tombstone. ! or ? represent events, like quests.
-(recommended font: GNU fixed or the unifont. recommended terminal: xterm 256colors)
+¶ is the shadow of something with wings, ␀ is the shadow of something that...err...doesn't.
+♠ represents weapons. [ is armor. ] is a shield, cannons, or greeves. ♮ represents tools.
+¿ represents potions. ∫ is a scroll. ≣ represents books,tablets. $ is gold. ◊ is a gemstone.
+° is a ring. ª is an amulet. / is a wand. ~ is a liquid. ∧ is spikes. ␣ is a chair. ⋎ is a fountain.
+⌁ is fire or electricity. * is ice. ⏍ is a chest. ⍝ is a sign or tombstone. ? is invisible. ! is a quest.
+␋ is a light. ⌘ is a misc item. ␥ is a locked door. ⌥ is a key or lockpick. ⍰ is a missingno.
+
+(recommended font: GNU fixed or the unifont; glyphs used are guarunteed to display properly in these fonts.
+recommended terminal: xterm 256colors, what else would I be using?)
+
+first food item will be a can of spam
