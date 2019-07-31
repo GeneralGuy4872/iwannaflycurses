@@ -297,8 +297,8 @@ subobjtyp greev	//shld
 subobjtyp amul	//baub
 subobjtyp ringl	//baub
 subobjtyp ringr	//baub
-subobjtyp wristl //baub
-subobjtyp wristr //baub
+subobjtyp wristl	//baub
+subobjtyp wristr	//baub
 
 psudosubroutine update_player
 /* resets .fromequip , then iterates through the entire equipment list to regenerate it.
