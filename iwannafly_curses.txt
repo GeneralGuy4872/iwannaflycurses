@@ -17,6 +17,31 @@
 
 setlocale(LC_ALL, "");
 
+/* because of the spelling based internals
+ * of the CLI commands, translateing the library
+ * would require rewriting large switch tables.
+ *
+ * ESC enters console mode, with the prompt symbol of :
+ * fgets will get an input string
+ * strtok will break up the string into words
+ * the tokenized string is read according to mode and submode
+ *
+ * for toplevel commands and some specifiers,
+ *  branching on getc will eventually turn words
+ *  into enum tokens based on the mode.
+ *  users need not type the entire command,
+ *  just the unique part. this routine returns
+ *  toplevel commands return a dispatch table index
+ *  and set the main mode, specifiers set the submode
+ *  and change an argument from it's default state.
+ *
+ * if the mode expects an in-game name,
+ *  !(strcmp) is used on the relevant table
+ *
+ * if the mode expects a number, atoi is used.
+ *
+ */
+
 #define BRIGHT 8
 //example: BRIGHT+COLOR_RED
 
@@ -24,7 +49,7 @@ setlocale(LC_ALL, "");
 #ifndef M_SQRT2
 #error enviroment is not sane (math.h)
 #endif
-//IT. HAS. ONE JOB.
+//IT. HAS. ONE JOB. HERE.
 
 #ifndef _XOPEN_SOURCE_EXTENDED
 #define _XOPEN_SOURCE_EXTENDED
@@ -77,6 +102,11 @@ signed char z
 struct scoord2:
 signed char x
 signed char y
+
+struct diceodds:
+unsigned char num : 3
+unsigned char side : 5
+unsigned char tobeat : 8
 
 struct planecoord:
 bool shadow : 1 //dark world
@@ -133,50 +163,86 @@ unsigned char color : 3
   * monster aggro ranges are a cylinder
   */
 struct aligntyp:
-isgood : b1
-isevil : b1
-islaw : b1
-ischaos : b1
+good : b1
+evil : b1
+law : b1
+chaos : b1
 nogood : b1
 noevil : b1
 nolaw : b1
 nochaos : b1
+/* used as a mask.
+ * alignment is allowed to be any of the high nibble.
+ * alignment may NOT be any of the low nibble, marked "no".
+ * alignment may always be true neutral.
+ */
+
+fstab cli_dispatch = <pointers to command functions>
+
+enum cli_modeid = <list of full command names>
+
+struct cli_submode:
+bool number
+stabs* stabs_ptr
+
+struct bitfield:
+a : 1
+b : 1
+c : 1
+d : 1
+w : 1
+x : 1
+y : 1
+z : 1
 
 typedef char* stabs[256] //symbol table strings
 typedef void* fstab[256] //filesystem table
-typedef void* tabtab[8]
 typedef unsigned char symtabref //beware of missingno glitches!
 
-stabs itemstabs //stuff that doesn't go anywhere else
+stabs itemstabs //stuff that doesn't go anywhere else; i.e. arrows, keys, quest items
 stabs spellstabs //spells
 stabs weapstabs //weapons
 stabs armstabs //armor
 stabs shldstabs //shield, cannon, greeves
 stabs baubstabs //rings and amulets
+stabs legendstabs //legendary items
 fstab itemtable
 fstab spelltable
 fstab weaptable
 fstab armtable
 fstab shldtable
 fstab baubtable
+fstab legendtable
 
-stabs classnames //$00 is changeling, $01 is fighter, $02 is valkyrie, $03 is magic-user, $03 is rogue...
-fstab classtable //is freed after startup; initial values for PLAYER
+typedef classobjtyp:
+classtyp
+magictyp
+
+typedef classtyp:
+unsigned char type : 2
+unsigned char class : 3
+bool law_and_good : 1
+bool true_neutral : 1
+bool chaos_or_evil : 1
+
+char* roguestabs = {"changeling","rogue","thief","pirate","ninja","assasin","tourist","ronan"}
+char* fighterstabs = {"fighter","knight","paladin","valkyrie","viking","samuri","ranger","monk"}
+char* magicuserstabs = {"magic-user","wizard","illusionist","enchanter","black mage","red mage","psion","necromancer"}
+char* healerstabs = {"healer","cleric","priest","druid","alchemist","scholar","white mage","seer"}
+
+playertyp classtable[4][8] //is freed after startup; initial values for PLAYER
 
 stabs polystabs =
 {"human","elf","dwarf","gnome","hobbit","half elf","drow","avian","half orc","half dragon","half celestial","half fiend","half air elemental","half water elemental","half earth elemental","half fire elemental",
 "merfolk","seaelf","dryad","foocubus","faerie"}; //...
 fstab polytable
 /* contains all polymorphable monsters, of type BASENTYPE.
- * Only C0 control characters may be initial races. any polymorphable race can BECOME your base race...
+ * Only C0 control characters may be initial races.
+ * any polymorphable race can BECOME your base race...
+ * polymorph autocomplete is implemented using switches.
  */
-stabs verminstabs
-fstab vermintable
-stabs outsiderstabs
-fstab outsidertable
-
-tabtab racemasterstabs = {&polystabs,&verminstabs,&outsiderstabs} //...
-tabtab racemastertable = {&polytable,&vermintable,&outsidertable} //...
+stabs mon2stabs
+fstab mon2table
 
 struct the8stats:
 stren : 5
@@ -197,14 +263,13 @@ bool w : 1
 char* conlangtab[64] ={lingua franca,thieves cant,middle elvish,old elvish,dwarvish,gnomish,gothic,orkish,draconic,fey,celestic,blackspeech,skyspeak,waterspeak,earthspeak,firespeak}
 
 struct playertyp:
-symtabref class
+classtyp class
 symtabref startrace
 symtabref polyrace
 toomuchpolytyp polycounter
 coord3 loc
 paffectyp permenent
 effectyp fromequip
-aligntyp basealign
 scoord2 align
 unsigned short hp //they're fun and easy to...wait
 unsigned short mp
@@ -232,6 +297,8 @@ subobjtyp greev	//shld
 subobjtyp amul	//baub
 subobjtyp ringl	//baub
 subobjtyp ringr	//baub
+subobjtyp wristl //baub
+subobjtyp wristr //baub
 
 psudosubroutine update_player
 /* resets .fromequip , then iterates through the entire equipment list to regenerate it.
@@ -261,16 +328,18 @@ unsigned char color
 Rune symbol
 
 struct aggrotyp:
+bool shiftable : 1 //look around and tell me where else to put it.
 bool trig : 1
+signed char peace : 2
 unsigned char r : 6
 unsigned char z : 3
 unsigned char _z : 3
-unsigned char cooldn : 3
 
 struct enttyp:
 (self) *prev
 (self) *next
-symtabref tableid
+aggrotyp aggro
+unsigned char cooldown
 symtabref race
 coord3 loc
 effectyp effect
@@ -278,7 +347,6 @@ unsigned short hp
 unsigned short xp
 unsigned char lvl
 unsigned char gold
-aggrotyp aggro
 subobjtyp loot
 subobjtyp weap_left
 subobjtyp weap_right
@@ -294,6 +362,8 @@ subobjtyp greev
 subobjtyp amul
 subobjtyp ringl
 subobjtyp ringr
+subobjtyp wristl
+subobjtyp wristr
 
 struct heldobjtyp:
 (self) *prev
@@ -301,28 +371,27 @@ struct heldobjtyp:
 objid type
 void* data
 
-struct subobject:
-symtabref itemid
+struct subobjtyp:
+symtabref itemid : 8
 bool cursed : 1
 bool oxide : 1
 bool burned : 1
 signed char bonus : 5
-unsigned char metadata : 8
+unsigned char metadata : 8 //secondary symtabref for legendary objects
 
 struct magictyp:
-fire
-air
-water
-earth
-entro
-light
-dark
-planer
+bool fire : 1
+bool air : 1
+bool water : 1
+bool earth : 1
+bool entro : 1 //entropy is not light. entropy is not darkness. entropy is balance. entropy is fate; doom; *death*. not things you want to be on the wrong end of.
+bool light : 1 //light is not necisarrily good
+bool dark : 1 //dark is not necisarrily evil
+bool planer : 1
 
 struct toomuchpolytyp:
 unsigned char count : 8
 unsigned char depth : 8
-
 
 struct spelltyp:
 symtabref itemid : 8
@@ -355,6 +424,31 @@ bool warded : 1
 bool unbreak : 1
 unsigned char skill : 3
 unsigned char damage : 8
+
+legendobjtyp:
+the8stats eight
+resistyp resist
+senstyp sense
+skilltyp skill
+legendtyp flags
+
+legendtyp:
+bool fire : 1
+bool air : 1
+bool water : 1
+bool earth : 1
+bool entro : 1
+bool light : 1
+bool dark : 1
+bool fireproof : 1
+bool waterproof : 1
+bool elecproof : 1
+bool iceproof : 1
+bool warded : 1
+bool unbreak : 1
+bool vamp : 1
+bool drain : 1
+bool intrest : 1
 
 struct basearmortyp:
 effectyp
@@ -473,6 +567,7 @@ resistyp resist
 senstyp sense
 signed short hp
 signed short mp
+diceodds odds
 
 struct skilltyp:
 nibble sword
@@ -492,14 +587,20 @@ unsigned char subject : 2 //0 = calculus, 1 = weapons, 2 = language, 3 = spellcr
 unsigned char uses : 6
 *void contents
 
-char* wandmaterials[16] = {"oak","ash","yew","honeylocust","silver","bronze","iron","orichalcum","marble","bone","dragon fang","unicorn horn","glass","lead crystal","adamantine","stardust"}
+char* wandmaterials[16] = {"oak","ash","yew","honeylocust","silver","bronze","iron","orichalcum","marble","bone","dragon fang","unicorn horn","glass","lead crystal","adamantine","stardust"} //stoning -> marble
 
 wandtyp:
-unsigned char material : 4
+unsigned char matter : 4
 unsigned char uses : 4
 *spelltyp bound //null is a valid value, meaning empty
 
-//baubobjtype : ring/amulet, effect, the8stats
+char* baubmaterials[8] = {"yew","bronze","silver","gold","plastic","ivory","obsidian","stardust"} //stoning -> obsidian
+
+baubtype :
+signed char type : 2 //0=ring, 1=amulet, -1=amulet, -2=disappearing amulet
+unsigned char matter : 3
+unsigned char color : 3
+paffect enchnt
 
 struct room: //top-down display of a 3d space
 mapcoord latlon
@@ -573,12 +674,13 @@ struct mapobjtyp:
 coord3 pos
 objid type
 void* data
-bool cursed : 1
-bool oxi : 1
-bool burned : 1
-signed char bonus : 5
 bool qflag : 1
-unsigned char metadata : 7
+bool good : 1
+bool evil : 1
+bool law : 1
+bool chaos : 1
+bool noneutral : 1
+unsigned char class : 2
 
 struct eventtyp:
 (self) *prev
@@ -601,6 +703,7 @@ unsigned short duration
 magictyp
 stattyp stat
 elixtyp ails_ya
+diceodds odds
 bool fireproof : 1
 bool waterproof : 1
 bool elecproof : 1
@@ -623,9 +726,32 @@ coord3 loc
 coord3 dest
 unsigned short duration
 
+char* gemcolors[8] = {"jet","sapphire","emerald","turquoise","ruby","amythest","heliodor","diamond"} //stoning has no effect
+/* cut varys by color:
+ * diamond = {uncut,cushion-cut,princess-cut,perfect-cut}
+ * beryls,emerald={uncut,oval-cut,emerald-cut,teardrop} redundancy of emerald-cut emerald is redundant
+ * amythest={geode,prismatic,cushion-cut,teardrop}
+ * jet,turquoise={piece of,byzantine,polyhedral,carved relif in}
+ */
+
 struct gemstonetyp:
-nibble color : 4
+nibble color : 3
+unsigned char quality : 2
+unsigned char cut : 2
+
+struct meattyp:
+symtabref race : 8
+bool hightable : 1
+unsigned char amount : 7
+
+foodbasetyp:
+paffectyp effect
+diceodds odds
+subfoodbasetyp nutri
+
+subfoodbasetyp:
 unsigned short value : 12
+unsigned char percent_bite : 4
 
 always (unsigned short,unsigned short,unsigned short,unsigned short) {return 1}
 
@@ -633,8 +759,8 @@ enum objid:
 WEAPON_FLAG : contains subobjtyp calling baseweaptyp
 POTION_FLAG : contains potiontyp
 READ_FLAG : contains readtyp
-FOOD_FLAG : contains foodtyp
-MEAT_FLAG : contains meattyp
+FOOD_FLAG : contains subobjtyp containing foodtyp
+MEAT_FLAG : contains subobjtyp containing meattyp
 ARMOR_FLAG : contains subobjtyp calling basearmortyp
 SHLD_FLAG : contains subobjtyp calling baseshldtyp
 BAUB_FLAG : contains subobjtyp calling baubtyp
@@ -664,9 +790,10 @@ other playable races as follows: & foocubus  n faerie,merfolk,dryad  d dwarf  g 
 ¶ is the shadow of something with wings, ␀ is the shadow of something that...err...doesn't.
 ♠ represents weapons. [ is armor. ] is a shield, cannons, or greeves. ♮ represents tools.
 ¿ represents potions. ∫ is a scroll. ≣ represents books,tablets. $ is gold. ◊ is a gemstone.
-° is a ring. ª is an amulet. / is a wand. ~ is a liquid. ∧ is spikes. ␣ is a chair. ⋎ is a fountain.
-⌁ is fire or electricity. * is ice. ⏍ is a chest. ⍝ is a sign or tombstone. ? is invisible. ! is a quest.
-␋ is a light. ⌘ is a misc item. ␥ is a locked door. ⌥ is a key or lockpick. ⍰ is a missingno.
+° is a ring. º is a bracelet. ª is an amulet. / is a wand. ~ is a liquid. ∧ is spikes.
+␣ is a chair. ⋎ is a fountain. ⌁ is fire or electricity. * is ice. ⏍ is a chest.
+⍝ is a sign or tombstone. ? is invisible. ! is a quest. ␋ is a light. ⌘ is a misc item.
+␥ is a locked door. ⌥ is a key or lockpick. ⍰ is a missingno.
 
 (recommended font: GNU fixed or the unifont; glyphs used are guarunteed to display properly in these fonts.
 recommended terminal: xterm 256colors, what else would I be using?)
