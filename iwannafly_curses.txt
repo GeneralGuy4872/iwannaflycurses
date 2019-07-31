@@ -232,10 +232,10 @@ char* healerstabs = {"healer","cleric","priest","druid","alchemist","scholar","w
 
 playertyp classtable[4][8] //is freed after startup; initial values for PLAYER
 
-stabs polystabs =
+stabs mon1stabs =
 {"human","elf","dwarf","gnome","hobbit","half elf","drow","avian","half orc","half dragon","half celestial","half fiend","half air elemental","half water elemental","half earth elemental","half fire elemental",
 "merfolk","seaelf","dryad","foocubus","faerie"}; //...
-fstab polytable
+fstab mon1table
 /* contains all polymorphable monsters, of type BASENTYPE.
  * Only C0 control characters may be initial races.
  * any polymorphable race can BECOME your base race...
@@ -653,18 +653,11 @@ pseudosubroutine getsym
 	{
 	if (sym < 0)
 		{
-		cursesprint(hightileset[~sym]) //bit inverse intentional
+		cursesprint(.hightiles[sym^-128]) //xor intentional
 		}
 	else
 		{
-		if (sym < ' ')
-			{
-			cursesprint(lowtileset[sym]) //catch c0 characters
-			}
-		else
-			{
-			cursesprint(sym) //if ascii leave as is
-			}
+		cursesprint(.lowtiles[sym])
 		}
 	}
 
