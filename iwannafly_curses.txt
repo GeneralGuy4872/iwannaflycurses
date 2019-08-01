@@ -670,6 +670,12 @@ bool chaos : 1
 bool noneutral : 1
 unsigned char class : 2
 
+struct chestyp:
+heldobjtyp *bag_head
+heldobjtyp *bag_tail
+cursetyp trap
+bool locked //grr, packing
+
 struct eventtyp:
 (self) *prev
 (self) *next
@@ -787,7 +793,7 @@ other playable races are as follows: § avian,halfdragon,halfelemental,halfoutsi
 ° is a ring. º is a bracelet. ª is an amulet. / is a wand. ~ is a liquid. ∧ is spikes.
 ␣ is a chair. ⋎ is a fountain. ⌁ is fire or electricity. * is ice. ⏍ is a chest.
 ⍝ is a sign or tombstone. ? is invisible. ! is a quest. ␋ is a light. ⌘ is a misc item.
-␥ is a locked door. ⌥ is a key or lockpick. % is food (don't shoot). ⍰ is a missingno.
+⍠ is a door. ⌹ is a locked door. ⌥ is a key or lockpick. % is food (don't shoot). ⍰ is a missingno.
 
 (recommended font: GNU fixed or the unifont; glyphs used are guarunteed to display properly in these fonts.
 recommended terminal: xterm 256colors, what else would I be using?)
