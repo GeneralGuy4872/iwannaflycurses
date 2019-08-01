@@ -592,7 +592,7 @@ unsigned char uses : 4
 char* baubmaterials[8] = {"yew","bronze","silver","gold","plastic","ivory","obsidian","stardust"} //stoning -> obsidian
 
 baubtype :
-signed char type : 2 //0=ring, 1=amulet, -1=amulet, -2=disappearing amulet
+signed char type : 2 //0=ring, 1=bracelet, -1=amulet, -2=disappearing amulet
 unsigned char matter : 3
 unsigned char color : 3
 paffectyp enchnt
