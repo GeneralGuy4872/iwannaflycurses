@@ -241,7 +241,7 @@ fstab mon1table
  * any polymorphable race can BECOME your base race...
  * polymorph autocomplete is implemented using switches.
  */
-stabs mon2stabs
+stabs mon2stabs //must include: chicken, duck, cow, pig
 fstab mon2table
 
 struct the8stats:
@@ -394,7 +394,14 @@ unsigned char count : 8
 unsigned char depth : 8
 
 struct spelltyp:
-symtabref itemid : 8
+symtabref itemid
+diceodds odds
+unsigned char prof
+
+struct basespelltyp:
+bool poly : 1
+bool heal : 1
+unsigned char pow : 6
 magictyp : 8
 void* effect //either missiletyp or mapcoord; mapcoord always iff planer, set the type flag accordingly for the inner planes
 
@@ -525,19 +532,6 @@ evil
 law
 chaos
 
-struct basestattyp:
-the8stats eight
-stattyp stat
-ailmntyp ails_ya
-resistyp resist
-senstyp sense
-skilltyp skill
-magictyp asp
-signed char atk
-signed char spatk
-signed char def
-signed char spdef
-
 struct effectyp:
 the8stats eight
 stattyp stat
@@ -600,7 +594,7 @@ baubtype :
 signed char type : 2 //0=ring, 1=amulet, -1=amulet, -2=disappearing amulet
 unsigned char matter : 3
 unsigned char color : 3
-paffect enchnt
+paffectyp enchnt
 
 struct room: //top-down display of a 3d space
 mapcoord latlon
@@ -735,16 +729,21 @@ unsigned char cut : 2
 struct meattyp:
 symtabref race : 8
 bool hightable : 1
-unsigned char amount : 7
+unsigned char sellby : 7
+unsigned char amount : 8
+
+struct foodtyp:
+symtabref itemid
+symtabref metadata
+unsigned char sellby
+unsigned char amount
 
 foodbasetyp:
 paffectyp effect
 diceodds odds
-subfoodbasetyp nutri
-
-subfoodbasetyp:
-unsigned short value : 12
-unsigned char percent_bite : 4
+unsigned char keepsfor
+unsigned char hp
+unsigned char nutri
 
 always (unsigned short,unsigned short,unsigned short,unsigned short) {return 1}
 
@@ -791,4 +790,292 @@ other playable races as follows: & foocubus  n faerie,merfolk,dryad  d dwarf  g 
 (recommended font: GNU fixed or the unifont; glyphs used are guarunteed to display properly in these fonts.
 recommended terminal: xterm 256colors, what else would I be using?)
 
-first food item will be a can of spam
+unsigned char getsixbit_template() {
+switch (getc(stdin)) {
+	case '!' :
+		return 01;
+		break;
+	case '"' :
+		return 02;
+		break;
+	case '#' :
+		return 03;
+		break;
+	case '$' :
+		return 04;
+		break;
+	case '%' :
+		return 05;
+		break;
+	case '&' :
+		return 06;
+		break;
+	case '\'' : noop();
+	case '`' :
+		return 07;
+		break;
+	case '(' :
+		return 010;
+		break;
+	case ')' :
+		return 011;
+		break;
+	case '*' :
+		return 012;
+		break;
+	case '+' :
+		return 013;
+		break;
+	case ',' :
+		return 014;
+		break;
+	case '-' :
+		return 015;
+		break;
+	case '.' :
+		return 016;
+		break;
+	case '/' :
+		return 017;
+		break;
+	case '0' :
+		return 020;
+		break;
+	case '1' :
+		return 021;
+		break;
+	case '2' :
+		return 022;
+		break;
+	case '3' :
+		return 023;
+		break;
+	case '4' :
+		return 024;
+		break;
+	case '5' :
+		return 025;
+		break;
+	case '6' :
+		return 026;
+		break;
+	case '7' :
+		return 027;
+		break;
+	case '8' :
+		return 030;
+		break;
+	case '9' :
+		return 031;
+		break;
+	case ':' :
+		return 032;
+		break;
+	case ';' :
+		return 033;
+		break;
+	case '<' :
+		return 034;
+		break;
+	case '=' :
+		return 035;
+		break;
+	case '>' :
+		return 036;
+		break;
+	case '?' :
+		return 037;
+		break;
+	case '@' :
+		return 040;
+		break;
+	case 'A' : noop();
+	case 'a' :
+		return 041;
+		break;
+	case 'B' : noop();
+	case 'b' :
+		return 042;
+		break;
+	case 'C' : noop();
+	case 'c' :
+		return 043;
+		break;
+	case 'D' : noop();
+	case 'd' :
+		return 044;
+		break;
+	case 'E' : noop();
+	case 'e' :
+		return 045;
+		break;
+	case 'F' : noop();
+	case 'f' :
+		return 046;
+		break;
+	case 'G' : noop();
+	case 'g' :
+		return 047;
+		break;
+	case 'H' : noop();
+	case 'h' :
+		return 050;
+		break;
+	case 'I' : noop();
+	case 'i' :
+		return 051;
+		break;
+	case 'J' : noop();
+	case 'j' :
+		return 052;
+		break;
+	case 'K' : noop();
+	case 'k' :
+		return 053;
+		break;
+	case 'L' : noop();
+	case 'l' :
+		return 054;
+		break;
+	case 'M' : noop();
+	case 'm' :
+		return 055;
+		break;
+	case 'N' : noop();
+	case 'n' :
+		return 056;
+		break;
+	case 'O' : noop();
+	case 'o' :
+		return 057;
+		break;
+	case 'P' : noop();
+	case 'p' :
+		return 060;
+		break;
+	case 'Q' : noop();
+	case 'q' :
+		return 061;
+		break;
+	case 'R' : noop();
+	case 'r' :
+		return 062;
+		break;
+	case 'S' : noop();
+	case 's' :
+		return 063;
+		break;
+	case 'T' : noop();
+	case 't' :
+		return 064;
+		break;
+	case 'U' : noop();
+	case 'u' :
+		return 065;
+		break;
+	case 'V' : noop();
+	case 'v' :
+		return 066;
+		break;
+	case 'W' : noop();
+	case 'w' :
+		return 067;
+		break;
+	case 'X' : noop();
+	case 'x' :
+		return 070;
+		break;
+	case 'Y' : noop();
+	case 'y' :
+		return 071;
+		break;
+	case 'Z' : noop();
+	case 'z' :
+		return 072;
+		break;
+	case '[' : noop();
+	case '{' :
+		return 073;
+		break;
+	case '\' : noop();
+	case '|' :
+		return 074;
+		break;
+	case ']' : noop();
+	case '}' :
+		return 075;
+		break;
+	case '^' : noop();
+	case '~' :
+		return 076;
+		break;
+	case '_' :
+		return 077;
+		break;
+	default :
+		return 0;
+		break;
+	}
+}
+
+foods (* = uses meta)
+hardtak tortilla cornmeal cornbread
+flour cheese wine bread
+mead ale scotch ethenol
+grapes fig date plum
+apple banana apricot papaya
+orange pear pinapple coconut
+kiwi dragonfruit durin peach
+grapefruit lemon lime citron
+spinach artichoke asparagus bamboo
+cucumbers zuccini pickles squash
+carrot corn potato celery
+brocoli lettuce cabbage kale
+cauliflower raddish turnip beets
+rhubarb pumpkin avacodo jalapenos
+beans greenbeans tomato eggplant
+blackolives greenolives garlic onions
+watercress chives ketchup mustard
+parsly sage rosmary thyme
+basil oregano allspice nutmeg
+salt bellpeppers peppercorns redpepper
+vanillabean cinnimonstick cocoabean sugarbeet
+walnut pecan cashew peanut
+sunflowerseed pistachio almond chestnuts
+cranberrys blueberrys raspberry blackberry
+strawberry cherry peppermint pawpaw
+sugarcane syrup* molasses honey
+seseme poppy fennel eyeofnewt
+mushroom* truffel penecillin yeast
+barly wheat rye rice
+ginger sasafrass blueraspberries bubbles 
+geletin starch creamoftartar bakingpowder
+vinager bakingsoda calciumhydroxide hemlock
+popcorn nachos cookies milk
+pasta(uncooked) pasta ramen(uncooked) ramen*
+dumplings(uncooked) dumplings* tofu(uncooked) tofu
+meatballs marinara alfredosauce parmisian
+lasagnia* pizza* spaghetti alfredo
+spaghetti&meatballs ramen&dumplings chickenalfredo brocllialfredo
+guacamole nachos* chili salsa
+pie* cake* soda* chips
+salad* hotdog* hamburger* fries
+vanilla cinnimon chocolate sugar
+cocoapowder cocoabutter cocoaliquor fudge
+egg shortening/fat* caramel butterscotch
+sourcream butter mayo dressing*
+pie* piealamode* englishfruitcake bread*
+cake* pancake* waffle* stackofpancakes*
+frozenpancake frozenwaffle flavoredmilk* juice*
+roast* gravy xandgravy* xchicken*
+bakedpotato loadedbakedpotato mashpotatos tatties&neeps
+sunnysideup overeasy scrambled hardboiled
+bacon sausage jerky* spam
+nutbrittle* trailmix rasin* sandwich*
+baconlettucetomatosandwich clubsandwich peanutbutterjellysandwich peanutbutterbananasandwich
+milkshake* icecream* sorbet* icecreamfloat*
+icecreamcone* banannasplit neopolitan rockyroad
+gumdrop* hardcandy* candycane filledchocolate*
+jelly* jam* preserves* peanutbutter
+icecube snow ember dropletoflifeforce
+broth* stew* ration mistake
