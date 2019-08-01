@@ -662,7 +662,7 @@ struct mapobjtyp:
 coord3 pos
 objid type
 void* data
-bool qflag : 1
+bool hidden : 1
 bool good : 1
 bool evil : 1
 bool law : 1
@@ -792,8 +792,9 @@ other playable races are as follows: § avian,halfdragon,halfelemental,halfoutsi
 ¿ represents potions. ∫ is a scroll. ≣ represents books,tablets. $ is gold. ◊ is a gemstone.
 ° is a ring. º is a bracelet. ª is an amulet. / is a wand. ~ is a liquid. ∧ is spikes.
 ␣ is a chair. ⋎ is a fountain. ⌁ is fire or electricity. * is ice. ⏍ is a chest.
-⍝ is a sign or tombstone. ? is invisible. ! is a quest. ␋ is a light. ⌘ is a misc item.
+⍝ is a sign or tombstone. ? is invisible. ! is a trap. ␋ is a light. ⌘ is a misc item.
 ⍠ is a door. ⌹ is a locked door. ⌥ is a key or lockpick. % is food (don't shoot). ⍰ is a missingno.
+⍚ is a floaty magic crystal. ✪ is a magic symbol on the floor. 
 
 (recommended font: GNU fixed or the unifont; glyphs used are guarunteed to display properly in these fonts.
 recommended terminal: xterm 256colors, what else would I be using?)
