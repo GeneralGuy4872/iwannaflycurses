@@ -779,14 +779,15 @@ drawing is stopped and the player is drawn if they have not been already
 to avoid confusion, by default the player always uses a unique character: ☻, and their shadow: ☺.
 (humans,elves,seaelvs,drow,halfelves are otherwise represented by the traditional @
 other playable races are as follows: § avian,halfdragon,halfelemental,halfoutsider
-other playable races as follows: & foocubus  n faerie,merfolk,dryad  d dwarf  g gnome  o halforc)
+& foocubus  n faerie,merfolk,dryad  d dwarf  g gnome  o halforc)
+
 ¶ is the shadow of something with wings, ␀ is the shadow of something that...err...doesn't.
 ♠ represents weapons. [ is armor. ] is a shield, cannons, or greeves. ♮ represents tools.
 ¿ represents potions. ∫ is a scroll. ≣ represents books,tablets. $ is gold. ◊ is a gemstone.
 ° is a ring. º is a bracelet. ª is an amulet. / is a wand. ~ is a liquid. ∧ is spikes.
 ␣ is a chair. ⋎ is a fountain. ⌁ is fire or electricity. * is ice. ⏍ is a chest.
 ⍝ is a sign or tombstone. ? is invisible. ! is a quest. ␋ is a light. ⌘ is a misc item.
-␥ is a locked door. ⌥ is a key or lockpick. ⍰ is a missingno.
+␥ is a locked door. ⌥ is a key or lockpick. % is food (don't shoot). ⍰ is a missingno.
 
 (recommended font: GNU fixed or the unifont; glyphs used are guarunteed to display properly in these fonts.
 recommended terminal: xterm 256colors, what else would I be using?)
