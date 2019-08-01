@@ -527,7 +527,7 @@ struct sensetyp:
 trouble
 hidden
 invis
-gold
+infra
 good
 evil
 law
