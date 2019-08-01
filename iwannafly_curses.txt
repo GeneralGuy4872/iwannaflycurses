@@ -205,14 +205,15 @@ stabs weapstabs //weapons
 stabs armstabs //armor
 stabs shldstabs //shield, cannon, greeves
 stabs baubstabs //rings and amulets
-stabs legendstabs //legendary items
 fstab itemtable
 fstab spelltable
 fstab weaptable
 fstab armtable
 fstab shldtable
 fstab baubtable
-fstab legendtable
+
+char* legendstabs[16] = {"truthseeker"/*bow*/,"sword of justice","excalibur","sickle of chaos","stormbringer","devilfork","partisen of tyrants","deathscyth","sunray"/*spear*/,"nightedge","firebrand","tesla's mace","stormgale"/*bow*/,"frostpike","trident of the seas","groundshaker"}
+legendtyp legendtable[16]
 
 typedef classobjtyp:
 classtyp
@@ -221,14 +222,14 @@ magictyp
 typedef classtyp:
 unsigned char type : 2
 unsigned char class : 3
-bool law_and_good : 1
-bool true_neutral : 1
-bool chaos_or_evil : 1
+bool law_good : 1
+bool neutral : 1
+bool chaos_evil : 1
 
-char* roguestabs = {"changeling","rogue","thief","pirate","ninja","assasin","tourist","ronan"}
-char* fighterstabs = {"fighter","knight","paladin","valkyrie","viking","samuri","ranger","monk"}
-char* magicuserstabs = {"magic-user","wizard","illusionist","enchanter","black mage","red mage","psion","necromancer"}
-char* healerstabs = {"healer","cleric","priest","druid","alchemist","scholar","white mage","seer"}
+char* roguestabs[8] = {"changeling","rogue","thief","pirate","ninja","assasin","tourist","ronan"}
+char* fighterstabs[8] = {"fighter","knight","paladin","valkyrie","viking","samuri","ranger","monk"}
+char* magicuserstabs[8] = {"magic-user","wizard","illusionist","enchanter","black mage","red mage","psion","necromancer"}
+char* healerstabs[8] = {"healer","cleric","priest","druid","alchemist","scholar","white mage","seer"}
 
 playertyp classtable[4][8] //is freed after startup; initial values for PLAYER
 
@@ -432,14 +433,14 @@ bool unbreak : 1
 unsigned char skill : 3
 unsigned char damage : 8
 
-legendobjtyp:
+legendtyp:
 the8stats eight
 resistyp resist
 senstyp sense
 skilltyp skill
-legendtyp flags
+legendflagtyp flags
 
-legendtyp:
+legendflagtyp:
 bool fire : 1
 bool air : 1
 bool water : 1
