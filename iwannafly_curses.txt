@@ -325,8 +325,8 @@ symtabref lang0 : 6
 symtabref lang1 : 6
 symtabref spell0
 symtabref spell1
-unsigned char color
 Rune symbol
+unsigned char color : 4
 
 struct aggrotyp:
 bool shiftable : 1 //look around and tell me where else to put it.
