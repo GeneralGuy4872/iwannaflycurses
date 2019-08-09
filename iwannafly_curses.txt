@@ -3,6 +3,14 @@
  * you found the seeecret extended documentation, aka the source code!
  * the sorce code, and witty comments, are intended to supplement the
  * manpages, as well as give a deeper understanding of the program.
+ *
+ * enviromental requirements:
+ * - UTF-8
+ * - "Fixed" font
+ * - 24x80 chars bigger
+ * - 16 or more fg colors
+ * - 8 or more bg colors
+ * - Bold, Underline, Reverse, Blink
  */
 
 /* the 3d version of Iwannafly started off as a general RT-RPG library that
@@ -11,7 +19,7 @@
  * but is now becoming closer to the general library concept,
  * similar to a RPG ruleset that allows creation of
  * your own setting and plot (you know the one).
- * a default one will be provided, however, based on the 3d game's concept,
+ * a default one will be provided, however, based on the 3d game's story,
  * but extended well beyond the projected capabilities of that engine.
  */
 
@@ -21,14 +29,11 @@ setlocale(LC_ALL, "");
  * of the CLI commands, translateing the library
  * would require rewriting large switch tables.
  *
- * ESC enters console mode, with the prompt symbol of :
- * fgets will get an input string
- * strtok will break up the string into words
- * the tokenized string is read according to mode and submode
+ * meta enters console mode, with the prompt symbol of :
  *
  * for toplevel commands and some specifiers,
- *  branching on getc will eventually turn words
- *  into enum tokens based on the mode.
+ *  branching on array elements will eventually
+ *  turn words into enum tokens based on the mode.
  *  users need not type the entire command,
  *  just the unique part. this routine returns
  *  toplevel commands return a dispatch table index
@@ -36,14 +41,18 @@ setlocale(LC_ALL, "");
  *  and change an argument from it's default state.
  *
  * if the mode expects an in-game name,
- *  !(strcmp) is used on the relevant table
+ *  fscanf is used to get a single word
+ *  underscores are replaced with spaces
+ *  strcmp is used against the relevant stabs
  *
  * if the mode expects a number, atoi is used.
- *
  */
 
-#define BRIGHT 8
-//example: BRIGHT+COLOR_RED
+#define BRIGHT 010
+#define BACKGROUND 0x10
+/* example: (BACKGROUND*COLOR_BLUE)+BRIGHT+COLOR_RED
+ * color pairs are a complete 16 * 8 PC-XT color combination grid
+ */
 
 #include <math.h>
 #ifndef M_SQRT2
@@ -77,13 +86,53 @@ File: file.c
 Line: 19
 
 playertyp PLAYER
+mapcoord TORUS
 roomtyp ROOM
 unsigned long long TURN
+turntyp DATE
 unsigned char ROOMTURN
 unsigned long KILLS
 char* SAVEPATH
 enttype *PURS_head //pursuers, i.e. paid assasins, ninjas, the reaper...
 enttype *PURS_tail
+
+struct turntyp:
+unsigned char sec : 6
+unsigned char min : 6
+unsigned char hour : 5
+unsigned char day : 5
+unsigned char weekday : 3
+unsigned char month : 4
+unsigned short year : 11
+
+bool ticktock() {
+TURN++;
+if (ROOMTURN < 200) {ROOMTURN++;}
+DATE.sec += 6;
+if (DATE.sec >= 60) {
+	DATE.sec = 0;
+	DATE.min++;
+	if (DATE.min >= 60) {
+		DATE.min = 0;
+		DATE.hour++;
+		if (DATE.hour >= 24) {
+			DATE.hour = 0;
+			DATE.weekday++
+			if (DATE.weekday >= 7) {DATE.weekday = 0;}
+			DATE.day++;
+			if (DATE.day >= 30) {
+				DATE.day = 0;
+				DATE.month++;
+				if (DATE.month >= 12) {
+					DATE.month = 0;
+					DATE.year++;
+				}
+			}
+		}
+	}
+}
+
+
 
 struct coord3:
 unsigned char x
@@ -115,10 +164,13 @@ bool shift : 1 //are you plane shifted?
 unigned char az : 3 //azimuth on a plane chart
 signed char el : 2
 
+struct latlontyp:
+signed short lat : 9
+signed short lon : 9
+unsigned char dep : 6
+
 struct mapcoord: //surface terrain generation by dice roll from pregenerated blocks. doungeon generation by algorithem tbd. some coords will generate fixed special rooms
-signed char lat
-signed char lon
-unsigned char dep
+latlontyp latlon
 planecoord plane
 
 /* when combined with shift, moon becomes outer planes, and shadow becomes off-plane
@@ -126,7 +178,7 @@ planecoord plane
  * az	elemental	afterlife	corrilation
  * 0	water		neutral good	nurturer
  * 1	ice		chaotic good	the ends justify the means
- * 2	air		chaotic neutral	those dang wind mages, always stealing princesses...
+ * 2	air		chaotic neutral	princess stealing
  * 3	electricity	chaotic evil	force lightning
  * 4	fire		neutral evil	obviously
  * 5	metal		lawful evil	greed
@@ -144,7 +196,7 @@ planecoord plane
  * -2	entropy		oathbreakers	abandon all hope ye who enter here
  *
  * by combining the shift and shadow fields, you can go to the
- * ethereal (inner) and asteral (outer) planes,
+ * æthereal (inner) and asteral (outer) planes,
  * but only the worthy can withstand the inter-planer energy.
  * all others are instantly blasted with all permenent status effects, including stoning.
  *
@@ -407,6 +459,7 @@ magictyp : 8
 void* effect //either missiletyp or mapcoord; mapcoord always iff planer, set the type flag accordingly for the inner planes
 
 struct missiletyp:
+cursetyp curse
 unsigned char damage : 6
 signed char recoil : 7
 unsigned char cost : 4
@@ -565,14 +618,14 @@ signed short mp
 diceodds odds
 
 struct skilltyp:
-nibble sword
-nibble stave
-nibble club
-nibble shield
-nibble bow
-nibble throw
-nibble locks
-nibble monk
+unsigned char sword : 4
+unsigned char stave : 4
+unsigned char club : 4
+unsigned char shield : 4
+unsigned char bow : 4
+unsigned char throw : 4
+unsigned char locks : 4
+unsigned char monk : 4
 
 readtyp:
 unsigned char locale : 6
@@ -587,22 +640,20 @@ char* wandmaterials[16] = {"oak","ash","yew","honeylocust","silver","bronze","ir
 wandtyp:
 unsigned char matter : 4
 unsigned char uses : 4
-*spelltyp bound //null is a valid value, meaning empty
+symtabref bound : 8
 
-char* baubmaterials[8] = {"yew","bronze","silver","gold","plastic","ivory","obsidian","stardust"} //stoning -> obsidian
+char* baubmaterials[8] = {"yew","bronze","silver","gold","soapstone","ivory","obsidian","stardust"} //stoning -> soapstone
 
 baubtype :
-signed char type : 2 //0=ring, 1=bracelet, -1=amulet, -2=disappearing amulet
+signed char type : 2 //0=ring, 1=bracelet, -1=amulet
 unsigned char matter : 3
 unsigned char color : 3
 paffectyp enchnt
 
 struct room: //top-down display of a 3d space
-mapcoord latlon
-char pallette[2][8]
 tileset *lowtiles
 tileset *hightiles
-signed char *tiledata[8][16][80]
+signed char *tiledata[8][20][80]
 signed char *ground
 enttype *ent_head
 enttype *ent_tail
@@ -676,6 +727,28 @@ heldobjtyp *bag_tail
 cursetyp trap
 bool locked //grr, packing
 
+mitemtyp
+symtabref itemid : 8
+
+struct mitembasetyp:
+bool key : 1
+bool pick : 1
+bool dig : 1
+bool music : 1
+bool light : 1
+bool book : 1
+bool spark : 1
+bool quest : 1
+bool fireproof : 1
+bool waterproof : 1
+bool elecproof : 1
+bool iceproof : 1
+bool stoneproof : 1
+bool arrow : 1
+bool poisoned : 1
+bool unbreak : 1
+unsigned char uses : 8
+
 struct eventtyp:
 (self) *prev
 (self) *next
@@ -715,8 +788,9 @@ struct warptyp:
 (self) *next
 unsigned char color
 Rune symbol
-mapcoord latlon
+mapcoord great_loc
 coord3 loc
+mapcoord great_dest
 coord3 dest
 unsigned short duration
 
@@ -729,7 +803,7 @@ char* gemcolors[8] = {"jet","sapphire","emerald","turquoise","ruby","amythest","
  */
 
 struct gemstonetyp:
-nibble color : 3
+unsigned char color : 3
 unsigned char quality : 2
 unsigned char cut : 2
 
@@ -746,7 +820,7 @@ unsigned char sellby
 unsigned char amount
 
 foodbasetyp:
-paffectyp effect
+effectyp effect
 diceodds odds
 unsigned char keepsfor
 unsigned char hp
@@ -765,7 +839,7 @@ SHLD_FLAG : contains subobjtyp calling baseshldtyp
 BAUB_FLAG : contains subobjtyp calling baubtyp
 CONLANG_FLAG : contains conlangtyp
 SPELL_FLAG : contains spelltyp
-SPECIAL_FLAG : contains specitemtyp
+MISC_FLAG : contains itemtyp
 GEM_FLAG : contains gemstonetyp
 TRAP_FLAG : contains traptyp
 EVENT_FLAG : contains eventtyp
@@ -774,30 +848,38 @@ GOLD_FLAG : contains an unsigned interger stored as a pointer
 
 pseudosubroutine radius
 uses floats to define a circle,
-terminating on the pixal that is
+terminating on the symbol that is
 GE than the input. one function won't
 cover all use cases.
 
-each layer is drawn translated +1y if it is above the player and -1y if it is below.
+each layer is drawn translated +1y for each layer above the player and -1y for each layer below.
 a shadow is drawn under the player
 layers are drawn from ground to sky; if the player or their shadow would be covered by a tile,
 drawing is stopped and the player is drawn if they have not been already
-to avoid confusion, by default the player always uses a unique character: ☻, and their shadow: ☺.
+a symbol with a symbol of nul will be interpreted as transparent.
+
+to avoid confusion, by default the player always uses a unique character: ☻
 (humans,elves,seaelvs,drow,halfelves are otherwise represented by the traditional @
 other playable races are as follows: § avian,halfdragon,halfelemental,halfoutsider
 & foocubus  n faerie,merfolk,dryad  d dwarf  g gnome  o halforc)
 
-¶ is the shadow of something with wings, ␀ is the shadow of something that...err...doesn't.
-♠ represents weapons. [ is armor. ] is a shield, cannons, or greeves. ♮ represents tools.
-¿ represents potions. ∫ is a scroll. ≣ represents books,tablets. $ is gold. ◊ is a gemstone.
-° is a ring. º is a bracelet. ª is an amulet. / is a wand. ~ is a liquid. ∧ is spikes.
-␣ is a chair. ⋎ is a fountain. ⌁ is fire or electricity. * is ice. ⏍ is a chest.
-⍝ is a sign or tombstone. ? is invisible. ! is a trap. ␋ is a light. ⌘ is a misc item.
-⍠ is a door. ⌹ is a locked door. ⌥ is a key or lockpick. % is food (don't shoot it).
-⍚ is a floaty magic crystal. ✪ is a magic symbol on the floor.  ⍰ is a missingno.
+¶ is the shadow of something with wings, ● is the shadow of something that...err...doesn't. An entity on the ground is underlined.
+) is a melee weapon. ( is a bow. [ is armor. ] is a shield, cannons, or greeves. ♮ is a misc item.
+¿ represents potions (fragile). ∫ is a scroll. ≣ represents books,tablets. $ is gold. ◇ is a gemstone.
+° is a ring. º is a bracelet. ª is an amulet. / is a wand. ~ is a liquid's surface. ∧ is spikes.
+␣ is a chair. ⋎ is a fountain. ⌁ is fire. ↯ is electricity. * is ice. ⏍ is a chest.
+⍝ is a sign or tombstone. ? is invisible. ! is a trap. ☼ is a light. ⌘ is a special item.
+⍠ is a door. ⌹ is a locked door. ⌥ is a key or lockpick. % is food (don't shoot food).
+⇓ ⇑ are stairs. ◊ is a giant magic crystal. ✪ is a magic rune on the floor.
+☠ is poison. ◬ is a wind rune. ↹ is a warp rune. ☤ is a polymorph rune. ♥ is a health rune.
+← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. ⇥ is a landed projectile.
+♠ ♣ are trees. ♜ is a stone wall. ▼ is a boulder.
+∅ is an entopic anomoly (do not touch).
+⍰ is a missingno.
 
-(recommended font: GNU fixed or the unifont; glyphs used are guarunteed to display properly in these fonts.
-recommended terminal: xterm 256colors, what else would I be using?)
+BOLD symbols are petrified (statues).
+REVERSE video is a magic spell's area of effect, or an identified rune.
+BLINK is something that requires your attention.
 
 unsigned char getsixbit_template() {
 switch (getc(stdin)) {
@@ -1088,3 +1170,57 @@ gumdrop* hardcandy* candycane filledchocolate*
 jelly* jam* preserves* peanutbutter
 icecube snow ember dropletoflifeforce
 broth* stew* ration mistake
+
+pseudosubroutine playermove(xmove,ymove,zmove)
+signed char xmove
+signed char ymove
+signed char zmove
+{
+PLAYER.pos.x += xmove
+if (PLAYER.pos.x < 0) {
+	PLAYER.pos.x = 79
+	mapscroll(-1,0)
+	}
+else if (PLAYER.pos.x >= 80) {
+	PLAYER.pos.x = 0
+	mapscroll(1,0)
+	}
+
+PLAYER.pos.y += ymove
+if (PLAYER.pos.y < 0) {
+	PLAYER.pos.y = 19
+	mapscroll(0,-1)
+	}
+else if (PLAYER.pos.x >= 20) {
+	PLAYER.pos.x = 0
+	mapscroll(0,1,0)
+	}
+
+PLAYER.pos.z += zmove
+CLAMP(PLAYER.pos.z,0,7)
+}
+
+pseudosubroutine mapscroll(latmove,lonmove)
+signed char latmove
+signed char lonmove
+{
+some_func_save&tar_currentroom
+
+TORUS.coord.lat += latmove
+if (TORUS.coord.lat > 180) {
+	TORUS.coord.lat = -179
+	}
+else if (TORUS.coord.lat <= -180) {
+	TORUS.coord.lat = 180
+	}
+
+TORUS.coord.lon += lonmove
+if (TORUS.coord.lon > 180) {
+	TORUS.coord.lon = -179
+	}
+else if (TORUS.coord.lon <= -180) {
+	TORUS.coord.lon = 180
+	}
+
+some_func_untar&load_currentroom
+}
