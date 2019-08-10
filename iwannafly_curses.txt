@@ -162,8 +162,6 @@ Line: 19
  [A]bort?
   [Z] continue?
 
-strike any key to restart...
-
 playertyp PLAYER
 coord3 PLAYERSHD //position of player's shadow, for renderer
 mapcoord TORUS
