@@ -922,8 +922,8 @@ an underline is a shadow
 ^ is a crown. / is a wand. ~ is a liquid. ≈ is a liquid's surface. ␣ is a hole. ⋎ is a fountain. ∪ is a sink. 
 △ is fire. ⌁ is electricity. * is ice. ⋏ are spikes. ⌸ is a door. ⍯ is a locked door. ⏍ is a chest. 
 ? is invisible. ! is a trap. ☼ is a light source. ⍝ is a tombstone. ¶ is a signpost. ␥ is glass.
-✪ is a magic rune. ☠ is poison gas. ↹ is a warp. § is a polymorph trap.
-◊ is a boulder or giant magic crystal. ♠ ♣ are trees. ♜ is a stone turret. ▒ is the edge of darkness.
+✪ is a magic rune. ☠ is poison gas. ↹ is a warp. § is a polymorph trap. ▒ is the edge of darkness.
+∅ is a boulder. ◊ is a giant magic crystal. ♠ ♣ are trees. ♜ is a stone turret.
 ← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. % is a pulsar (do not touch).
 box drawings are low walls. █ is a thick wall. < > are level stairs. ≣ is a ladder.
 ⍰ is a missingno.
@@ -931,9 +931,9 @@ box drawings are low walls. █ is a thick wall. < > are level stairs. ≣ is a 
 BOLD symbols are petrified (statues).
 BLINK is something that requires your attention.
 REVERSE video is a magic spell's area of effect, or an identified rune.
-? air, ◊ earth, △ fire, ≈ water, ⍰ invalid
+? air, ∅ earth, △ fire, ≈ water, ⍰ invalid combination
 * ice, ⌁ electricity, ⍏ metal, ♠ nature
-☠ poison/stoning, % entropy, ☼ light, ▒ dark
+☠ poison/sleep/stoning, % entropy, ☼ light, ▒ dark
 
 unsigned char getsixbit_template() {
 switch (getc(stdin)) {
