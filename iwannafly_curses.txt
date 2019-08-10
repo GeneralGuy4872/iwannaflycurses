@@ -10,13 +10,13 @@
  * - 24x80 chars term or bigger
  * - 16 or more fg colors
  * - 8 or more bg colors
- * - Bold, Underline, Reverse, Blink
+ * - Bold, Underline, Reverse, Blink, Invisible
  * - Full Keyboard
  * - Mouse
  */
 
 #define BUFFER_MAX 512
-define FOREVER for (;;)
+#define SQRT3 1.732050807568877293528
 
 /* the 3d version of Iwannafly started off as a general RT-RPG library that
  * then became narrowed to a specific game. this version was originally
@@ -34,7 +34,7 @@ setlocale(LC_ALL, "");
  * localization would require rewriting large
  * ASCII and DEC-SIXBIT switch tables.
  *
- * backslash or grave enter console mode. characters are fetched and printed
+ * backslash enters console mode. characters are fetched and printed
  * with ncurses, as well as stored in a temporary buffer. if the buffer
  * nears a 512 byte limit, command entry is terminated with "SORRY".
  * autocomplete will be implemented, and can be invoked with tab.
@@ -147,6 +147,7 @@ coord3 PLAYERSHD //position of player's shadow, for renderer
 mapcoord TORUS
 roomtyp ROOM
 shadowmask SHADOWKNOWS
+shadowmask SHINEALIGHT
 unsigned long long TURN
 turntyp DATE
 unsigned char ROOMTURN
@@ -191,7 +192,7 @@ if (DATE.sec >= 60) {
 	}
 }
 
-
+//→x ↓y ↑z
 
 struct coord3:
 unsigned char x
@@ -263,16 +264,15 @@ planecoord plane
  */
 
 struct cylinder:
-unsigned char r : 6
-unsigned char z : 3
-unsigned char _z : 3
-bool show : 1
-unsigned char color : 3
+unsigned char r : 8
+unsigned char up : 4
+unsigned char down : 4
  /* cylinders, (the shape, not this datatype) are used extensively.
   * players move in cylindrical coordinate space.
   * event areas are specified as cylinders
   * monster aggro ranges are a cylinder
   */
+
 struct aligntyp:
 good : b1
 evil : b1
@@ -422,7 +422,7 @@ psudosubroutine update_player
  * the corruption of the character in some way (i.e. if you recursively polymorph,
  * or are polymorphed while turning to stone, you may forget who you are. this does cure stoning.
  * if this happens and you become a race that is not a c0 control character,
- * your class will be set to $00:changling.)
+ * your class will be set to changling.)
  * other entities can only be polymorphed into things in their own symbol table.
  */
 
@@ -447,8 +447,8 @@ bool shiftable : 1 //look around and tell me where else to put it.
 bool trig : 1
 signed char peace : 2
 unsigned char r : 6
-unsigned char z : 3
-unsigned char _z : 3
+unsigned char up : 3
+unsigned char down : 3
 
 struct enttyp:
 (self) *prev
@@ -720,14 +720,13 @@ coord3 home
  *     .r16 : binary data that is organized into 16 bit segments
  *     .hex : binary data that is not organized
  *     .csv : text data seperated with commas and line breaks
- *     .dat : text data seperated with line breaks only
  *     .tsv : text data seperated with tabs and line breaks
- *     .tab : text data seperated with tabs and line breaks that represents a string table
+ *     .dat : text data seperated with $1C to $1F controls
  *  .tar.gz : by default, each room's directory is automatically compressed using an os call to prevent disk hogging (tar -xzf to open, or tar -czf to store)
- * .tar.bz2 : by default, each plane's directory is further compressed (tar -xzf to open, or tar -czf to store)
+ * .tar.bz2 : by default, each plane's directory is further compressed (tar -xjf to open, or tar -cjf to store)
  */
 
-struct shadowmask bitfield[2][20][80]
+struct shadowmask bitfield[20][80]
 
 typedef tilemeta* tileset[128]
 
@@ -819,17 +818,20 @@ magictyp
 stattyp stat
 elixtyp ails_ya
 diceodds odds
+trapflags flags
+senstyp sense
+signed short hp
+signed short mp
+
+struct trapflags:
 bool fireproof : 1
 bool waterproof : 1
 bool elecproof : 1
 bool iceproof : 1
-bool tamperproof
-bool stoneproof
-bool warded
-bool multiuse
-senstyp sense
-signed short hp
-signed short mp
+bool tamperproof : 1
+bool stoneproof : 1
+bool warded : 1
+bool multiuse : 1
 
 struct warptyp:
 (self) *prev
@@ -908,28 +910,30 @@ fluid tiles are transparent.
 
 to avoid confusion, by default the player always uses a unique character: ☻
 (humans,elves,seaelvs,drow,halfelves are otherwise represented by the traditional @
-other playable races are as follows: § avian,halfdragon,halfelemental,halfoutsider
+other playable races are as follows: Æ avian,halfdragon,halfelemental,halfoutsider
 & foocubus  n faerie,merfolk,dryad  d dwarf  g gnome  o halforc)
 
-¶ is the shadow of something with wings, ● is the shadow of something that doesn't.
-anything that casts a shadow is underlined when on the ground.
+an underline is a shadow
 
-) is a sword or dagger. ↾ is a spear or staff. ‡ is a club or mace. ⦅ is a bow. ⟦ is armor. [ is clothing.
-] is a shield. ⟧ are cannons or greeves. ♮ is a misc item. ⌘ is a special item. ¿ are potions (fragile).
+) is a sword or dagger. ⍏ is a polearm. ‡ is a club, staff, or mace. ⦅ is a bow. ⇤ is an arrow.
+⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves.  % is food. $ is gold. · is a rock.
+£ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ⌘ is a special item. ¿ are potions (fragile).
 ∫ is a scroll. ⊒ is a book. ∩ is a tablet. ◆ is a gemstone. ° is a ring. º is a bracelet. ª is an amulet.
 ^ is a crown. / is a wand. ~ is a liquid. ≈ is a liquid's surface. ␣ is a hole. ⋎ is a fountain. ∪ is a sink. 
-∿ is fire. ⌁ is electricity. * is ice. ⋏ is spikes. ⌸ is a door. ⍯ is a locked door. ⌥ is a key or lockpick.
-? is invisible. ! is a trap. ☼ is a light. ⍝ is a tombstone or sign. % is food. $ is gold. ⏍ is a chest.
-✪ is a magic rune. ☠ is poison. ◬ is a wind rune. ↹ is a warp rune. ☤ is a polymorph rune. ♥ is a health rune.
-◊ is a giant magic crystal. ♠ ♣ are trees. ♜ is a stone turret. ■ is a boulder. 
-← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. ⇥ is a landed projectile.
-< > are level stairs. ≣ is a ladder.
-∅ is an entopic anomoly (do not touch).
+△ is fire. ⌁ is electricity. * is ice. ⋏ are spikes. ⌸ is a door. ⍯ is a locked door. ⏍ is a chest. 
+? is invisible. ! is a trap. ☼ is a light source. ⍝ is a tombstone. ¶ is a signpost. ␥ is glass.
+✪ is a magic rune. ☠ is poison gas. ↹ is a warp. § is a polymorph trap. ♥ is a health rune.
+◊ is a boulder or giant magic crystal. ♠ ♣ are trees. ♜ is a stone turret. ▒ is the edge of darkness.
+← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. ∅ is a pulsar (do not touch).
+box drawings are low walls. █ is a thick wall. < > are level stairs. ≣ is a ladder.
 ⍰ is a missingno.
 
 BOLD symbols are petrified (statues).
-REVERSE video is a magic spell's area of effect, or an identified rune.
 BLINK is something that requires your attention.
+REVERSE video is a magic spell's area of effect, or an identified rune.
+? air, ◊ earth, △ fire, ≈ water, ⍰ invalid
+* ice, ⌁ electricity, ⍏ metal, ♠ nature
+☠ poison/stoning, ∅ entropy, ☼ light, ▒ dark
 
 unsigned char getsixbit_template() {
 switch (getc(stdin)) {
@@ -951,8 +955,7 @@ switch (getc(stdin)) {
 	case '&' :
 		return 06;
 		break;
-	case '\'' : noop();
-	case '`' :
+	case '\'' :
 		return 07;
 		break;
 	case '(' :
@@ -1027,9 +1030,8 @@ switch (getc(stdin)) {
 	case '?' :
 		return 037;
 		break;
-	case '\xc6' : noop();
-	case '\xe6' : noop();
-	case '@' :
+	case '@' : noop();
+	case '`' :
 		return 040;
 		break;
 	case 'A' : noop();
@@ -1228,6 +1230,9 @@ signed char xmove
 signed char ymove
 signed char zmove
 {
+xymovecheck(xmove,ymove)
+zmove = zmovecheck(zmove)
+
 PLAYER.pos.x += xmove
 if (PLAYER.pos.x < 0) {
 	PLAYER.pos.x = 79
@@ -1251,6 +1256,19 @@ else if (PLAYER.pos.x >= 20) {
 PLAYER.pos.z += zmove
 CLAMP(PLAYER.pos.z,0,7)
 }
+
+pseudosubroutine xymovecheck(xmove,ymove)
+	- aborts if you're flying
+	- checks to make sure you're not walking off a cliff,
+	  asks for confirmation if you are.
+	- automatically steps if only 1 block of z difference
+	  to another solid block in direction of travel,
+	  moving by a distance of SQRT3 if on a diagonal,
+	  M_SQRT2 otherwise.
+
+pseudosubroutine zmovecheck(zmove)
+	- checks if you can fly
+	- if you can't fly, initiates gravity
 
 pseudosubroutine mapscroll(latmove,lonmove)
 signed char latmove
@@ -1277,11 +1295,10 @@ else if (TORUS.coord.lon <= -180) {
 some_func_untar&load_currentroom
 }
 
-unsigned char pseudosubroutine castshadow(xpos,ypos,zpos,wings)
+unsigned char pseudosubroutine castshadow(xpos,ypos,zpos)
 unsigned char xpos
 unsigned char ypos
 unsigned char zpos
-bool wings
 {
 if (zpos == 0) {
 	return zpos
@@ -1293,12 +1310,12 @@ else if !(mapderef(xpos,ypos,zpos-1).liquid) {
 	zpos--
 	for (;zpos!=0;zpos--) {
 		if (mapderef(xpos,ypos,zpos-1).solid {
-			shadow(xpos,ypos,zpos,wings)
+			underline(xpos,ypos,zpos)
 			if !(mapderef(xpos,ypos,zpos-1).liquid) {
 				return zpos
 				}
 			}
 		}
-	shadow(xpos,ypos,zpos,wings)
+	underline(xpos,ypos,zpos)
 	return zpos
 	}
