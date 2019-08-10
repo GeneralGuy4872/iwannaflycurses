@@ -17,6 +17,7 @@
 
 #define BUFFER_MAX 512
 #define SQRT3 1.732050807568877293528
+#define GRAV 1.352
 
 /* the 3d version of Iwannafly started off as a general RT-RPG library that
  * then became narrowed to a specific game. this version was originally
@@ -65,7 +66,7 @@ setlocale(LC_ALL, "");
 #define BRIGHT 010
 #define BACKGROUND 0x10
 /* example: (BACKGROUND*COLOR_BLUE)+BRIGHT+COLOR_RED
- * color pairs are a complete 16 * 8 PC-XT color combination grid
+ * color pairs are a complete 16 * 8 CGA color combination grid
  */
 
 #include <math.h>
@@ -78,9 +79,18 @@ setlocale(LC_ALL, "");
 #define _XOPEN_SOURCE_EXTENDED
 #endif
 
-#ifndef _Rune
-typedef unsigned short Rune //I'll do it this way and let C take it from there.
-#endif
+/*typedef struct Rune {
+ *unsigned long sym : 24;
+ *bool bold : 1;
+ *bool italic : 1;
+ *bool under : 1;
+ *bool strike : 1;
+ *bool over : 1;
+ *bool reverse : 1;
+ *bool blink : 1;
+ *bool invis : 1;
+ *} Rune; //not needed
+ */
 
 unsigned int mainh__roll (num,side,low)
 unsigned char num;
@@ -134,13 +144,22 @@ fclose(tmp);
 return lines;
 }
 
-pseudosubroutine ERROR_GRAPHIC("short text",int foo,int bar) //should also output __FILE__ and __LINE__, which will likely be the program's version of undecipherable hex codes to everyone but me
-*╮  Error
-╭┴╮  "short text"
-│!│ N1 = foo
-╰─╯ N2 = bar
+pseudosubroutine ERROR_GRAPHIC("short text",int foo,int bar,bool qaz)
+/* should also output __FILE__ and __LINE__, which will likely be the program's version of
+ * undecipherable hex codes to anyone not extreamly fammiliar with the source. less severe
+ * errors will prompt for [Q]uit, [A]bort, or [Z]ontinue
+ */
+
+*┐  Error
+▗█▖  "short text"
+█!█ N1 = foo
+▝█▘ N2 = bar
 File: file.c
 Line: 19
+
+[Q]uit?
+ [A]bort?
+  [Z]ontinue?
 
 playertyp PLAYER
 coord3 PLAYERSHD //position of player's shadow, for renderer
@@ -192,7 +211,7 @@ if (DATE.sec >= 60) {
 	}
 }
 
-//→x ↓y ↑z
+//cartesian projection, →x ↓y ↑z (+y=-z)
 
 struct coord3:
 unsigned char x
@@ -211,6 +230,18 @@ signed char z
 struct scoord2:
 signed char x
 signed char y
+
+struct vector3:
+float x
+float y
+float z
+/* used for velocity, a parameter that holds
+ * motion that carries accross turns. this motion
+ * is not always cleared after being done; horizontal
+ * velocity persists until a tile with friction is
+ * encountered, while downwards vertical velocity 
+ * accumulates and persists until the ground is encountered.
+ */
 
 struct diceodds:
 unsigned char num : 3
@@ -380,6 +411,7 @@ symtabref startrace
 symtabref polyrace
 toomuchpolytyp polycounter
 coord3 loc
+vector3 velo
 paffectyp permenent
 effectyp fromequip
 scoord2 align
@@ -439,7 +471,7 @@ symtabref lang0 : 6
 symtabref lang1 : 6
 symtabref spell0
 symtabref spell1
-Rune symbol
+char16_t Rune
 unsigned char color : 4
 
 struct aggrotyp:
@@ -457,6 +489,7 @@ aggrotyp aggro
 unsigned char cooldown
 symtabref race
 coord3 loc
+vector3 velo
 effectyp effect
 unsigned short hp
 unsigned char air
@@ -719,11 +752,13 @@ coord3 home
 /*      .r8 : binary data that is organized into 8 bit segments
  *     .r16 : binary data that is organized into 16 bit segments
  *     .hex : binary data that is not organized
- *     .csv : text data seperated with commas and line breaks
- *     .tsv : text data seperated with tabs and line breaks
- *     .dat : text data seperated with $1C to $1F controls
+ *     .csv : record seperated with commas and line breaks
+ *     .tsv : record seperated with tabs and line breaks
+ *     .dat : data seperated with control characters and line breaks
+ *     .txt : a plaintext document, usually stored in the program's static files, which is CAT-ed to provide dialouge.
+ *    .conf : key-value pairs and SIMD operations
  *  .tar.gz : by default, each room's directory is automatically compressed using an os call to prevent disk hogging (tar -xzf to open, or tar -czf to store)
- * .tar.bz2 : by default, each plane's directory is further compressed (tar -xjf to open, or tar -cjf to store)
+ * .tar.bz2 : by default, each plane's directory is further compressed (tar -xjf to open, or tar -cjf to store). all compression options are changeable before compile.
  */
 
 struct shadowmask bitfield[20][80]
@@ -740,7 +775,7 @@ bool elec
 bool hurts
 bool breaks //flammable if liquid
 unsigned char color
-Rune symbol
+char16_t Rune
 
 pseudosubroutine getsym
 	{
@@ -799,7 +834,7 @@ unsigned char uses : 8
 struct eventtyp:
 (self) *prev
 (self) *next
-Rune symbol
+char16_t Rune
 triggerfunc ifthis(unsigned short,unsigned short,unsigned short,unsigned short)
 eventfunc dothis(unsigned short,unsigned short,unsigned short,unsigned short)
 unsigned short params[4]
@@ -811,7 +846,7 @@ struct traptyp:
 (self) *prev
 (self) *next
 unsigned char color
-Rune symbol
+char16_t Rune
 coord3 loc
 unsigned short duration
 magictyp
@@ -837,7 +872,7 @@ struct warptyp:
 (self) *prev
 (self) *next
 unsigned char color
-Rune symbol
+char16_t Rune
 mapcoord great_loc
 coord3 loc
 mapcoord great_dest
@@ -913,7 +948,7 @@ to avoid confusion, by default the player always uses a unique character: ☻
 other playable races are as follows: Æ avian,halfdragon,halfelemental,halfoutsider
 & foocubus  n faerie,merfolk,dryad  d dwarf  g gnome  o halforc)
 
-an underline is a shadow
+an UNDERLINE is a shadow
 
 ) is a sword or dagger. ⍏ is a polearm. ‡ is a club, staff, or mace. ⦅ is a bow. ⇤ is an arrow.
 ⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves.  ♥ is food. $ is gold. · is a rock.
@@ -1240,8 +1275,9 @@ signed char xmove
 signed char ymove
 signed char zmove
 {
+velocitycheck()
 xymovecheck(xmove,ymove)
-zmove = zmovecheck(zmove)
+zmovecheck(zmove)
 
 PLAYER.pos.x += xmove
 if (PLAYER.pos.x < 0) {
@@ -1264,8 +1300,12 @@ else if (PLAYER.pos.x >= 20) {
 	}
 
 PLAYER.pos.z += zmove
-CLAMP(PLAYER.pos.z,0,7)
 }
+
+pseudosubroutine playervelocitycheck() velocitycheck(*entity)
+	- moves you by a vector defined by velocity,
+	  checking each space for friction. if friction
+	  is encountered, assume it is infinate.
 
 pseudosubroutine xymovecheck(xmove,ymove)
 	- aborts if you're flying
@@ -1275,11 +1315,18 @@ pseudosubroutine xymovecheck(xmove,ymove)
 	  to another solid block in direction of travel,
 	  moving by a distance of SQRT3 if on a diagonal,
 	  M_SQRT2 otherwise.
-	- does sliding on ice
+	- if you're on ice, adds your movement to your velocity.
 
 pseudosubroutine zmovecheck(zmove)
 	- checks if you can fly
-	- if you can't fly, initiates gravity
+	  if you can't fly, adds -grav to your z velocity
+	- checks to make sure you are not flying through the ground,
+	  through a solid block, or through the ceiling
+
+pseudosubroutine newtonlaw(xmove,ymove)
+	- checks if you're flying magically, on ice, or in water
+	- if you are, adds 〈-xmove,-ymove,0〉 to your velocity
+	  (half this value in water)
 
 pseudosubroutine mapscroll(latmove,lonmove)
 signed char latmove
@@ -1330,3 +1377,80 @@ else if !(mapderef(xpos,ypos,zpos-1).liquid) {
 	underline(xpos,ypos,zpos)
 	return zpos
 	}
+
+bool maskfetch(zcoord,ycoord,xcoord,mask)
+unsigned char zcoord
+unsigned char ycoord
+unsigned char xcoord
+shadowmask mask
+{
+switch (zcoord) : {
+	case 0 : return mask[ycoord][xcoord].a;
+	case 1 : return mask[ycoord][xcoord].b;
+	case 2 : return mask[ycoord][xcoord].c;
+	case 3 : return mask[ycoord][xcoord].d;
+	case 4 : return mask[ycoord][xcoord].w;
+	case 5 : return mask[ycoord][xcoord].x;
+	case 6 : return mask[ycoord][xcoord].y;
+	case 7 : return mask[ycoord][xcoord].z;
+	default : return 0;
+	}
+}
+
+maskwrite(zcoord,ycoord,xcoord,mask,value)
+unsigned char zcoord;
+unsigned char ycoord;
+unsigned char xcoord;
+shadowmask mask;
+bool value;
+{
+switch (zcoord) : {
+	case 0 : mask[ycoord][xcoord].a = value; break;
+	case 1 : mask[ycoord][xcoord].b = value; break;
+	case 2 : mask[ycoord][xcoord].c = value; break;
+	case 3 : mask[ycoord][xcoord].d = value; break;
+	case 4 : mask[ycoord][xcoord].w = value; break;
+	case 5 : mask[ycoord][xcoord].x = value; break;
+	case 6 : mask[ycoord][xcoord].y = value; break;
+	case 7 : mask[ycoord][xcoord].z = value; break;
+	default : return 1;
+	}
+return 0;
+}
+
+when music is implemented, it will use standard 16 channel midi
+ channels 0,1,2 will be 2 square waves and a triangle wave
+ channels 3-8 will be dynamically reassigned for music
+ channel 10 must be the drumkit
+ channels 9,11-15 will have fixed assignements for sfx
+
+.conf file interface:
+...
+:COMMAND is a command
+key=data is a key-value pair
+...
+!bool is a false value
++bool is a true value
+^bool is a balanced ternary value
+...
+"string" is a string
+/foo/bar/baz is a path
+~/quux/garply is also a path
+...
+1234 is a decimal interger
+-1234 is a negative decimal interger
+12.34 is a float
+-12.35 is a negative float
+$1234 is a hex interger
+@1234 is an octal interger
+%1010 is a binary interger 
+\a is the unicode address of a character
+... 
+¶ is an include directive
+comments may take several forms:
+#foo
+//foo
+;foo
+§foo
+/*foo*/
+[foo]
