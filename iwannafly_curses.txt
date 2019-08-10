@@ -144,10 +144,11 @@ fclose(tmp);
 return lines;
 }
 
-pseudosubroutine ERROR_GRAPHIC("short text",int foo,int bar,bool qaz)
+pseudosubroutine ERROR_GRAPHIC("short text",int foo,int bar,bool hard)
 /* should also output __FILE__ and __LINE__, which will likely be the program's version of
  * undecipherable hex codes to anyone not extreamly fammiliar with the source. less severe
- * errors will prompt for [Q]uit, [A]bort, or [Z]ontinue
+ * errors will prompt for [Q]uit, [A]bort, or [Z] continue. more severe ones will prompt
+ * [Q]uit, [A]bort, [Z] restart.
  */
 
 *┐  Error
@@ -159,7 +160,9 @@ Line: 19
 
 [Q]uit?
  [A]bort?
-  [Z]ontinue?
+  [Z] continue?
+
+strike any key to restart...
 
 playertyp PLAYER
 coord3 PLAYERSHD //position of player's shadow, for renderer
