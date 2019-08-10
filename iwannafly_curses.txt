@@ -6,12 +6,17 @@
  *
  * enviromental requirements:
  * - UTF-8
- * - "Fixed" font
- * - 24x80 chars bigger
+ * - reccomends "Fixed" font
+ * - 24x80 chars term or bigger
  * - 16 or more fg colors
  * - 8 or more bg colors
  * - Bold, Underline, Reverse, Blink
+ * - Full Keyboard
+ * - Mouse
  */
+
+#define BUFFER_MAX 512
+define FOREVER for (;;)
 
 /* the 3d version of Iwannafly started off as a general RT-RPG library that
  * then became narrowed to a specific game. this version was originally
@@ -25,11 +30,20 @@
 
 setlocale(LC_ALL, "");
 
-/* because of the spelling based internals
- * of the CLI commands, translateing the library
- * would require rewriting large switch tables.
+/* because of the internals of the CLI commands,
+ * localization would require rewriting large
+ * ASCII and DEC-SIXBIT switch tables.
  *
- * meta enters console mode, with the prompt symbol of :
+ * backslash or grave enter console mode. characters are fetched and printed
+ * with ncurses, as well as stored in a temporary buffer. if the buffer
+ * nears a 512 byte limit, command entry is terminated with "SORRY".
+ * autocomplete will be implemented, and can be invoked with tab.
+ * some keyboard layouts may not be compatible with the game.
+ * in future, a runtime key remapping config will be provided.
+ * IFF a compile-time command registration API is made, a
+ * command renaming API would also be trivial to create;
+ * otherwise, the CLI command tree will be seperated
+ * to make manual modification as simple as possible.
  *
  * for toplevel commands and some specifiers,
  *  branching on array elements will eventually
@@ -68,14 +82,57 @@ setlocale(LC_ALL, "");
 typedef unsigned short Rune //I'll do it this way and let C take it from there.
 #endif
 
-import //psudocode, not python
-mainh__roll
-mainh__bonus
-mainh__flip
-mainh__file_cat
-/* note: my convention for C header is 2 underscores,
- * since there is no such thing in C and it thus has to be in the function's name
- */
+unsigned int mainh__roll (num,side,low)
+unsigned char num;
+unsigned char side;
+bool low;
+{
+unsigned int accum;
+unsigned int tmp;
+for (unsigned char n = 0;n<num;n++) {
+	tmp = (rand() % side) + low;
+	accum += tmp;
+	}
+return accum;
+}
+
+signed short mainh__bonus (num)
+unsigned char num;
+{
+signed short accum;
+tern tmp;
+for (unsigned char n = 0;n<num;n++) {
+	tmp = (rand() % 3) - 1;
+	accum += tmp;
+	}
+return accum;
+}
+
+#define mainh__flip (rand() % 2)
+
+#define MISSING_FILE(F) fprintf(stderr,"File \"%s\" not found",F)
+
+file_cat (path)
+const char *path;
+{
+FILE *tmp = fopen(path,"r");
+int lines;
+if (tmp == NULL) {
+	MISSING_FILE(path);
+	return -1;
+	}
+char tmpbuffer[BUFFER_MAX];
+for (bool n = TRUE;n;noop()) {
+	if (fgets(tmpbuffer,BUFFER_MAX,tmp) == NULL) {
+		n = FALSE;
+		} else {
+		printf(tmpbuffer);
+		lines++;
+		}
+	}
+fclose(tmp);
+return lines;
+}
 
 pseudosubroutine ERROR_GRAPHIC("short text",int foo,int bar) //should also output __FILE__ and __LINE__, which will likely be the program's version of undecipherable hex codes to everyone but me
 *╮  Error
@@ -86,8 +143,10 @@ File: file.c
 Line: 19
 
 playertyp PLAYER
+coord3 PLAYERSHD //position of player's shadow, for renderer
 mapcoord TORUS
 roomtyp ROOM
+shadowmask SHADOWKNOWS
 unsigned long long TURN
 turntyp DATE
 unsigned char ROOMTURN
@@ -256,7 +315,7 @@ stabs spellstabs //spells
 stabs weapstabs //weapons
 stabs armstabs //armor
 stabs shldstabs //shield, cannon, greeves
-stabs baubstabs //rings and amulets
+stabs baubstabs //rings, amulets, bracelets, tiaras
 fstab itemtable
 fstab spelltable
 fstab weaptable
@@ -326,6 +385,7 @@ effectyp fromequip
 scoord2 align
 unsigned short hp //they're fun and easy to...wait
 unsigned short mp
+unsigned char air
 unsigned long xp
 unsigned char lvl
 signed short food
@@ -352,6 +412,7 @@ subobjtyp ringl	//baub
 subobjtyp ringr	//baub
 subobjtyp wristl	//baub
 subobjtyp wristr	//baub
+subobjtyp crown	//baub
 
 psudosubroutine update_player
 /* resets .fromequip , then iterates through the entire equipment list to regenerate it.
@@ -367,12 +428,13 @@ psudosubroutine update_player
 
 struct basentyp:
 aligntyp alignmask
-effectyp base
+paffectyp base
 unsigned char spd //distance calculations use M_SQRT2 for diagonals
 unsigned char fly
 unsigned char hplvl
 unsigned char mplvl
 unsigned char xplvl
+unsigned char airmax
 symtabref lang0 : 6
 symtabref lang1 : 6
 symtabref spell0
@@ -397,6 +459,7 @@ symtabref race
 coord3 loc
 effectyp effect
 unsigned short hp
+unsigned char air
 unsigned short xp
 unsigned char lvl
 unsigned char gold
@@ -417,6 +480,7 @@ subobjtyp ringl
 subobjtyp ringr
 subobjtyp wristl
 subobjtyp wristr
+subobjtyp crown
 
 struct heldobjtyp:
 (self) *prev
@@ -487,29 +551,9 @@ unsigned char skill : 3
 unsigned char damage : 8
 
 legendtyp:
-the8stats eight
-resistyp resist
-senstyp sense
-skilltyp skill
+paffectyp magic
+baseweaptyp base
 legendflagtyp flags
-
-legendflagtyp:
-bool fire : 1
-bool air : 1
-bool water : 1
-bool earth : 1
-bool entro : 1
-bool light : 1
-bool dark : 1
-bool fireproof : 1
-bool waterproof : 1
-bool elecproof : 1
-bool iceproof : 1
-bool warded : 1
-bool unbreak : 1
-bool vamp : 1
-bool drain : 1
-bool intrest : 1
 
 struct basearmortyp:
 effectyp
@@ -619,19 +663,21 @@ diceodds odds
 
 struct skilltyp:
 unsigned char sword : 4
+unsigned char knife : 4
 unsigned char stave : 4
+unsigned char spear : 4
 unsigned char club : 4
-unsigned char shield : 4
 unsigned char bow : 4
 unsigned char throw : 4
-unsigned char locks : 4
 unsigned char monk : 4
+unsigned char shield : 4
+unsigned char locks : 4
 
 readtyp:
 unsigned char locale : 6
 bool multiuse : 1
 bool scroll : 1
-unsigned char subject : 2 //0 = calculus, 1 = weapons, 2 = language, 3 = spellcraft
+unsigned char subject : 2 //0 = cooking, 1 = weapons, 2 = language, 3 = spellcraft
 unsigned char uses : 6
 *void contents
 
@@ -645,12 +691,12 @@ symtabref bound : 8
 char* baubmaterials[8] = {"yew","bronze","silver","gold","soapstone","ivory","obsidian","stardust"} //stoning -> soapstone
 
 baubtype :
-signed char type : 2 //0=ring, 1=bracelet, -1=amulet
+signed char type : 2 //0=ring, 1=bracelet, -1=amulet, -2=tiara
 unsigned char matter : 3
 unsigned char color : 3
 paffectyp enchnt
 
-struct room: //top-down display of a 3d space
+struct roomtyp: //top-down display of a 3d space
 tileset *lowtiles
 tileset *hightiles
 signed char *tiledata[8][20][80]
@@ -681,17 +727,19 @@ coord3 home
  * .tar.bz2 : by default, each plane's directory is further compressed (tar -xzf to open, or tar -czf to store)
  */
 
+struct shadowmask bitfield[2][20][80]
+
 typedef tilemeta* tileset[128]
 
 struct tilemeta:
-bool climb
-bool solid
-bool water
+bool climb //bouyency if liquid
+bool solid //air or liquid if fluid
+bool fluid
 bool hot
 bool cold
 bool elec
 bool hurts
-bool breaks
+bool breaks //flammable if liquid
 unsigned char color
 Rune symbol
 
@@ -856,24 +904,26 @@ each layer is drawn translated +1y for each layer above the player and -1y for e
 a shadow is drawn under the player
 layers are drawn from ground to sky; if the player or their shadow would be covered by a tile,
 drawing is stopped and the player is drawn if they have not been already
-a symbol with a symbol of nul will be interpreted as transparent.
+fluid tiles are transparent.
 
 to avoid confusion, by default the player always uses a unique character: ☻
 (humans,elves,seaelvs,drow,halfelves are otherwise represented by the traditional @
 other playable races are as follows: § avian,halfdragon,halfelemental,halfoutsider
 & foocubus  n faerie,merfolk,dryad  d dwarf  g gnome  o halforc)
 
-¶ is the shadow of something with wings, ● is the shadow of something that...err...doesn't. An entity on the ground is underlined.
-) is a melee weapon. ( is a bow. [ is armor. ] is a shield, cannons, or greeves. ♮ is a misc item.
-¿ represents potions (fragile). ∫ is a scroll. ≣ represents books,tablets. $ is gold. ◇ is a gemstone.
-° is a ring. º is a bracelet. ª is an amulet. / is a wand. ~ is a liquid's surface. ∧ is spikes.
-␣ is a chair. ⋎ is a fountain. ⌁ is fire. ↯ is electricity. * is ice. ⏍ is a chest.
-⍝ is a sign or tombstone. ? is invisible. ! is a trap. ☼ is a light. ⌘ is a special item.
-⍠ is a door. ⌹ is a locked door. ⌥ is a key or lockpick. % is food (don't shoot food).
-⇓ ⇑ are stairs. ◊ is a giant magic crystal. ✪ is a magic rune on the floor.
-☠ is poison. ◬ is a wind rune. ↹ is a warp rune. ☤ is a polymorph rune. ♥ is a health rune.
+¶ is the shadow of something with wings, ● is the shadow of something that doesn't.
+anything that casts a shadow is underlined when on the ground.
+
+) is a sword or dagger. ↾ is a spear or staff. ‡ is a club or mace. ⦅ is a bow. ⟦ is armor. [ is clothing.
+] is a shield. ⟧ are cannons or greeves. ♮ is a misc item. ⌘ is a special item. ¿ are potions (fragile).
+∫ is a scroll. ⊒ is a book. ∩ is a tablet. ◆ is a gemstone. ° is a ring. º is a bracelet. ª is an amulet.
+^ is a crown. / is a wand. ~ is a liquid. ≈ is a liquid's surface. ␣ is a hole. ⋎ is a fountain. ∪ is a sink. 
+∿ is fire. ⌁ is electricity. * is ice. ⋏ is spikes. ⌸ is a door. ⍯ is a locked door. ⌥ is a key or lockpick.
+? is invisible. ! is a trap. ☼ is a light. ⍝ is a tombstone or sign. % is food. $ is gold. ⏍ is a chest.
+✪ is a magic rune. ☠ is poison. ◬ is a wind rune. ↹ is a warp rune. ☤ is a polymorph rune. ♥ is a health rune.
+◊ is a giant magic crystal. ♠ ♣ are trees. ♜ is a stone turret. ■ is a boulder. 
 ← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. ⇥ is a landed projectile.
-♠ ♣ are trees. ♜ is a stone wall. ▼ is a boulder.
+< > are level stairs. ≣ is a ladder.
 ∅ is an entopic anomoly (do not touch).
 ⍰ is a missingno.
 
@@ -977,6 +1027,8 @@ switch (getc(stdin)) {
 	case '?' :
 		return 037;
 		break;
+	case '\xc6' : noop();
+	case '\xe6' : noop();
 	case '@' :
 		return 040;
 		break;
@@ -1224,3 +1276,29 @@ else if (TORUS.coord.lon <= -180) {
 
 some_func_untar&load_currentroom
 }
+
+unsigned char pseudosubroutine castshadow(xpos,ypos,zpos,wings)
+unsigned char xpos
+unsigned char ypos
+unsigned char zpos
+bool wings
+{
+if (zpos == 0) {
+	return zpos
+	}
+else if !(mapderef(xpos,ypos,zpos-1).liquid) {
+	underline(xpos,ypos,zpos)
+	return zpos
+	} else {
+	zpos--
+	for (;zpos!=0;zpos--) {
+		if (mapderef(xpos,ypos,zpos-1).solid {
+			shadow(xpos,ypos,zpos,wings)
+			if !(mapderef(xpos,ypos,zpos-1).liquid) {
+				return zpos
+				}
+			}
+		}
+	shadow(xpos,ypos,zpos,wings)
+	return zpos
+	}
