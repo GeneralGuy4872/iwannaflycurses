@@ -916,15 +916,15 @@ other playable races are as follows: Æ avian,halfdragon,halfelemental,halfoutsi
 an underline is a shadow
 
 ) is a sword or dagger. ⍏ is a polearm. ‡ is a club, staff, or mace. ⦅ is a bow. ⇤ is an arrow.
-⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves.  % is food. $ is gold. · is a rock.
+⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves.  ♥ is food. $ is gold. · is a rock.
 £ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ⌘ is a special item. ¿ are potions (fragile).
 ∫ is a scroll. ⊒ is a book. ∩ is a tablet. ◆ is a gemstone. ° is a ring. º is a bracelet. ª is an amulet.
 ^ is a crown. / is a wand. ~ is a liquid. ≈ is a liquid's surface. ␣ is a hole. ⋎ is a fountain. ∪ is a sink. 
 △ is fire. ⌁ is electricity. * is ice. ⋏ are spikes. ⌸ is a door. ⍯ is a locked door. ⏍ is a chest. 
 ? is invisible. ! is a trap. ☼ is a light source. ⍝ is a tombstone. ¶ is a signpost. ␥ is glass.
-✪ is a magic rune. ☠ is poison gas. ↹ is a warp. § is a polymorph trap. ♥ is a health rune.
+✪ is a magic rune. ☠ is poison gas. ↹ is a warp. § is a polymorph trap.
 ◊ is a boulder or giant magic crystal. ♠ ♣ are trees. ♜ is a stone turret. ▒ is the edge of darkness.
-← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. ∅ is a pulsar (do not touch).
+← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. % is a pulsar (do not touch).
 box drawings are low walls. █ is a thick wall. < > are level stairs. ≣ is a ladder.
 ⍰ is a missingno.
 
@@ -933,7 +933,7 @@ BLINK is something that requires your attention.
 REVERSE video is a magic spell's area of effect, or an identified rune.
 ? air, ◊ earth, △ fire, ≈ water, ⍰ invalid
 * ice, ⌁ electricity, ⍏ metal, ♠ nature
-☠ poison/stoning, ∅ entropy, ☼ light, ▒ dark
+☠ poison/stoning, % entropy, ☼ light, ▒ dark
 
 unsigned char getsixbit_template() {
 switch (getc(stdin)) {
