@@ -922,18 +922,28 @@ an underline is a shadow
 ^ is a crown. / is a wand. ~ is a liquid. ≈ is a liquid's surface. ␣ is a hole. ⋎ is a fountain. ∪ is a sink. 
 △ is fire. ⌁ is electricity. * is ice. ⋏ are spikes. ⌸ is a door. ⍯ is a locked door. ⏍ is a chest. 
 ? is invisible. ! is a trap. ☼ is a light source. ⍝ is a tombstone. ¶ is a signpost. ␥ is glass.
-✪ is a magic rune. ☠ is poison gas. ↹ is a warp. § is a polymorph trap. ▒ is the edge of darkness.
-∅ is a boulder. ◊ is a giant magic crystal. ♠ ♣ are trees. ♜ is a stone turret.
+∅ is a boulder. ◊ is a giant magic crystal. ♠ ♣ are trees. ♜ is a stone turret. ✪ is a magic rune.
 ← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. % is a pulsar (do not touch).
 box drawings are low walls. █ is a thick wall. < > are level stairs. ≣ is a ladder.
 ⍰ is a missingno.
 
 BOLD symbols are petrified (statues).
-BLINK is something that requires your attention.
-REVERSE video is a magic spell's area of effect, or an identified rune.
-? air, ∅ earth, △ fire, ≈ water, ⍰ invalid combination
+BLINK is the edge of an illuminated area or something requiring your attention.
+if something is not able to be seen, it is rendered INVISIBLE
+REVERSE video is a magic spell's area of effect, an identified rune, or your cursor.
+
+rune symbols
+◬ air, ∅ earth, △ fire, ≈ water, ⍰ missingno
 * ice, ⌁ electricity, ⍏ metal, ♠ nature
-☠ poison/sleep/stoning, % entropy, ☼ light, ▒ dark
+☠ poison/sleep/stoning, % entropy
+☼ light, ☽ dark, § polymorph, ↹ planer
+
+magic AOE symbols
+▒ air, ∅ earth, △ fire, ≈ water
+* ice, ⌁ electricity, $ metal, ♠ or ♣ nature
+☠ poison/sleep/stoning, % entropy
+░ light, ▓ dark, § polymorph, ↹ planer
+
 
 unsigned char getsixbit_template() {
 switch (getc(stdin)) {
@@ -1265,6 +1275,7 @@ pseudosubroutine xymovecheck(xmove,ymove)
 	  to another solid block in direction of travel,
 	  moving by a distance of SQRT3 if on a diagonal,
 	  M_SQRT2 otherwise.
+	- does sliding on ice
 
 pseudosubroutine zmovecheck(zmove)
 	- checks if you can fly
