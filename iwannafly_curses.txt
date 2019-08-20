@@ -42,6 +42,8 @@
 /**ncurses libraries**/
 #include <ncursesw/ncurses.h>
 #include <menu.h>
+/**curses libforms**/
+#include <forms.h>
 
 #define BUFFER_MAX 512
 #define SQRT3 1.732050807568877293528
@@ -49,6 +51,8 @@
 #define MAX(A,B) (A > B ? A : B)
 #define MIN(A,B) (A < B ? A : B)
 #define CLAMP(N,A,B) MIN(MAX(N,A),B)
+#define ≥ >=
+#define ≤ <=
 
 /* the 3d version of Iwannafly started off as a general RT-RPG library that
  * then became narrowed to a specific game. this version was originally
@@ -61,6 +65,9 @@
  */
 
 setlocale(LC_ALL, "");
+cbreak();
+noecho();
+keypad(stdscr, TRUE);
 
 /* because of the internals of the CLI commands,
  * localization would require rewriting large
@@ -190,23 +197,40 @@ fclose(tmp);
 return lines;
 }
 
-pseudo ERROR_GRAPHIC("short text",int foo,int bar,bool hard)
 /* should also output __FILE__ and __LINE__, which will likely be the program's version of
  * undecipherable hex codes to anyone not extreamly fammiliar with the source. less severe
  * errors will prompt for [Q]uit, [A]bort, or [Z] continue. more severe ones will prompt
  * [Q]uit, [A]bort, [Z] restart.
  */
+ERROR_GRAPHIC(string,num1,num2,hard)
+char* string
+int num1 num2
+bool hard
+{
+char* opt3
+if (hard) {
+	attron(A_REVERSE,COLOR_PAIR((BACKGROUND*COLOR_RED)+BRIGHT+COLOR_YELLOW)
+	opt3 = "Restart"
+	}
+else {
+	attron(A_REVERSE,COLOR_PAIR(BRIGHT+COLOR_YELLOW)
+	opt3 = "Continue"
+	}
 
-*┐  Error
-▗█▖  "short text"
-█!█ N1 = foo
-▝█▘ N2 = bar
-File: file.c
-Line: 19
+move(MAINY+00,0); printw("*┐  Error!")
+move(MAINY+01,0); printw("▗█▖  \"%s\"",string)
+move(MAINY+02,0); printw("███ N1 = %i",num1)
+move(MAINY+03,0); printw("▝█▘ N2 = %i",num2)
 
-[Q]uit?
- [A]bort?
-  [Z] continue?
+move(MAINY+05,0); printw("File: %s",__FILE__)
+move(MAINY+06,0); printw("Line: %i",__LINE__)
+
+move(MAINY+08,0); printw("[Q]uit?")
+move(MAINY+09,0); printw(" [A]bort?")
+move(MAINY+10,0); printw("  [Z] %s?",opt3)
+
+//keytrap stuff here
+}
 
 playertyp PLAYER
 coord3 PLAYERSHD //position of player's shadow, for renderer
@@ -224,7 +248,7 @@ enttype *PURS_head //pursuers, i.e. paid assasins, ninjas, the reaper...
 enttype *PURS_tail
 eventtyp *EVNT_head
 eventtyp *EVNT_tail
-bool NEWROOM
+bool NEW //set to true whenever you enter a room and every day at 6am
 FILE* CLIBUFFER = tmpfile()
 
 struct turntyp:
@@ -240,21 +264,22 @@ bool ticktock() {
 TURN++;
 if (ROOMTURN < 200) {ROOMTURN++;}
 DATE.sec += 6;
-if (DATE.sec >= 60) {
+if (DATE.sec ≥ 60) {
 	DATE.sec = 0;
 	DATE.min++;
-	if (DATE.min >= 60) {
+	if (DATE.min ≥ 60) {
 		DATE.min = 0;
 		DATE.hour++;
-		if (DATE.hour >= 24) {
+		if (DATE.hour == 6) {NEW = true}
+		if (DATE.hour ≥ 24) {
 			DATE.hour = 0;
 			DATE.weekday++
-			if (DATE.weekday >= 7) {DATE.weekday = 0;}
+			if (DATE.weekday ≥ 7) {DATE.weekday = 0;}
 			DATE.day++;
-			if (DATE.day >= 30) {
+			if (DATE.day ≥ 30) {
 				DATE.day = 0;
 				DATE.month++;
-				if (DATE.month >= 12) {
+				if (DATE.month ≥ 12) {
 					DATE.month = 0;
 					DATE.year++;
 				}
@@ -347,9 +372,9 @@ unigned char az : 3 //azimuth on a plane chart
 signed char el : 2
 
 struct latlontyp:
-signed short lat : 9
-signed short lon : 9
-unsigned char dep : 6
+signed char lat : 8
+signed char lon : 8
+signed char dep : 8
 
 struct mapcoord: //surface terrain generation by dice roll from pregenerated blocks. doungeon generation by algorithem tbd. some coords will generate fixed special rooms
 latlontyp latlon
@@ -443,8 +468,8 @@ fstab armtable
 fstab shldtable
 fstab baubtable
 
-char* legendstabs[16] = {"truthseeker"/*bow*/,"sword of justice","excalibur","sickle of chaos","stormbringer","devilfork","partisen of tyrants","deathscyth","sunray"/*spear*/,"nightedge","firebrand","tesla's mace","stormgale"/*bow*/,"frostpike","trident of the seas","groundshaker"}
-legendtyp legendtable[16]
+char* legendstabs[20] = {"truthseeker","sword of justice","excalibur","thunderbolt"/*torch + lightningbolt (smiting)*/,"sickle of chaos"/*+drain*/,"stormbringer"/*+drain*/,"devilfork"/*+fire*/,"partisen of tyrants","deathscyth"/*+drain*/,"sunray"/*spear + solar flare*/,"nightedge"/*sword + moonbeam*/,"staff of merlin"/*staff of magic missile*/,"firebrand"/*sword + fireball*/,"tesla's mace"/*+spark*/,"stormgale"/*bow*/,"frostpike"/*+frostbite*/,"trident of the seas"/*+tsunami*/,"staff of the forest"/*staff of animante kudzu*/,"groundshaker"/*+earthquake*/,"imperial baton"/*staff of antagonizing*/}
+legendtyp legendtable[20]
 
 typedef classobjtyp:
 classtyp
@@ -467,16 +492,24 @@ playertyp classtable[4][8]	//is freed after startup; initial values for PLAYER
 enum mon1_enum
 stabs mon1stabs =
 {"human","elf","dwarf","gnome","hobbit","half elf","drow","avian","half orc","half dragon","half celestial","half fiend","half air elemental","half water elemental","half earth elemental","half fire elemental",
-"merfolk","seaelf","dryad","foocubus","faerie"};	//...
+"merfolk","seaelf","dryad","fairy","naiad","satyr","drider","centaur","orc","gorgon","sphinx","foocubus","pixie"};	//...
 fstab mon1table
 /* contains all polymorphable monsters, of type BASENTYPE.
- * Only C0 control characters may be initial races.
  * any polymorphable race can BECOME your base race...
  * polymorph autocomplete is implemented using switches.
  */
 enum mon2_enum
-stabs mon2stabs //must include: chicken, duck, cow, pig
+stabs mon2stabs
 fstab mon2table
+/*  cow, pig, unicorn, nightmare, quarterhorse, draft horse, miniature horse, zebra, pegasus, buffalo, panther, lion, tiger, bear, polar bear,
+ * wyrm, (red copper white cyan blue green brown gold black silver grey) dragon, gelatinous cube, floating eye, wallmaster, mind flayer, vampire,
+ * wolf, cat, lynx, bobcat, dog, raven, jackdaw, crow, mockingbird, kea, grey parrot, macaw, cockatoo, songbird, sparrow, starling, gull, bat,
+ * early bird, eagle, falcon, owl, kite, vulture, albatross, velociraptor, turkey, rooster, chicken, peahen, peacock, duck, goose, goblin,
+ * green slime, black pudding, giant ant, giant wasp, giant scorpion, raccoon, platypus, bugbear, owlbear, toll, giant, stalker, lurker above,
+ * purple worm, trapper below, fury, harpy, archon, angel, horned devil, balrog, imp, homunculus, harpy, death, nemesis, air elemental,
+ * water elemental, earth elemental, fire elemental, displacer beast, copperhead, cobra, rattlesnake, python, cracken, shark, octopus,
+ * skeleton, zombie, (flesh, straw, clay, stone, paper, leather, gold) golem, clockwork robot (g),
+ */
 
 struct the8stats:
 stren : 5
@@ -494,7 +527,7 @@ bool r : 1
 bool w : 1
 //nothing to X-ecut, so no x
 
-char* conlangtab[64] ={lingua franca,thieves cant,middle elvish,old elvish,dwarvish,gnomish,gothic,orkish,draconic,fey,celestic,blackspeech,skyspeak,waterspeak,earthspeak,firespeak}
+char* conlangtab[64] ={"common language","thieves cant","middle elvish","old elvish","dwarvish","gnomish","gothic","orkish","draconic","fey","celestic","demonic","blackspeech","skyspeak","waterspeak","earthspeak","firespeak"}
 
 struct playertyp:
 classtyp class
@@ -616,7 +649,19 @@ symtabref lang1 : 6
 symtabref spell0
 symtabref spell1
 char16_t Rune
-unsigned char color : 4
+bool eats_you : 1
+bool mindless : 1
+signed char size : 2
+stattyp stats : 8
+sensetyp sense : 8
+resistyp resist : 8
+unsigned char color : 8
+/* entitys of size 1 or -2 cannot use armor.
+ * entitys of larger size automaticly win grapples.
+ * entitys of 2 sizes smaller can be picked up and thrown.
+ * entitys of size 1 can instakill entitys of size -2. squish.
+ * size 1: dragon, size 0: human, size -1: elf, size -2: pixie
+ */
 
 struct aggrotyp:
 bool shiftable : 1	//nowhere else to put it.
@@ -655,6 +700,7 @@ subobjtyp ringr
 subobjtyp wristl
 subobjtyp wristr
 subobjtyp crown
+unsigned char meta
 
 struct heldobjtyp:
 (self) *prev
@@ -721,14 +767,37 @@ bool waterproof : 1
 bool elecproof : 1
 bool iceproof : 1
 bool warded : 1
-bool unbreak : 1
+bool illum : 1
 unsigned char skill : 3
 unsigned char damage : 8
 
 legendtyp:
 paffectyp magic
-baseweaptyp base
+symtableref base
+symtableref spell
 legendflagtyp flags
+
+legendflagtyp:
+bool fire : 1
+bool air : 1
+bool water : 1
+bool earth : 1
+bool entro : 1
+bool light : 1
+bool dark : 1
+bool fireproof : 1
+bool waterproof : 1
+bool elecproof : 1
+bool iceproof : 1
+bool warded : 1
+bool unbreak : 1
+bool infinate : 1
+bool spelled : 1
+bool vamp : 1
+bool drain : 1
+bool interest : 1
+bool useless : 1
+unsigned char times2pow : 5
 
 struct basearmortyp:
 effectyp
@@ -751,11 +820,11 @@ unsigned char spdef : 8
 
 struct stattyp:
 caster
+psion
 gills
 wings
 nolegs
-psn
-brn
+noarms
 blind
 whoami
 
@@ -769,6 +838,7 @@ stone : u4
 slp : u8
 blind : u8
 poly : u8
+eaten : u8
 
 struct cursetyp:
 dizzy : b
@@ -837,16 +907,21 @@ signed short mp
 diceodds odds
 
 struct skilltyp:
-unsigned char sword : 4
-unsigned char knife : 4
-unsigned char stave : 4
-unsigned char spear : 4
-unsigned char club : 4
-unsigned char bow : 4 
-unsigned char throw : 4
-unsigned char monk : 4
-unsigned char shield : 4
-unsigned char locks : 4
+unsigned char sword : 3 //+skill to sword-type weapon attack
+unsigned char knife : 2 //+skill to knife-type weapon attack
+unsigned char stave : 3 //+skill to stave-type weapon attack
+unsigned char spear : 3 //+skill to club-type weapon attack
+unsigned char club : 2 //+skill to club-type weapon attack
+unsigned char bow : 3 //+skill to bow-type weapon range
+unsigned char throw : 3 //+skill to javalin-type weapon range
+unsigned char monk : 4 //+(2*skill) to barehanded attack
+unsigned char shield : 3 //skill in (damage-defense)+|damage-defense| chance of blocking
+unsigned char locks : 3 //1 in 2^(lock.level - (skill)) chance of picking
+unsigned char cast : 3 //-skill/2 to casting cost, +skill/2 to spatk, spdef
+/* damage(incoming)-defense =
+ * ⎰if >0: damage(target)
+ * ⎱if ≤0: moot
+ */
 
 readtyp:
 unsigned char locale : 6
@@ -885,8 +960,9 @@ lightyp *lamp_tail
 coord2 downstair
 coord3 upstair
 coord3 home
+unsigned char keynum
 /* z coord of the upstair is the maximum height of the map, obviously.
- * upstair is not rendered on dep=0, but must still be present.
+ * upstair is not rendered on dep=>0, but must still be present.
  * if invalid coords are given for a warp (typically {$FF,$FF}),
  * then the player is dumped at the location indicated by home.
  *
@@ -896,14 +972,19 @@ coord3 home
 /*      .r8 : binary data that is organized into 8 bit segments
  *     .r16 : binary data that is organized into 16 bit segments
  *     .hex : binary data that is not organized
- *     .csv : record seperated with commas and line breaks
- *     .tsv : record seperated with tabs and line breaks
- *     .dat : data seperated with control characters and line breaks
- *     .txt : a plaintext document, usually stored in the program's static files, which is CAT-ed to provide dialouge.
- *     .ini : key-value pairs
- *    .conf : key-value pairs and SIMD operations
+ *     .csv : UTF-8 record seperated with commas and line breaks
+ *     .tsv : UTF-8 record seperated with tabs and line breaks
+ *     .dat : UTF-8 record seperated with control characters $1C-$1F and line breaks
+ *     .txt : a plaintext document in UTF-8 encoding, usually stored in the program's static files, which is CAT-ed to provide dialouge.
+ *    .ansi : an ansi-escaped text document in UTF-8 encoding, usually stored in the program's static files, which is CAT-ed to provide dialouge.
+ *     .ini : key-value pairs.
+ *    .conf : key-value pairs and SIMD operations. may also be a dotfile.
+ *    .json : an s-expresson like data format, originally from javascript. used in core
  *  .tar.gz : by default, each room's directory is automatically compressed using an os call to prevent disk hogging (tar -xzf to open, or tar -czf to store)
  * .tar.bz2 : by default, each plane's directory is further compressed (tar -xjf to open, or tar -cjf to store). savefiles are also this format. all compression options are changeable before compile.
+ *   .man.# : a manpage
+ *    .html : extended documentation
+ *      .md : extended documentation
  */
 
 struct shadowmask bitfield[18][64]
@@ -1001,6 +1082,12 @@ bool pin1 : 1
 bool pin2 : 1
 bool pin3 : 1
 bool pin4 : 1
+/* lockpicking requires the player to enter
+ * 0 and + in the correct order to turn the
+ * tumblers. in addition to making the correct
+ * guess, one must make a skill check:
+ * 1 in 2^(lock.level - (skill/2)) chance
+ */
 
 miscitemtyp
 symtabref itemid : 8
@@ -1023,6 +1110,7 @@ bool arrow : 1
 bool poisoned : 1
 bool unbreak : 1
 unsigned char uses : 8
+unsigned char meta : 8
 
 struct eventtyp:
 (self) *prev
@@ -1037,7 +1125,9 @@ unsigned long duration
 /* events call raw C functions, without any sort of restrictions on what they have
  * access to beyond what the program can give it. the idea is to provide a full
  * turing-complete interface by which the game's world can be altered according
- * to actions taken by the player
+ * to actions taken by the player. another use would be to show a cutscene rendered
+ * with raw curses calls; an elaborate example of curses used in that manner
+ * will be found in the game's introduction cutscene.
  */
 
 struct qglobobj: //queued global object
@@ -1134,7 +1224,10 @@ MISC_FLAG : contains itemtyp
 GEM_FLAG : contains gemstonetyp
 TRAP_FLAG : contains traptyp
 EVENT_FLAG : contains eventtyp
+QGLOB_FLAG : contains qglobobj
 WARP_FLAG : contains warptyp
+CHEST_FLAG : contains chestyp
+DOOR_FLAG : contains locktyp
 GOLD_FLAG : contains an unsigned interger stored as a pointer
 
 pseudo radius
@@ -1152,12 +1245,12 @@ fluid tiles are transparent.
 
 to avoid confusion, by default the player always uses a unique character: ☻
 (humans,elves,seaelvs,drow,halfelves are otherwise represented by the traditional @
-other playable races are as follows: Æ avian,halfdragon,halfelemental,halfoutsider
-& foocubus  n faerie,merfolk,dryad  d dwarf  g gnome  o halforc)
+other playable races are as follows: Æ avian,halfdragon,halfelemental,halfoutsider  C centaur,satyr
+& foocubus,drider,gorgon  n fairy,merfolk,dryad,naiad,pixie  d dwarf  g gnome  o halforc,orc  f sphinx)
 
 an UNDERLINE is a shadow
 
-) is a sword or dagger. ⍏ is a polearm. ‡ is a club, staff, or mace. ⦅ is a bow. ⇤ is an arrow.
+) is a sword or dagger. ⍏ is a polearm or staff. ‡ is a club or mace. ⦅ is a bow. ⇤ is an arrow.
 ⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves.  ♥ is food. $ is gold. · is a rock.
 £ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ⌘ is a special item. ¿ are potions (fragile).
 ∫ is a scroll. ⊒ is a book. ∩ is a tablet. ◆ is a gemstone. ° is a ring. º is a bracelet. ª is an amulet.
@@ -1166,7 +1259,7 @@ an UNDERLINE is a shadow
 ? is invisible. ! is a trap. ⌑ is a light source. ⍝ is a tombstone. ¶ is a signpost. ␥ is glass.
 ∅ is a boulder. ◊ is a giant magic crystal. ♠ ♣ are trees. ♜ is a stone turret. ✪ is a magic rune.
 ← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. % is a pulsar (do not touch). ↯ lightning or the Thunderbolt.
-box drawings are low walls. █ is a thick wall. < > are level stairs. ≣ is a ladder.
+box drawings are low walls. █ is a thick wall. < > are level stairs. ≣ is a ladder. ☁ is a cloud (no walking).
 ▓ is an unlit area that you have visited. ▒ is a lit area that you have visited. ⍰ is a missingno.
 
 BOLD symbols are petrified (statues).
@@ -1181,7 +1274,7 @@ rune symbols
 ☼ light, ☽ dark, § polymorph, ↹ planer
 
 magic AOE symbols
-¬ air, ∅ earth, ∿ fire, ≈ water
+☁ air, ∅ earth, ∿ fire, ≈ water
 * ice, ⌁ electricity, $ metal, ♠ or ♣ nature
 ☠ poison/sleep/stoning, % entropy
 ⌑ light, ▓ dark, § polymorph, ↹ planer
@@ -1448,7 +1541,7 @@ barly wheat rye rice
 ginger sasafrass blueraspberries bubbles 
 geletin starch creamoftartar bakingpowder
 vinager bakingsoda calciumhydroxide hemlock
-popcorn nachos cookies milk
+popcorn nachos cookies milk*
 pasta(uncooked) pasta ramen(uncooked) ramen*
 dumplings(uncooked) dumplings* tofu(uncooked) tofu
 meatballs marinara alfredosauce parmisian
@@ -1459,22 +1552,22 @@ pie* cake* soda* chips
 salad* hotdog* hamburger* fries
 vanilla cinnimon chocolate sugar
 cocoapowder cocoabutter cocoaliquor fudge
-egg shortening/fat* caramel butterscotch
-sourcream butter mayo dressing*
-pie* piealamode* englishfruitcake bread*
+egg fat* caramel butterscotch
+sourcream butter/shortening* mayo dressing*
+pie* pie_alamode* englishfruitcake bread*
 cake* pancake* waffle* stackofpancakes*
 frozenpancake frozenwaffle flavoredmilk* juice*
-roast* gravy xandgravy* xchicken*
+roast* gravy foo&gravy* foo_chicken*
 bakedpotato loadedbakedpotato mashpotatos tatties&neeps
 sunnysideup overeasy scrambled hardboiled
-bacon sausage jerky* spam
+bacon* sausage* jerky* spam
 nutbrittle* trailmix rasin* peanutbuttersandwich*
 baconlettucetomatosandwich clubsandwich fingersandwich* coldcutsandwich*
 milkshake* icecream* sorbet* icecreamfloat*
 icecreamcone* banannasplit neopolitan rockyroad
 gumdrop* hardcandy* candycane filledchocolate*
 jelly* jam* preserves* peanutbutter
-icecube snow ember dropletoflifeforce
+icecube snow ember blacksoup
 broth* stew* ration mistake
 
 pseudosubroutine playermove(xmove,ymove,zmove)
@@ -1491,7 +1584,7 @@ if (PLAYER.pos.x < 0) {
 	PLAYER.pos.x = 63
 	mapscroll(-1,0)
 	}
-else if (PLAYER.pos.x >= 64) {
+else if (PLAYER.pos.x ≥ 64) {
 	PLAYER.pos.x = 0
 	mapscroll(1,0)
 	}
@@ -1501,7 +1594,7 @@ if (PLAYER.pos.y < 0) {
 	PLAYER.pos.y = 17
 	mapscroll(0,-1)
 	}
-else if (PLAYER.pos.y >= 18) {
+else if (PLAYER.pos.y ≥ 18) {
 	PLAYER.pos.y = 0
 	mapscroll(0,1,0)
 	}
@@ -1545,7 +1638,7 @@ WORLD.coord.lat += latmove
 if (WORLD.coord.lat > 180) {
 	WORLD.coord.lat += -360
 	}
-else if (WORLD.coord.lat <= -180) {
+else if (WORLD.coord.lat ≤ -180) {
 	WORLD.coord.lat += 360
 	}
 
@@ -1553,14 +1646,16 @@ WORLD.coord.lon += lonmove
 if (WORLD.coord.lon > 180) {
 	WORLD.coord.lon += -360
 	}
-else if (WORLD.coord.lon <= -180) {
+else if (WORLD.coord.lon ≤ -180) {
 	WORLD.coord.lon += 360
 	}
+
 loadroom()
 }
 
-pseudosubroutine mapstair(depmove)
+pseudosubroutine mapscrollz(depmove,hole)
 bool depmove
+bool hole
 {
 saveroom()
 
@@ -1575,33 +1670,33 @@ if (WORLD.coord.dep > 100) {
 	//latitude does not change, because doughnut
 	}
 
-else if (WORLD.coord.dep < 0) {
-	WORLD.coord.dep = 0
+else if (WORLD.coord.dep < -100) {
+	WORLD.coord.dep = -100
 	}
 
 loadroom()
 
 if (depmove) {
-	PLAYER.pos.x = ROOM.upstair.x
-	PLAYER.pos.y = ROOM.upstair.y
+	if (!hole) {
+		PLAYER.pos.x = ROOM.upstair.x
+		PLAYER.pos.y = ROOM.upstair.y
+		}
 	PLAYER.pos.z = CEILING
 	}
 else {
-	PLAYER.pos.x = ROOM.downstair.x
-	PLAYER.pos.y = ROOM.downstair.y
+	if (!hole) {
+		PLAYER.pos.x = ROOM.downstair.x
+		PLAYER.pos.y = ROOM.downstair.y
+		}
 	PLAYER.pos.z = 0
 	}
 }
 
 pseudosubroutine mapwarp(latmove,lonmove,depmove,tocoord)
-signed char latfrom
-signed char lonfrom
-unsigned char depfrom
-coord3 tocoord
 signed char latmove
 signed char lonmove
-unsigned char depfrom
-bool stairs
+signed char depfrom
+coord3 tocoord
 {
 saveroom()
 
@@ -1609,9 +1704,6 @@ if (depmove > 100) {
 	depmove = 199 - depmove
 	lonmove += 180
 	//latitude does not change, because doughnut
-	if (depmove > 100) {
-		depmove = 0
-		}
 	}
 
 WORLD.coord.dep = depmove
@@ -1620,7 +1712,7 @@ WORLD.coord.lat = latmove
 if (WORLD.coord.lat > 180) {
 	WORLD.coord.lat += -360
 	}
-else if (WORLD.coord.lat <= -180) {
+else if (WORLD.coord.lat ≤ -180) {
 	WORLD.coord.lat += 360
 	}
 
@@ -1628,7 +1720,7 @@ WORLD.coord.lon = lonmove
 if (WORLD.coord.lon > 180) {
 	WORLD.coord.lon += -360
 	}
-else if (WORLD.coord.lon <= -180) {
+else if (WORLD.coord.lon ≤ -180) {
 	WORLD.coord.lon += 360
 	}
 
@@ -1767,9 +1859,9 @@ pseudo text:
 print at most 4 lines of 1 message before prompting acknowlage
 
 main () {
-if (NEWROOM) {
-	checkqglobevnts()
-	NEWROOM = false
+if (NEW) {
+	checkglobal()
+	NEW = false
 	}
 checkevents() //check event triggers
 player_act() //player's turn
