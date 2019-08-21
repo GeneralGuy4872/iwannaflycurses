@@ -27,4 +27,6 @@ Libraries:
 NEWS
 ----
 
-While the 3d version is lamenting in matrix heck, I thought I'd do something simpler to practice the next part of it. This game uses the same RPG subsystems that will eventually be in that game, but uses terminal graphics instead of opengl. This expands on the lists-within-lists-within-lists model that I already am using, and uses proper object wrappers...I think that's what they are.
+Lore can be found at my Neocities site: https://generalguy4872.neocities.org/Games/
+
+While the 3d version is lamenting in matrix heck, I thought I'd do something simpler to practice the next part of it. This game uses the same RPG subsystems that will eventually be in that game, but uses terminal graphics instead of opengl. This expands on the lists-within-lists-within-lists model that I already am using, and uses proper object wrappers (...I think that's what they are.)

@@ -492,7 +492,7 @@ playertyp classtable[4][8]	//is freed after startup; initial values for PLAYER
 enum mon1_enum
 stabs mon1stabs =
 {"human","elf","dwarf","gnome","hobbit","half elf","drow","avian","half orc","half dragon","half celestial","half fiend","half air elemental","half water elemental","half earth elemental","half fire elemental",
-"merfolk","seaelf","dryad","fairy","naiad","satyr","drider","centaur","orc","gorgon","sphinx","foocubus","pixie"};	//...
+"merfolk","seaelf","dryad","fairy","naiad","satyr","drider","centaur","orc","gorgon","sphinx","foocubus","pixie","kobald"};	//...
 fstab mon1table
 /* contains all polymorphable monsters, of type BASENTYPE.
  * any polymorphable race can BECOME your base race...
@@ -506,9 +506,9 @@ fstab mon2table
  * wolf, cat, lynx, bobcat, dog, raven, jackdaw, crow, mockingbird, kea, grey parrot, macaw, cockatoo, songbird, sparrow, starling, gull, bat,
  * early bird, eagle, falcon, owl, kite, vulture, albatross, velociraptor, turkey, rooster, chicken, peahen, peacock, duck, goose, goblin,
  * green slime, black pudding, giant ant, giant wasp, giant scorpion, raccoon, platypus, bugbear, owlbear, toll, giant, stalker, lurker above,
- * purple worm, trapper below, fury, harpy, archon, angel, horned devil, balrog, imp, homunculus, harpy, death, nemesis, air elemental,
- * water elemental, earth elemental, fire elemental, displacer beast, copperhead, cobra, rattlesnake, python, cracken, shark, octopus,
- * skeleton, zombie, (flesh, straw, clay, stone, paper, leather, gold) golem, clockwork robot (g),
+ * purple worm, trapper, hungry chest, erinys, harpy, archon, celestial, horned devil, balrog, imp, homunculus, harpy, pit feind, death, nemesis,
+ * ghost, banshee, tengu, air elemental, water elemental, earth elemental, fire elemental, displacer beast, copperhead, cobra, rattlesnake,
+ * python, cracken, shark, octopus, skeleton, zombie, lich, (flesh, straw, clay, stone, paper, leather, gold) golem, clockwork robot (g), herculid
  */
 
 struct the8stats:
@@ -1245,8 +1245,9 @@ fluid tiles are transparent.
 
 to avoid confusion, by default the player always uses a unique character: ☻
 (humans,elves,seaelvs,drow,halfelves are otherwise represented by the traditional @
-other playable races are as follows: Æ avian,halfdragon,halfelemental,halfoutsider  C centaur,satyr
-& foocubus,drider,gorgon  n fairy,merfolk,dryad,naiad,pixie  d dwarf  g gnome  o halforc,orc  f sphinx)
+other playable races are as follows: Æ avian,halfdragon,halfelemental,halfoutsider
+C centaur,satyr  & foocubus,drider,gorgon  n fairy,merfolk,dryad,naiad,pixie  d dwarf
+g gnome  o halforc,orc  f sphinx  k kobald)
 
 an UNDERLINE is a shadow
 
@@ -1254,13 +1255,14 @@ an UNDERLINE is a shadow
 ⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves.  ♥ is food. $ is gold. · is a rock.
 £ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ⌘ is a special item. ¿ are potions (fragile).
 ∫ is a scroll. ⊒ is a book. ∩ is a tablet. ◆ is a gemstone. ° is a ring. º is a bracelet. ª is an amulet.
-^ is a crown. / is a wand. ~ is a liquid. ≈ is a liquid's surface. ␣ is a hole. ⋎ is a fountain. ∪ is a sink. 
+^ is a crown. / is a wand. ~ is a liquid. ≈ is a liquid's surface. ≣ is a ladder. ⋎ is a fountain. ∪ is a sink. 
 ∿ is fire. ⌁ is electricity. * is ice. ⋏ are spikes. ⌸ is a door. ⍯ is a locked door. ⏍ is a chest. 
 ? is invisible. ! is a trap. ⌑ is a light source. ⍝ is a tombstone. ¶ is a signpost. ␥ is glass.
 ∅ is a boulder. ◊ is a giant magic crystal. ♠ ♣ are trees. ♜ is a stone turret. ✪ is a magic rune.
 ← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. % is a pulsar (do not touch). ↯ lightning or the Thunderbolt.
-box drawings are low walls. █ is a thick wall. < > are level stairs. ≣ is a ladder. ☁ is a cloud (no walking).
-▓ is an unlit area that you have visited. ▒ is a lit area that you have visited. ⍰ is a missingno.
+⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are cannons. box drawings are low walls. █ is a thick wall. < > are level stairs.
+▓ is an unlit area that you have visited. ▒ is a lit area that you have visited.
+☁ is a cloud (no walking and keep your head out). ␣ is a hole. ⍰ is a missingno.
 
 BOLD symbols are petrified (statues).
 BLINK is the edge of an illuminated area or something requiring your attention.
