@@ -475,12 +475,20 @@ typedef classobjtyp:
 classtyp
 magictyp
 
-typedef classtyp:
+typedef classtyp {
 unsigned char type : 2
+bool override : 1 //0=blacklist overrides, 1=whitelist overrides
+bool wl_mode : 1 //whitelist mode: 0=or, 1=and
 unsigned char class : 3
-bool law_good : 1
 bool neutral : 1
-bool chaos_evil : 1
+bool good : 1
+bool evil : 1
+bool law : 1
+bool chaos : 1
+bool nogood : 1
+bool noevil : 1
+bool nolaw : 1
+bool nochaos : 1
 
 char* roguestabs[8] = {"changeling","rogue","thief","pirate","ninja","assasin","tourist","ronan"}
 char* fighterstabs[8] = {"fighter","knight","paladin","valkyrie","viking","samuri","ranger","monk"}
