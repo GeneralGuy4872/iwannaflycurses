@@ -399,7 +399,7 @@ planecoord plane
  *
  * el	"		"		"
  * +1	light		true neutral	enlightenment
- * -1	darkness	mindless	mold can't see
+ * -1	darkness	uncomitted	meh, I'll think of one later
  * -2	entropy		oathbreakers	abandon all hope ye who enter here
  *
  * by combining the shift and moon fields, you can go to the
