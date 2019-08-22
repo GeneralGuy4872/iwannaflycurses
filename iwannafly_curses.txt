@@ -490,9 +490,11 @@ char* healerstabs[8] = {"healer","cleric","priest","druid","alchemist","scholar"
 playertyp classtable[4][8]	//is freed after startup; initial values for PLAYER
 
 enum mon1_enum
-stabs mon1stabs =
-{"human","elf","dwarf","gnome","hobbit","half elf","drow","avian","half orc","half dragon","half celestial","half fiend","half air elemental","half water elemental","half earth elemental","half fire elemental",
-"merfolk","seaelf","dryad","fairy","naiad","satyr","drider","centaur","orc","gorgon","sphinx","foocubus","pixie","kobald"};	//...
+stabs mon1stabs =	//"final name", /*placeholder name*/
+{"human",	"elf",		"dwarf",	"gnome",	"hobbit",	"half elf",	"drow",		/*avian*/,	"half orc",	"half dragon",	/*half celestial*/,	"tiefling",	"half air elemental",		"half water elemental",	"half earth elemental",		"half fire elemental",
+"merfolk",	"seaelf",	"satyr",	"fairy",	"pixie",	"naiad",	"naga",		"dryad",	"orc",		"kobald",	"centaur",		"sphinx",	"half electric elemental",	"half ice elemental",	"half nature elemental",	"half metal elemental",
+};
+
 fstab mon1table
 /* contains all polymorphable monsters, of type BASENTYPE.
  * any polymorphable race can BECOME your base race...
@@ -501,14 +503,67 @@ fstab mon1table
 enum mon2_enum
 stabs mon2stabs
 fstab mon2table
-/*  cow, pig, unicorn, nightmare, quarterhorse, draft horse, miniature horse, zebra, pegasus, buffalo, panther, lion, tiger, bear, polar bear,
- * wyrm, (red copper white cyan blue green brown gold black silver grey) dragon, gelatinous cube, floating eye, wallmaster, mind flayer, vampire,
- * wolf, cat, lynx, bobcat, dog, raven, jackdaw, crow, mockingbird, kea, grey parrot, macaw, cockatoo, songbird, sparrow, starling, gull, bat,
- * early bird, eagle, falcon, owl, kite, vulture, albatross, velociraptor, turkey, rooster, chicken, peahen, peacock, duck, goose, goblin,
- * green slime, black pudding, giant ant, giant wasp, giant scorpion, raccoon, platypus, bugbear, owlbear, toll, giant, stalker, lurker above,
- * purple worm, trapper, hungry chest, erinys, harpy, archon, celestial, horned devil, balrog, imp, homunculus, harpy, pit feind, death, nemesis,
- * ghost, banshee, tengu, air elemental, water elemental, earth elemental, fire elemental, displacer beast, copperhead, cobra, rattlesnake,
- * python, cracken, shark, octopus, skeleton, zombie, lich, (flesh, straw, clay, stone, paper, leather, gold) golem, clockwork robot (g), herculid
+
+/* MONSTERS BY LETTER
+ * &: horned devil, balrog, pit feind, imp, homunculus, jubilix, drider
+ * @: human, elf, half elf, drow, seaelf
+ * A: astral, ætherial, celestial, archon
+ * a: newt, salamander, frog, 
+ * B: bear, polar bear, bugbear, owlbear,
+ * b: mockingbird, parrot, macaw, cockatoo, songbird, sparrow, starling,
+ * C: satyr, centaur,
+ * c: raven, rook, jackdaw, crow, jay, magpie,
+ * D: wyrm, great wyrm, (△red,↯copper,◬white,*cyan,▽blue,♠green,⍫brown,⍏gold,☽black,☼silver,☠purple,%grey) dragon, hydra,
+ * d: hellhound, wolf, dire wolf, dog, fox, cyote,
+ * E: <elementals>, stalker, grue,
+ * e: floating eye,
+ * F: turkey, rooster, chicken, peahen, peacock, duck, goose, albatross, gull,
+ * f: panther, lion, tiger, manticore, cat, lynx, bobcat, displacer beast,
+ * G: ghost, banshee, revenent, barrow wight,
+ * g: gremlin, gargoyle, winged gargoyle,
+ * H: giant, cyclops,
+ * h: dwarf, gnome, hobbit,
+ * I: giant ant, giant roach, giant scarab, giant wasp, giant scorpion, giant spider,
+ * i: ant, roach, scarab, wasp, scorpion, spider, firefly
+ * J: djinn,
+ * j: lichen, yellow mold, green mold, black mold, gelatinous cube, green slime, brown pudding, black pudding, ocher jelly, spotted jelly, blue jelly,
+ * K: chickatrice, cockatrice, pyrolisk,
+ * k: kobold,
+ * L: skeleton, lich,
+ * l: leprachaun,
+ * M: gorgon,
+ * m: <mummies>
+ * N: naga,
+ * n: merfolk, naiad, dryad,
+ * O: <boulder (letter O considered harmful)>
+ * o: orc, half orc, uruk-hai, ogre,
+ * P: fairy, pixie,
+ * p: dolphin, narwhal, orca, beluga,
+ * Q: elephant, mammoth, rhino,
+ * q: cow, pig, buffalo,
+ * R: eagle, falcon, owl, kite, vulture, phoenix,
+ * r: rat, dire rat, raccoon, platypus,
+ * S: cracken, shark, octopus, giant squid,
+ * s: copperhead, cobra, rattlesnake, python,
+ * T: lurker above, trapper, wallmaster, rust monster,
+ * t: troll,
+ * U: umber hulk,
+ * u: unicorn, pegasus, zebra, griphon, hippogriph,
+ * V: vampire, wolfman, manbat, mind flayer,
+ * v: bat,
+ * W: avian, erinys, harpy, tengu,
+ * w: purple worm,
+ * X: velociraptor, tyrannasaurus,
+ * x: <corpses>
+ * Y: yeti, bigfoot,
+ * y: ape, monkey, gorilla,
+ * Z: <sleeping gas>
+ * z: <zombies>
+ * ½: half dragon, half celestial, tiefling, <half elementals>,
+ * ¶: death.
+ * ♞: nightmare, quarterhorse, draft horse, miniature horse,
+ * ♜: (flesh, straw, clay, stone, glass, paper, leather, gold) golem, automaton, hungry chest, chest monster,
+ * ⏍: hungry chest, chest monster,
  */
 
 struct the8stats:
@@ -650,7 +705,7 @@ symtabref spell0
 symtabref spell1
 char16_t Rune
 bool eats_you : 1
-bool mindless : 1
+bool shadow : 1
 signed char size : 2
 stattyp stats : 8
 sensetyp sense : 8
@@ -665,14 +720,16 @@ unsigned char color : 8
 
 struct aggrotyp:
 bool shiftable : 1	//nowhere else to put it.
-bool trig : 1
-signed char cooldown : 6
+unsigned char patience : 3
+unsigned char ai_type : 4
+unsigned char cooldown : 8
 
 struct enttyp:
 (self) *prev
 (self) *next
 aggrotyp aggro
 symtabref race
+unsigned char meta
 coord3 loc
 polar facing
 vector3 velo
@@ -700,7 +757,6 @@ subobjtyp ringr
 subobjtyp wristl
 subobjtyp wristr
 subobjtyp crown
-unsigned char meta
 
 struct heldobjtyp:
 (self) *prev
@@ -1244,23 +1300,19 @@ drawing is stopped and the player is drawn if they have not been already
 fluid tiles are transparent.
 
 to avoid confusion, by default the player always uses a unique character: ☻
-(humans,elves,seaelvs,drow,halfelves are otherwise represented by the traditional @
-other playable races are as follows: Æ avian,halfdragon,halfelemental,halfoutsider
-C centaur,satyr  & foocubus,drider,gorgon  n fairy,merfolk,dryad,naiad,pixie  d dwarf
-g gnome  o halforc,orc  f sphinx  k kobald)
 
 an UNDERLINE is a shadow
 
 ) is a sword or dagger. ⍏ is a polearm or staff. ‡ is a club or mace. ⦅ is a bow. ⇤ is an arrow.
-⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves.  ♥ is food. $ is gold. · is a rock.
+⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves.  % is food. $ is gold. · is a rock.
 £ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ⌘ is a special item. ¿ are potions (fragile).
 ∫ is a scroll. ⊒ is a book. ∩ is a tablet. ◆ is a gemstone. ° is a ring. º is a bracelet. ª is an amulet.
 ^ is a crown. / is a wand. ~ is a liquid. ≈ is a liquid's surface. ≣ is a ladder. ⋎ is a fountain. ∪ is a sink. 
-∿ is fire. ⌁ is electricity. * is ice. ⋏ are spikes. ⌸ is a door. ⍯ is a locked door. ⏍ is a chest. 
-? is invisible. ! is a trap. ⌑ is a light source. ⍝ is a tombstone. ¶ is a signpost. ␥ is glass.
-∅ is a boulder. ◊ is a giant magic crystal. ♠ ♣ are trees. ♜ is a stone turret. ✪ is a magic rune.
-← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. % is a pulsar (do not touch). ↯ lightning or the Thunderbolt.
-⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are cannons. box drawings are low walls. █ is a thick wall. < > are level stairs.
+∿ is fire. ⌁ is electricity. * is ice. ⎈ spider web. ⋏ are spikes. ⌸ is a door. ⍯ is a locked door.
+? is invisible. ! is trouble. ¤ is a light source. ⍝ is a tombstone. ⎅ is a signpost. ␥ is glass.
+O is a boulder. ◊ is a giant magic crystal. ♠ ♣ are trees. ✪ is a trap. < > are level stairs.
+← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. ∅ is a pulsar (do not touch). ↯ the thunderbolt.
+⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are cannons. box drawings are low walls. █ is a thick wall. ⏍ is a chest. 
 ▓ is an unlit area that you have visited. ▒ is a lit area that you have visited.
 ☁ is a cloud (no walking and keep your head out). ␣ is a hole. ⍰ is a missingno.
 
@@ -1272,14 +1324,15 @@ REVERSE video is a magic spell's area of effect, an identified rune, or your cur
 rune symbols
 ◬ air, ⍫ earth, △ fire, ▽ water, ⍰ missingno
 * ice, ↯ electricity, ⍏ metal, ♠ nature
-☠ poison/sleep/stoning, % entropy
+☠ poison, Z sleep/stoning (bold), % entropy
 ☼ light, ☽ dark, § polymorph, ↹ planer
+♥ healing
 
 magic AOE symbols
 ☁ air, ∅ earth, ∿ fire, ≈ water
 * ice, ⌁ electricity, $ metal, ♠ or ♣ nature
-☠ poison/sleep/stoning, % entropy
-⌑ light, ▓ dark, § polymorph, ↹ planer
+☠ poison, Z sleep/stoning (bold), % entropy
+¤ light, ▓ dark, § polymorph, ↹ planer
 
 
 unsigned char getsixbit_template() {
