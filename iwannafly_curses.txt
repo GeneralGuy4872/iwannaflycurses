@@ -365,9 +365,9 @@ unsigned char side : 5
 unsigned char tobeat : 8
 
 struct planecoord:
-bool shadow : 1 //dark world
 bool moon : 1 //are you on the moon?
 bool shift : 1 //are you plane shifted?
+bool outer : 1 //inner planes or outer planes
 unigned char az : 3 //azimuth on a plane chart
 signed char el : 2
 
@@ -380,7 +380,7 @@ struct mapcoord: //surface terrain generation by dice roll from pregenerated blo
 latlontyp latlon
 planecoord plane
 
-/* when combined with shift, moon becomes outer planes, and shadow becomes off-plane
+/* when combined with shift, moon becomes off-plane
  *
  * az	elemental	afterlife	corrilation
  * 0	water		neutral good	nurturer
@@ -402,7 +402,7 @@ planecoord plane
  * -1	darkness	mindless	mold can't see
  * -2	entropy		oathbreakers	abandon all hope ye who enter here
  *
- * by combining the shift and shadow fields, you can go to the
+ * by combining the shift and moon fields, you can go to the
  * æthereal (inner) and asteral (outer) planes,
  * but only the worthy can withstand the inter-planer energy.
  * all others are instantly blasted with all permenent status effects, including stoning.
