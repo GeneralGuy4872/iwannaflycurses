@@ -1301,18 +1301,18 @@ to avoid confusion, by default the player always uses a unique character: ☻
 
 an UNDERLINE is a shadow
 
-) is a sword or dagger. ⍏ is a polearm or staff. ‡ is a club or mace. ⦅ is a bow. ⇤ is an arrow.
-⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves. % is food. $ is gold. · is a rock.
-⌘ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♪ is a music instrument.  is a special item.
+) is a sword or dagger. ⍏ is a polearm or staff. ℓ is a club or mace. ⦅ is a bow. ⇤ is an arrow.
+⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves. % is food. $ is gold. ' " are particals.
+⌘ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♪ is a music instrument. . is a rock.
 ¿ are potions (fragile). ∬ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet.
 ^ is a crown. / is a wand. ~ is a liquid. ≈ is a liquid's surface. ≣ is a ladder. ⋎ is a fountain or gyser.
 ⌁ is electricity. * is ice. ⎈ spider web. ⋏ are spikes or fire. ⌸ is a door. ⍯ is a locked door.
-? is invisible. ! is trouble. ¤ is a light source. ⎙ ⍝ are tombstones. # is a signpost. ␥ is glass.
-• is a boulder. ◆ is a gemstone. ◊ is a giant magic crystal. ♠ ♣ are trees. ✪ is a trap.
+? is invisible. ! is trouble. ⌑ is a light source. ⎙ ⍝ are tombstones. # is a signpost. ␥ is glass.
+• is a boulder. ◆ is a gemstone. ◊ is a giant magic crystal. ♠ ♣ ‡ are trees. , is a flower. ✪ is a trap.
 ∪ is a sink. ⏍ is a chest. ↯cy is the thunderbolt. ∅ is a pulsar (do not touch). < > are level stairs. 
 ← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are cannons. box drawings are low walls.
 █ ▓ ▒ ░ are thick walls. ≋ is a cloud (no walking; keep your head out of them). ␣ is a hole.
-⍰ is a missingno.
+` is a stalagtite or icicle. ⍰ is a missingno.
 
 BOLD symbols are petrified (statues).
 BLINK is something that is out of view.
@@ -1327,10 +1327,10 @@ rune symbols
 ♥ healing
 
 magic AOE symbols
-≋ air, ∅ earth, ⋏ fire, ≈ water
+≋ air, • earth, ℓ fire, ≈ water
 * ice, ⌁ electricity, $ metal, ♠ nature
 ☠ poison, Z sleep/stoning (bold), % entropy
-¤ light, ⎈ dark, § polymorph
+⌑ light, ⎈ dark, § polymorph
 
 
 unsigned char getsixbit_template() {
