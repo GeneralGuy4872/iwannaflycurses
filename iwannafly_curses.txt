@@ -234,7 +234,7 @@ move(MAINY+10,0); printw("  [Z] %s?",opt3)
 
 playertyp PLAYER
 coord3 PLAYERSHD //position of player's shadow, for renderer
-mapcoord WORLD
+latlontyp WORLD
 roomtyp ROOM
 #define CEILING ROOM.upstair.z
 shadowmask SHADOWKNOWS
@@ -364,23 +364,18 @@ unsigned char num : 3
 unsigned char side : 5
 unsigned char tobeat : 8
 
-struct planecoord:
-bool moon : 1 //are you on the moon?
+struct latlontyp:
+signed char lat : 9
+signed char lon : 9
+unsigned char dep : 7
 bool shift : 1 //are you plane shifted?
-bool outer : 1 //inner planes or outer planes
+bool moon : 1 //are you on the moon?
 unigned char az : 3 //azimuth on a plane chart
 signed char el : 2
 
-struct latlontyp:
-signed char lat : 8
-signed char lon : 8
-signed char dep : 8
+#define ROOF 127
 
-struct mapcoord: //surface terrain generation by dice roll from pregenerated blocks. doungeon generation by algorithem tbd. some coords will generate fixed special rooms
-latlontyp latlon
-planecoord plane
-
-/* when combined with shift, moon becomes off-plane
+/* when combined with shift, moon becomes outer planes
  *
  * az	elemental	afterlife	corrilation
  * 0	water		neutral good	nurturer
@@ -401,11 +396,6 @@ planecoord plane
  * +1	light		true neutral	enlightenment
  * -1	darkness	uncomitted	meh, I'll think of one later
  * -2	entropy		oathbreakers	abandon all hope ye who enter here
- *
- * by combining the shift and moon fields, you can go to the
- * æthereal (inner) and asteral (outer) planes,
- * but only the worthy can withstand the inter-planer energy.
- * all others are instantly blasted with all permenent status effects, including stoning.
  *
  * errors related to this section generate the string "froze to death on pluto", N1=az,N2=el
  */
@@ -559,7 +549,7 @@ fstab mon2table
  * u: unicorn, pegasus, zebra, griphon, hippogriph,
  * V: vampire, wolfman, manbat, mind flayer,
  * v: bat,
- * W: avian, erinys, harpy, tengu,
+ * W: half dragon, half celestial, tiefling, avian, erinys, harpy, tengu,
  * w: purple worm,
  * X: velociraptor, tyrannasaurus,
  * x: <corpses>
@@ -567,8 +557,8 @@ fstab mon2table
  * y: ape, monkey, gorilla,
  * Z: <sleeping gas>
  * z: <zombies>
- * ½: half dragon, half celestial, tiefling, <half elementals>,
  * ¶: death.
+ * ∈: <half elementals>
  * ♞: nightmare, quarterhorse, draft horse, miniature horse,
  * ♜: (flesh, straw, clay, stone, glass, paper, leather, gold) golem, automaton, hungry chest, chest monster,
  * ⏍: hungry chest, chest monster,
@@ -737,7 +727,7 @@ struct enttyp:
 (self) *next
 aggrotyp aggro
 symtabref race
-unsigned char meta
+unsigned char metadata
 coord3 loc
 polar facing
 vector3 velo
@@ -805,7 +795,7 @@ bool poly : 1
 bool heal : 1
 unsigned char pow : 6
 magictyp type : 8
-void* effect //either missiletyp or mapcoord; mapcoord always iff planer, set the type flag accordingly for the inner planes
+void* effect //either missiletyp or latlontyp; latlontyp always iff planer, set the type flag accordingly for the inner planes
 
 struct missiletyp:
 cursetyp curse
@@ -864,7 +854,7 @@ bool useless : 1
 unsigned char times2pow : 5
 
 struct basearmortyp:
-effectyp
+effectyp 
 unsigned char def : 8
 unsigned char spdef : 8
 unsigned char extfort : 8
@@ -1060,7 +1050,6 @@ bool ladder : 1
 bool solid : 1
 bool fluid : 1
 bool conductive : 1
-
 bool burns : 1
 bool hypotherm : 1
 bool sharp : 1
@@ -1174,7 +1163,7 @@ bool arrow : 1
 bool poisoned : 1
 bool unbreak : 1
 unsigned char uses : 8
-unsigned char meta : 8
+unsigned char metadata : 8
 
 struct eventtyp:
 (self) *prev
@@ -1197,7 +1186,7 @@ unsigned long duration
 struct qglobobj: //queued global object
 (self) *prev
 (self) *next
-mapcoord glob_pos
+latlontyp glob_pos
 coord3 pos
 objid type
 void* data
@@ -1233,9 +1222,9 @@ struct warptyp:
 (self) *next
 unsigned char color
 char16_t Rune
-mapcoord glob_loc
+latlontyp glob_loc
 coord3 loc
-mapcoord glob_dest
+latlontyp glob_dest
 coord3 dest
 unsigned short duration
 
@@ -1312,22 +1301,22 @@ to avoid confusion, by default the player always uses a unique character: ☻
 an UNDERLINE is a shadow
 
 ) is a sword or dagger. ⍏ is a polearm or staff. ‡ is a club or mace. ⦅ is a bow. ⇤ is an arrow.
-⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves.  % is food. $ is gold. · is a rock.
-£ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ⌘ is a special item. ¿ are potions (fragile).
-∫ is a scroll. ⊒ is a book. ∩ is a tablet. ◆ is a gemstone. ° is a ring. º is a bracelet. ª is an amulet.
-^ is a crown. / is a wand. ~ is a liquid. ≈ is a liquid's surface. ≣ is a ladder. ⋎ is a fountain. ∪ is a sink. 
-∿ is fire. ⌁ is electricity. * is ice. ⎈ spider web. ⋏ are spikes. ⌸ is a door. ⍯ is a locked door.
-? is invisible. ! is trouble. ¤ is a light source. ⍝ is a tombstone. ⎅ is a signpost. ␥ is glass.
-O is a boulder. ◊ is a giant magic crystal. ♠ ♣ are trees. ✪ is a trap. < > are level stairs.
-← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. ∅ is a pulsar (do not touch). ↯ the thunderbolt.
-⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are cannons. box drawings are low walls. █ is a thick wall. ⏍ is a chest. 
-▓ is an unlit area that you have visited. ▒ is a lit area that you have visited.
-☁ is a cloud (no walking and keep your head out). ␣ is a hole. ⍰ is a missingno.
+⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves. % is food. $ is gold. · is a rock.
+£ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♪ is a music instrument. ⌘ is a special item.
+¿ are potions (fragile). ∬ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet.
+^ is a crown. / is a wand. ~ is a liquid. ≈ is a liquid's surface. ≣ is a ladder. ⋎ is a fountain or gyser.
+⌁ is electricity. * is ice. ⎈ spider web. ⋏ are spikes or fire. ⌸ is a door. ⍯ is a locked door.
+? is invisible. ! is trouble. ¤ is a light source. ⎙ ⍝ are tombstones. # is a signpost. ␥ is glass.
+O is a boulder. ◆ is a gemstone. ◊ is a giant magic crystal. ♠ ♣ are trees. ✪ is a trap.
+∪ is a sink. ⏍ is a chest. ↯ is the thunderbolt. ∅ is a pulsar (do not touch). < > are level stairs. 
+← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are cannons. box drawings are low walls.
+█ ▓ ▒ ░ are thick walls. ≋ is a cloud (no walking; keep your head out of them). ␣ is a hole.
+⍰ is a missingno.
 
 BOLD symbols are petrified (statues).
-BLINK is the edge of an illuminated area or something requiring your attention.
+BLINK is something that is out of view.
 if something is not able to be seen, it is rendered INVISIBLE
-REVERSE video is a magic spell's area of effect, an identified rune, or your cursor.
+REVERSE video is a magic spell's area of effect, or your cursor.
 
 rune symbols
 ◬ air, ⍫ earth, △ fire, ▽ water, ⍰ missingno
@@ -1337,10 +1326,10 @@ rune symbols
 ♥ healing
 
 magic AOE symbols
-☁ air, ∅ earth, ∿ fire, ≈ water
-* ice, ⌁ electricity, $ metal, ♠ or ♣ nature
+≋ air, ∅ earth, ⋏ fire, ≈ water
+* ice, ⌁ electricity, $ metal, ♠ nature
 ☠ poison, Z sleep/stoning (bold), % entropy
-¤ light, ▓ dark, § polymorph, ↹ planer
+¤ light, ⎈ dark, § polymorph, ↹ planer
 
 
 unsigned char getsixbit_template() {
@@ -1351,7 +1340,7 @@ switch (getc(stdin)) {
 	case '"' :
 		return 02;
 		break;
-	case '#' :
+	case 'f' :
 		return 03;
 		break;
 	case '$' :
@@ -1686,6 +1675,7 @@ pseudosubroutine zmovecheck(zmove)
 	  if you can't fly, adds -grav to your z velocity
 	- checks to make sure you are not flying through the ground,
 	  through a solid block, or through the ceiling
+	- if above ground and at edge of room, calls mapscrollz
 
 pseudosubroutine newtonlaw(xmove,ymove,zmove)
 	- checks if you're flying magically, on ice, or in a liquid
@@ -1722,10 +1712,8 @@ bool hole
 {
 saveroom()
 
-WORLD.coord.dep += ( (depmove) ? -1 : 1)
-
-if (WORLD.coord.dep > 100) {
-	WORLD.coord.dep = 199 - WORLD.coord.dep
+if (depmove && (WORLD.coord.dep = 0)) {
+	depmove = 0
 	WORLD.coord.lon += 180
 	if (WORLD.coord.lon > 180) {
 		WORLD.coord.lon += -360
@@ -1733,8 +1721,16 @@ if (WORLD.coord.dep > 100) {
 	//latitude does not change, because doughnut
 	}
 
-else if (WORLD.coord.dep < -100) {
-	WORLD.coord.dep = -100
+else if (!depmove && (WORLD.coord.dep = ROOF)) {
+	icarus() //death call
+	}
+
+else if (!depmove) {
+	WORLD.coord.dep -= 1
+	}
+
+else if (depmove) {
+	WORLD.coord.dep += 1
 	}
 
 loadroom()
@@ -1755,10 +1751,10 @@ else {
 	}
 }
 
-pseudosubroutine mapwarp(latmove,lonmove,depmove,tocoord)
-signed char latmove
-signed char lonmove
-signed char depfrom
+pseudosubroutine mapwarp(lat_dest,lon_dest,dep_dest,tocoord)
+signed char lat_dest
+signed char lon_dest
+signed char dep_dest
 coord3 tocoord
 {
 saveroom()
