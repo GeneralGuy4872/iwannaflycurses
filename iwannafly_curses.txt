@@ -654,7 +654,7 @@ struct conlangtype:
 symtabref id : 5
 bool r : 1
 bool w : 1
-bool x : 1 //can be written with impaired dexterity
+bool x : 1 //can be written with claws
 
 char* conlangtab[64] ={"common language","thieves cant","middle elvish","old elvish","dwarvish","gnomish","gothic","orkish","draconic","fey","celestic","demonic","blackspeech","skyspeak","waterspeak","earthspeak","firespeak"}
 
