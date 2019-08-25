@@ -6,7 +6,7 @@
  *
  * enviromental requirements:
  * - UTF-8 terminal of at least 25*80 characters
- * 	- "Fixed" font is recommended
+ * 	"Fixed" font is recommended
  * - 16 or more fg colors, 8 or more bg colors, said colors CGA compatible
  * - Bold, Underline, Reverse, Blink, Invisible text effects
  * - Full Keyboard, Mouse
@@ -586,7 +586,7 @@ fstab mon2table
  * b: mockingbird, parrot, macaw, cockatoo, songbird, sparrow, starling,
  * C: satyr, centaur,
  * c: raven, rook, jackdaw, crow, jay, magpie,
- * D: wyrm, great wyrm, (△red,↯copper,◬white,*cyan,▽blue,♠green,⍫brown,↥gold,☽black,☼silver,☠purple,%grey) dragon, hydra,
+ * D: wyrm, great wyrm, (△red,↯copper,◬white,*cyan,▽blue,♠green,⍫brown,⍏gold,☽black,☼silver,☠purple,%grey) dragon, hydra,
  * d: hellhound, wolf, dire wolf, dog, fox, cyote,
  * E: <elementals>, stalker, grue,
  * e: floating eye,
@@ -711,7 +711,11 @@ psudo update_player
  * must be called every time equipment is changed to ensure that it is up to date
  * effects in .permenent can only be removed by finding something that affects the opposite change
  * changes to your starting alignment or role are generally rare and disasterous, as they represent
- * the corruption of the character in some way. changes to your race may also be inconvenient.
+ * the corruption of the character in some way. changes to your race may also be inconvenient,
+ * but not necissarily bad. (I.E. late game events may change a player into a powerful
+ * non-starting race as part of the story, such as a drider, full elemental, or dragon.)
+ *
+ * this may be done automatically when you sleep.
  */
 
 pseudo inventsort
@@ -765,7 +769,6 @@ else {
 struct basentyp:
 aligntyp alignmask
 paffectyp base
-bodytyp shape
 unsigned char spd	//distance calculations use M_SQRT2 for diagonals
 unsigned char fly
 unsigned char hplvl
@@ -780,11 +783,8 @@ symtabref spell2
 symtabref spell3
 char16_t Rune
 bool eats_you : 1
-bool shadow : 1
+bool keepindark : 1
 signed char size : 2
-bodytyp shape : 8
-sensetyp sense : 8
-resistyp resist : 8
 unsigned char color : 8
 /* entitys of size 1 or -2 cannot use armor.
  * entitys of larger size automaticly win grapples.
@@ -872,24 +872,17 @@ bool dark : 1 //dark is not necisarrily evil
 bool planer : 1
 
 struct toomuchpolytyp:
-unsigned char timer : 8 //time remaining in the current polymorph
+unsigned char polytimer : 8 //time remaining in the current polymorph
 unsigned char polydepth : 4 //polymorphing more than 10 times without returning to your base form first change your base form to the 15th one
 unsigned char polycount : 4 //repeating the same polymorph 10 times will make it permenant
-bool gills : 1
-bool wings : 1
-bool nolegs : 1
-bool noarms : 1
-bool nolungs : 1
-bool lowdexhands : 1
+unsigned char altertimer //time remaining in the current alteration
+unsigned char gills : 4 //using an alteration spell, including intrensics from polymorph spells, 10 times will make them permenent. rest can prevent this.
+unsigned char lungs : 4
+unsigned char wings : 4
+unsigned char tail : 4
+unsigned char claws : 4
+unsigned char fangs : 4
 
-
-
-bool gills : 4
-bool wings : 4
-bool nolegs : 4
-bool noarms : 4
-bool nolungs : 4
-bool lowdexhands : 4
 
 
 struct spelltyp:
@@ -984,11 +977,11 @@ unsigned char def : 8
 unsigned char spdef : 8
 
 struct bodytyp:
-bool caster : 1
 bool gills : 1
 bool wings : 1
 bool tail : 1
 bool claws : 1
+bool fangs : 1
 bool nolegs : 1
 bool noarms : 1
 bool nolungs : 1
@@ -1062,6 +1055,10 @@ resistyp resist
 senstyp sense
 skilltyp skill
 magictyp asp
+signed char atk
+signed char spatk
+signed char def
+signed char spdef
 
 struct potiontyp:
 bodytyp shape
@@ -1085,7 +1082,7 @@ unsigned char throw : 3 //+skill to javalin-type weapon range
 unsigned char monk : 4 //+(2*skill) to barehanded attack
 unsigned char shield : 3 //skill in (damage-defense)+|damage-defense| chance of blocking
 unsigned char locks : 3 //1 in 2^(lock.level - (skill)) chance of picking
-unsigned char cast : 3 //-skill/2 to casting cost, +skill/2 to spatk, spdef
+unsigned char caster : 3 //-(skill-1)/2 to casting cost, +(skill-1)/2 to spatk, spdef, 0 is non-caster
 /* damage(incoming)-defense =
  * ⎰if >0: damage(target)
  * ⎱if ≤0: moot
@@ -1439,16 +1436,16 @@ to avoid confusion, by default the player always uses a unique character: ☻
 
 an UNDERLINE is a shadow
 
-) is a sword or dagger. ↥ is a polearm or staff. ℓ is a club or mace. ⦅ is a bow. ⇤ is an arrow.
+) is a sword or dagger. ⍏ is a polearm or staff. ℓ is a club or mace. ⦅ is a bow. ⇤ is an arrow.
 ⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves. % is food. $ is gold. ¢ is copper.
-⌘ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♪ is a music instrument. . is a rock.
+⌘ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♪ is a music instrument. ⍖ is a writing instrument.
 ¿ are potions (fragile). ∬ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet.
 ^ is a crown. / is a wand. ~ is a liquid. ≈ is a liquid's surface. ≣ is a ladder. ⋎ is a fountain or gyser.
-⌁ is electricity. * is ice. ⎈ spider web. ⋏ are spikes or fire. ⌸ is a door. ⍯ is a locked door.
+⌁ is electricity. * is ice. ⎈ spider web. ⋏ are spikes or fire. ⌸ is a door. ⍯ is a locked door. ⎕ is an open door. 
 ? is invisible. ! is trouble. ⌑ is a light source. ⎙ ⍝ are tombstones. # is a signpost. ␥ is glass.
-• is a boulder. ◆ is a gemstone. ◊ is a giant magic crystal. ♠ ♣ ‡ are trees. , is a plant. ✪ ː are traps.
+• is a boulder. . is a rock. ◆ is a gemstone. ◊ is a giant magic crystal. ♠ ♣ ‡ are trees. , is a plant.
 ∪ is a sink. ⏍ is a chest. ↯ (cyan) is the thunderbolt. ∅ is a pulsar (do not touch). < > are level stairs. 
-← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are cannons.
+← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are cannons. ✪ is a rune. ː is a trap.
 █ ▓ ▒ ░ ▞ ▚ (etc) are thick walls or floor. ≋ is a cloud (no walking; keep your head out of them).
 ␣ is a hole. ' is your cursor. "" deliminates text from somone yelling at you.
 · is a partical. ` is a stalagtite or icicle. ⍰ is a missingno.
@@ -1465,7 +1462,7 @@ REVERSE video is a magic spell's area of effect
 
 rune symbols
 ◬ air, ⍫ earth, △ fire, ▽ water, ⍰ missingno
-* ice, ↯ (yellow) electricity, ↥ metal, ♠ nature
+* ice, ↯ (yellow) electricity, ⍏ metal, ♠ nature
 ☠ poison, Z sleep/stoning (bold), % entropy
 ☼ light, ☽ dark, § polymorph, ↹ planer
 ♥ healing
