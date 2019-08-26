@@ -494,13 +494,19 @@ signed char el : 2
 struct placetyp {
 (self) *prev
 (self) *next
-char name[16]
+char name[4]
+short id
 latlontyp latlon
 coord3 pos
 }
 /* used to register places
  * if the commandline catches text where it expects coords,
  * it searches for a place.
+ *
+ * names are given as 4 ascii chars and 4 hex digits,
+ * the fields seperated by a hyphen. names should be unique;
+ * when looking for a place by name, searching stops at the first
+ * match.
  */
 
 struct cylinder:
@@ -515,7 +521,7 @@ unsigned char down : 4
 
 struct moneytyp:
 unsigned short gp : 17 //max 100,000
-unsigned char cp : 7 //1 gp = 99 cp
+unsigned char cp : 7 //1 gp = 100 cp
 
 /* crossbar logic operations are used for alignment masks.
  * these are union or intersection on special case subsets of a gridlike set of elements.
@@ -715,8 +721,8 @@ bool w : 1
 bool x : 1	//can be written with claws or talons
 
 char* conlangtab[32] = {"common language","middle elvish","old elvish","dwarvish", "gnomish","gothic","orkish","draconic", "fey","celestic","demonic","blackspeech", "skyspeak","waterspeak","earthspeak","firespeak",
-	"thieves cant"}
-bitfield conlangx[4] = {{false,false,true,true, true,true,true,true},{false,false,true,true, true,false,true,true},{},{}}
+	"thieves cant",/*?*/,/*?*/,/*?*/, /*?*/,/*?*/,/*?*/,/*?*/, /*?*/,/*?*/,/*?*/,/*?*/, "electric","icespeak","treespeak","metallic"}
+bitfield conlangx[4] = {{false,false,true,true, true,true,true,true},{false,false,true,true, true,false,true,true},{true, },{, true,true,true,true}}
 
 struct playertyp:
 classobjtyp class
