@@ -87,26 +87,29 @@ cbreak();
 noecho();
 keypad(stdscr, TRUE);
 
-/* because of the internals of the CLI commands,
- * localization would require rewriting large
- * ASCII and DEC-SIXBIT switch tables.
- *
- * backslash enters console mode. characters are fetched and printed
+/* backslash enters console mode. characters are fetched and printed
  * with ncurses, as well as stored in a temporary file.
- * autocomplete will be implemented, using a DEC-SIXBIT
- * switch table, and can be invoked with tab.
+ * autocomplete will be implemented, using a gradually diminishing
+ * linked list of sixbit matches between your ascii and the command's
+ * radix-50 name. once only one match remains, it will be shown
+ * on-screen in reverse video mode, and can be inserted with tab.
+ * autocomplete is not implemented for item or entity names;
+ * spaces in these are replaced by underscore.
  *
  * once the enter key is pressed, the temp file is rewound.
- * fscanf is used to process space-seperated tokens.
+ * fscanf is used to process tokens.
  * interpretation mode will change depending on the syntax.
  * invalid commands may produce the response
  * "Don't know how to <command>", amoungst others.
  *
- * a command will be provided to dump objects as json or xml.
- * only a limited number of variables may be dumped this way;
- * true debugging should use GDB. using this comand to get
+ * a command will be provided to dump objects as ini, json, or xml.
+ * text fields will show both their raw value and their text
+ * value in the correct encoding. using this comand to get
  * out-of-character information is cheating, but no penalty
  * can be implemented, as it would effect it's functionality.
+ *
+ * only a number of expected variables may be dumped this way;
+ * true debugging should use GDB.
  */
 
 enum cli_argstypes
@@ -122,9 +125,17 @@ enum cli_argstypes
 
 typedef cli_func *int(*void)
 
-enum command_enum
-stabs commandstabs
+enum commandenum
+radix50 commandstabs[256][4] //radix50[4] easily converts to fourbysix[3]
 cli_func commandtable[256]
+cli_argstypes commandargs[256]
+
+struct cli_matches {
+(self) *prev
+(self) *next
+fourbysix text[3]
+symtabref id
+}
 
 struct argstyp_wish {
 unsigned char stack
@@ -164,6 +175,582 @@ heldobjtyp* item
  * bool blink : 1;
  * bool invis : 1;
  * } Rune; //not needed
+ */
+
+typedef unsigned char16_t Rune
+
+struct fourbysix {
+unsigned char a : 6
+unsigned char b : 6
+unsigned char c : 6
+unsigned char d : 6
+}
+
+typedef unsigned short radix50
+
+radix50 squooze(char1,char2,char3)
+unsigned char char1
+unsigned char char2
+unsigned char char3
+{
+switch (char1) {
+	case ' ' :
+		char1=0;
+		break;
+	case 'A' : noop();
+	case 'a' :
+		char1=01;
+		break;
+	case 'B' : noop();
+	case 'b' :
+		char1=02;
+		break;
+	case 'C' : noop();
+	case 'c' :
+		char1=03;
+		break;
+	case 'D' : noop();
+	case 'd' :
+		char1=04;
+		break;
+	case 'E' : noop();
+	case 'e' :
+		char1=05;
+		break;
+	case 'F' : noop();
+	case 'f' :
+		char1=06;
+		break;
+	case 'G' : noop();
+	case 'g' :
+		char1=07;
+		break;
+	case 'H' : noop();
+	case 'h' :
+		char1=010;
+		break;
+	case 'I' : noop();
+	case 'i' :
+		char1=011;
+		break;
+	case 'J' : noop();
+	case 'j' :
+		char1=012;
+		break;
+	case 'K' : noop();
+	case 'k' :
+		char1=013;
+		break;
+	case 'L' : noop();
+	case 'l' :
+		char1=014;
+		break;
+	case 'M' : noop();
+	case 'm' :
+		char1=015;
+		break;
+	case 'N' : noop();
+	case 'n' :
+		char1=016;
+		break;
+	case 'O' : noop();
+	case 'o' :
+		char1=017;
+		break;
+	case 'P' : noop();
+	case 'p' :
+		char1=020;
+		break;
+	case 'Q' : noop();
+	case 'q' :
+		char1=021;
+		break;
+	case 'R' : noop();
+	case 'r' :
+		char1=022;
+		break;
+	case 'S' : noop();
+	case 's' :
+		char1=023;
+		break;
+	case 'T' : noop();
+	case 't' :
+		char1=024;
+		break;
+	case 'U' : noop();
+	case 'u' :
+		char1=025;
+		break;
+	case 'V' : noop();
+	case 'v' :
+		char1=026;
+		break;
+	case 'W' : noop();
+	case 'w' :
+		char1=027;
+		break;
+	case 'X' : noop();
+	case 'x' :
+		char1=030;
+		break;
+	case 'Y' : noop();
+	case 'y' :
+		char1=031;
+		break;
+	case 'Z' : noop();
+	case 'z' :
+		char1=032;
+		break;
+	case '$' :
+		char1=033;
+		break;
+	case '.' :
+		char1=034;
+		break;
+	case '%' :
+		char1=035;
+		break;
+	case '0' :
+		char1=036;
+		break;
+	case '1' :
+		char1=037;
+		break;
+	case '2' :
+		char1=040;
+		break;
+	case '3' :
+		char1=041;
+		break;
+	case '4' :
+		char1=042;
+		break;
+	case '5' :
+		char1=043;
+		break;
+	case '6' :
+		char1=044;
+		break;
+	case '7' :
+		char1=045;
+		break;
+	case '8' :
+		char1=046;
+		break;
+	case '9' :
+		char1=047;
+		break;
+	default :
+		char1=035;
+		break;
+	}
+switch (char2) {
+	case ' ' :
+		char2=0;
+		break;
+	case 'A' : noop();
+	case 'a' :
+		char2=01;
+		break;
+	case 'B' : noop();
+	case 'b' :
+		char2=02;
+		break;
+	case 'C' : noop();
+	case 'c' :
+		char2=03;
+		break;
+	case 'D' : noop();
+	case 'd' :
+		char2=04;
+		break;
+	case 'E' : noop();
+	case 'e' :
+		char2=05;
+		break;
+	case 'F' : noop();
+	case 'f' :
+		char2=06;
+		break;
+	case 'G' : noop();
+	case 'g' :
+		char2=07;
+		break;
+	case 'H' : noop();
+	case 'h' :
+		char2=010;
+		break;
+	case 'I' : noop();
+	case 'i' :
+		char2=011;
+		break;
+	case 'J' : noop();
+	case 'j' :
+		char2=012;
+		break;
+	case 'K' : noop();
+	case 'k' :
+		char2=013;
+		break;
+	case 'L' : noop();
+	case 'l' :
+		char2=014;
+		break;
+	case 'M' : noop();
+	case 'm' :
+		char2=015;
+		break;
+	case 'N' : noop();
+	case 'n' :
+		char2=016;
+		break;
+	case 'O' : noop();
+	case 'o' :
+		char2=017;
+		break;
+	case 'P' : noop();
+	case 'p' :
+		char2=020;
+		break;
+	case 'Q' : noop();
+	case 'q' :
+		char2=021;
+		break;
+	case 'R' : noop();
+	case 'r' :
+		char2=022;
+		break;
+	case 'S' : noop();
+	case 's' :
+		char2=023;
+		break;
+	case 'T' : noop();
+	case 't' :
+		char2=024;
+		break;
+	case 'U' : noop();
+	case 'u' :
+		char2=025;
+		break;
+	case 'V' : noop();
+	case 'v' :
+		char2=026;
+		break;
+	case 'W' : noop();
+	case 'w' :
+		char2=027;
+		break;
+	case 'X' : noop();
+	case 'x' :
+		char2=030;
+		break;
+	case 'Y' : noop();
+	case 'y' :
+		char2=031;
+		break;
+	case 'Z' : noop();
+	case 'z' :
+		char2=032;
+		break;
+	case '$' :
+		char2=033;
+		break;
+	case '.' :
+		char2=034;
+		break;
+	case '%' :
+		char2=035;
+		break;
+	case '0' :
+		char2=036;
+		break;
+	case '1' :
+		char2=037;
+		break;
+	case '2' :
+		char2=040;
+		break;
+	case '3' :
+		char2=041;
+		break;
+	case '4' :
+		char2=042;
+		break;
+	case '5' :
+		char2=043;
+		break;
+	case '6' :
+		char2=044;
+		break;
+	case '7' :
+		char2=045;
+		break;
+	case '8' :
+		char2=046;
+		break;
+	case '9' :
+		char2=047;
+		break;
+	default :
+		char2=035;
+		break;
+	}
+switch (char3) {
+	case ' ' :
+		char3=0;
+		break;
+	case 'A' : noop();
+	case 'a' :
+		char3=01;
+		break;
+	case 'B' : noop();
+	case 'b' :
+		char3=02;
+		break;
+	case 'C' : noop();
+	case 'c' :
+		char3=03;
+		break;
+	case 'D' : noop();
+	case 'd' :
+		char3=04;
+		break;
+	case 'E' : noop();
+	case 'e' :
+		char3=05;
+		break;
+	case 'F' : noop();
+	case 'f' :
+		char3=06;
+		break;
+	case 'G' : noop();
+	case 'g' :
+		char3=07;
+		break;
+	case 'H' : noop();
+	case 'h' :
+		char3=010;
+		break;
+	case 'I' : noop();
+	case 'i' :
+		char3=011;
+		break;
+	case 'J' : noop();
+	case 'j' :
+		char3=012;
+		break;
+	case 'K' : noop();
+	case 'k' :
+		char3=013;
+		break;
+	case 'L' : noop();
+	case 'l' :
+		char3=014;
+		break;
+	case 'M' : noop();
+	case 'm' :
+		char3=015;
+		break;
+	case 'N' : noop();
+	case 'n' :
+		char3=016;
+		break;
+	case 'O' : noop();
+	case 'o' :
+		char3=017;
+		break;
+	case 'P' : noop();
+	case 'p' :
+		char3=020;
+		break;
+	case 'Q' : noop();
+	case 'q' :
+		char3=021;
+		break;
+	case 'R' : noop();
+	case 'r' :
+		char3=022;
+		break;
+	case 'S' : noop();
+	case 's' :
+		char3=023;
+		break;
+	case 'T' : noop();
+	case 't' :
+		char3=024;
+		break;
+	case 'U' : noop();
+	case 'u' :
+		char3=025;
+		break;
+	case 'V' : noop();
+	case 'v' :
+		char3=026;
+		break;
+	case 'W' : noop();
+	case 'w' :
+		char3=027;
+		break;
+	case 'X' : noop();
+	case 'x' :
+		char3=030;
+		break;
+	case 'Y' : noop();
+	case 'y' :
+		char3=031;
+		break;
+	case 'Z' : noop();
+	case 'z' :
+		char3=032;
+		break;
+	case '$' :
+		char3=033;
+		break;
+	case '.' :
+		char3=034;
+		break;
+	case '%' :
+		char3=035;
+		break;
+	case '0' :
+		char3=036;
+		break;
+	case '1' :
+		char3=037;
+		break;
+	case '2' :
+		char3=040;
+		break;
+	case '3' :
+		char3=041;
+		break;
+	case '4' :
+		char3=042;
+		break;
+	case '5' :
+		char3=043;
+		break;
+	case '6' :
+		char3=044;
+		break;
+	case '7' :
+		char3=045;
+		break;
+	case '8' :
+		char3=046;
+		break;
+	case '9' :
+		char3=047;
+		break;
+	default :
+		char3=035;
+		break;
+	}
+}
+return (char1*1600)+(char2*40)+char3
+}
+
+pseudo unsquooze(squoozed)
+radix50 squoozed
+{
+if (squoozed > 63999) {error}
+tmp = div(squoozed,1600)
+char1 = tmp.quot
+tmp = div(div.rem,40)
+char2 = tmp.quot
+char3 = tmp.rem
+}
+
+char isosqueeze (unichar)
+Rune unichar
+{
+if (unichar > UCHAR_MAX) {
+	switch unichar {
+	case 0x2301 : {return 0x04}
+	case 0x237E : {return '\a'}
+	case 0x232B : {return '\b'}
+	case 0x2318 : {return 0x11}
+	case 0x21D1 : {return 0x12}
+	case 0x2325 : {return 0x13}
+	case 0x2324 : {return 0x14}
+	case 0x238B : {return 033}
+	case 0x20AC : {return 0x80}	//add a subset of windows-1252 since control codes are not being used
+	case 0x0192 : {return 0x83}
+	case 0x2026 : {return 0x85}
+	case 0x2022 : {return 0x95}
+	case 0x2030 : {return 0x89}
+	case 0x0160 : {return 0x8A}
+	case 0x0161 : {return 0x9A}
+	case 0x2039 : {return 0x8B}
+	case 0x203A : {return 0x9B}
+	case 0x0152 : {return 0x8C}
+	case 0x0153 : {return 0x9C}
+	case 0x017D : {return 0x8E}
+	case 0x017E : {return 0x9E}
+	case 0x0178 : {return 0x9F}
+	else {return 0x1A}	//C0 control character SUBstitute
+else {return (char) (unichar | 0x00FF)}
+}
+
+Rune isoexpand (isochar,do_c0)
+char isochar
+bool do_c0
+{
+/*sanitize*/
+if ((isochar < ' ') && !do_c0)
+	switch isochar {
+		case '\0' : {return 0x2400}
+		case 0x04 : {return 0x2301}
+		case '\a' : {return 0x237E}
+		case '\b' : {return 0x232B}
+		case '\t' : {return ' '}
+		case '\n' : {return '\n'}
+		case '\v' : {return '\n'}
+		case '\f' : {return '\n'}
+		case '\r' : {return '\n'}
+		case 0x11 : {return 0x2318}
+		case 0x12 : {return 0x21D1}
+		case 0x13 : {return 0x2325}
+		case 0x14 : {return 0x2324}
+		case 033 : {return 0x238B}
+		case 0x1C : {return '\n'}
+		case 0x1D : {return ';'}
+		case 0x1E : {return ','}
+		case 0x1F : {return ' '}
+		default : {return 0xFFFD}
+	}
+else if ((isochar > '\x7E') && (isochar < '\xA1')) {
+	switch isochar {
+		case 0x7F : {return 0x2326}
+		case 0x80 : {return 0x20AC}
+		case 0x83 : {return 0x0192}
+		case 0x85 : {return 0x2026}
+		case 0x95 : {return 0x2022}
+		case 0x89 : {return 0x2030}
+		case 0x8A : {return 0x0160}
+		case 0x9A : {return 0x0161}
+		case 0x8B : {return 0x2039}
+		case 0x9B : {return 0x203A}
+		case 0x8C : {return 0x0152}
+		case 0x9C : {return 0x0153}
+		case 0x8E : {return 0x017D}
+		case 0x9E : {return 0x017E}
+		case 0x9F : {return 0x0178}
+		case 0xA0 : {return 0x237D}
+		default : {return 0xFFFD}
+	}
+else if (isochar == 0xAD) {return '-'}
+else {return isochar}
+}
+
+/* the game's internal representation uses 6 different character sets:
+ * - UTF-8 for all input and output, as well as external text storage
+ * - UCS-2 for internal unicode text
+ * - ISO-8859-1 (with extentions from Windows-1252 and Mac-Roman) for most other internal text
+ * - DEC-SIXBIT for 4:3 lossy compression of ascii text
+ * - RADIX-50 (16 bit) for 3:2 lossy compression of ascii text
+ *
+ * the game does not use EBCDIC.
  */
 
 unsigned int mainh__roll (num,side,low)
@@ -221,7 +808,10 @@ return lines;
 /* should also output __FILE__ and __LINE__, which will likely be the program's version of
  * undecipherable hex codes to anyone not extreamly fammiliar with the source. less severe
  * errors will prompt for [Q]uit, [A]bort, or [Z] continue. more severe ones will prompt
- * [Q]uit, [A]bort, [Z] restart.
+ * [Q]uit, [A]bort, [Z] restart. When other keyboard layout options are supported, QAZ will
+ * be replaced with the left column of letters (under 1). replacements for QAZ might be:
+ * QAY, AQW, "A:, FUJ. if Q or A are present in this group, they will be [Q]uit and [A]bort,
+ * swapping places with the other option. otherwise, the quit-abort-option3 order will be kept.
  */
 ERROR_GRAPHIC(string,num1,num2,hard)
 char* string
@@ -260,10 +850,11 @@ latlontyp WORLD
 roomtyp ROOM
 roomgenenum MAPGENBYTES[128][360][360]
 nibbles MAPGENHEIGHTS[50]
-#define MAX_X 64
-#define MAX_Y 24
+#define MAX_X 64	//
+#define MAX_Y 24	//MAX_X > MAX_Y > MAX_Z
+#define MAX_Z 16	//
 #define CEILING ROOM.upstair.z
-#define ROOF 127
+#define ROOF 125	//it is decreed: mortals shall fly no higher. (this means you!)
 shadowmask SHADOWKNOWS
 shadowmask SHINEALIGHT
 unsigned long long TURN
@@ -373,6 +964,12 @@ signed char z
 struct scoord2:
 signed char x
 signed char y
+
+struct mapcoord3:
+unsigned char x : 6
+unsigned char y : 5
+unsigned char z : 4
+bool w : 1
 
 struct paramtyp:
 coord2 lo
@@ -494,17 +1091,16 @@ signed char el : 2
 struct placetyp {
 (self) *prev
 (self) *next
-char name[4]
-short id
+long id
 latlontyp latlon
 coord3 pos
 }
 /* used to register places
- * if the commandline catches text where it expects coords,
+ * if the commandline catches hex where it expects coords,
  * it searches for a place.
  *
- * names are given as 4 ascii chars and 4 hex digits,
- * the fields seperated by a hyphen. names should be unique;
+ * names are given as 2 sets of 4 hex digits,
+ * the 2 fields seperated by a hyphen. names should be unique;
  * when looking for a place by name, searching stops at the first
  * match.
  */
@@ -581,7 +1177,7 @@ fstab armtable
 fstab shldtable
 fstab baubtable
 
-char* legendstabs[20] = {"truthseeker","sword of justice","excalibur","thunderbolt"/*torch + lightningbolt (smiting)*/,"sickle of chaos"/*+drain*/,"stormbringer"/*+drain*/,"devilfork"/*+fire*/,"partisen of tyrants","deathscyth"/*+drain*/,"sunray"/*spear + solar flare*/,"nightedge"/*sword + moonbeam*/,"staff of merlin"/*staff of magic missile*/,"firebrand"/*sword + fireball*/,"tesla's mace"/*+spark*/,"stormgale"/*bow*/,"frostpike"/*+frostbite*/,"trident of the seas"/*+tsunami*/,"staff of the forest"/*staff of animante kudzu*/,"groundshaker"/*+earthquake*/,"imperial baton"/*staff of antagonizing*/}
+char* legendstabs[20] = {"truthseeker","sword of justice","excalibur","thunderbolt"/*torch of smiting*/,"sickle of chaos"/*+drain*/,"stormbringer"/*+drain*/,"devilfork"/*+fire*/,"partisen of tyrants","deathscyth"/*+drain*/,"sunray"/*spear + solar flare*/,"nightedge"/*sword + moonbeam*/,"staff of merlin"/*staff of magic missile*/,"firebrand"/*sword + fireball*/,"tesla's mace"/*+spark*/,"stormgale"/*bow*/,"frostpike"/*+frostbite*/,"trident of the seas"/*+tsunami*/,"staff of the forest"/*staff of animante kudzu*/,"groundshaker"/*+earthquake*/,"imperial baton"/*staff of antagonizing*/}
 legendtyp legendtable[20]
 
 typedef multiclasstyp:
@@ -837,7 +1433,9 @@ else {
 
 struct basentyp:
 aligntyp alignmask
+aggrotype aggro	//here, shiftable denotes a monster's aggro state is locked. also gives the value that patience is set to when a monster calms down, the value that cooldown is set to when it is angered, and the default AI.
 paffectyp base
+venomtyp venom
 unsigned char spd	//distance calculations use M_SQRT2 for diagonals
 unsigned char fly
 unsigned char hplvl
@@ -850,8 +1448,8 @@ symtabref spell0
 symtabref spell1
 symtabref spell2
 symtabref spell3
-char16_t Rune
-bool eats_you : 1
+Rune unichar
+bool unaligned : 1
 bool keepindark : 1
 signed char size : 2
 unsigned char color : 8
@@ -1105,22 +1703,29 @@ unsigned char def : 8
 unsigned char spdef : 8
 
 struct bodytyp:
-bool gills : 1
-bool wings : 1
-bool tail : 1
-bool claws : 1
-bool hoof : 1
-bool talon : 1
-bool fangs : 1
-bool quad : 1
-bool nolegs : 1
-bool noarms : 1
-bool nolungs : 1
-bool atkhand : 1
-bool atkfoot : 1
-bool atktail : 1
-bool atkwing : 1
-bool atkbite : 1
+bool gills : 1	//effects breathing underwater
+bool wings : 1	//effects flying
+bool tail : 1	//effects unarmed attacks, swimming, flying
+bool claws : 1	//effects unarmed attacks, writing
+bool hoof : 1	//effects walking, swimming, unarmed attacks
+bool talon : 1	//effects walking, swimming, unarmed attacks 
+bool fangs : 1	//effects unarmed attacks
+bool quad : 1	//effects walking, swimming, unarmed attacks
+bool nolegs : 1	//effects walking, swimming, unarmed attacks
+bool noarms : 1	//effects walking, swimming, unarmed attacks
+bool nolungs : 1	//effects breathing above water
+bool noswim : 1	//effects swimming
+bool atktail : 1	//effects unarmed attacks, swimming, flying
+bool atkwing : 1	//effects unarmed attacks, swimming, flying
+signed char atkbite : 1	//effects unarmed attacks; +1 = swallow, -1 = bite, -2 = bite & breath
+
+struct venomtyp {
+elixtyp claws
+elixtyp talon
+elixtyp fangs
+elixtyp tail
+elixtyp passive
+}
 
 struct stattyp:
 dizzy : u4
@@ -1130,8 +1735,8 @@ frz : u4
 brn : u4
 stone : u4
 slp : u8
+invis : u8
 blind : u8
-poly : u8
 eaten : u8
 
 struct elixtyp:
@@ -1142,10 +1747,11 @@ frz : b
 brn : b
 stone : b
 slp : b
-blind : b
+invis : b
 
 struct cursetyp:
 stattyp type
+unsigned char polytimer
 symtabref poly
 
 struct resistyp:
@@ -1160,9 +1766,9 @@ bool poisonproof : 1
 
 struct sensetyp:
 trouble
-hidden
 invis
 infra
+blind
 good
 evil
 law
@@ -1211,12 +1817,15 @@ unsigned char knife : 2 //+skill to knife-type weapon attack
 unsigned char stave : 3 //+skill to stave-type weapon attack
 unsigned char spear : 3 //+skill to club-type weapon attack
 unsigned char club : 2 //+skill to club-type weapon attack
-unsigned char bow : 3 //+skill to bow-type weapon range
-unsigned char throw : 3 //+skill to javalin-type weapon range
-unsigned char monk : 4 //+(2*skill) to barehanded attack
+unsigned char bow : 2 //+(4 * skill) to bow-type weapon range
+unsigned char throw : 2 //+(4 * skill) to javalin-type weapon range
+unsigned char monk : 4 //+(2*skill) to unarmed attack, unlocks more modes of attack.
 unsigned char shield : 3 //skill in (damage-defense)+|damage-defense| chance of blocking
 unsigned char locks : 3 //1 in 2^(lock.level - (skill)) chance of picking
-unsigned char caster : 3 //-(skill-1)/2 to casting cost, +(skill-1)/2 to spatk, spdef, 0 is non-caster
+unsigned char caster : 6 //-(skill-1)/4 to casting cost, +(skill-1)/4 to spatk and spdef, unlocks spells, 0 is non-caster
+bool swim : 1 //learned in shallow water; may be lost by polymorphing to a form with different locomotion.
+bool walk : 1 //learned on land; may be lost by polymorphing to a form with different locomotion.
+bool fly : 2 //0 = never had wings, 1 = slow falling, 2 = cannot gain altitude, 3 = free flight. lvl1 learned by falling
 /* damage(incoming)-defense =
  * ⎰if >0: damage(target)
  * ⎱if ≤0: moot
@@ -1247,7 +1856,7 @@ paffectyp enchnt
 
 struct roomtyp: //top-down display of a 3d space
 tileset *hightiles
-signed char tiledata[8][MAX_Y][MAX_X] //entity coords refer to the 3-grid boxes of a given coord, while tiles refer to a given xy square on the plane that is the lower bound of said boxes.
+signed char tiledata[MAX_Z][MAX_Y][MAX_X] //entity coords refer to the 3-grid boxes of a given coord, while tiles refer to a given xy square on the plane that is the lower bound of said boxes.
 shadowmask seen
 enttype *ent_head
 enttype *ent_tail
@@ -1259,7 +1868,7 @@ coord2 downstair
 coord3 upstair
 coord3 home
 unsigned char keynum
-/* z coord of the upstair is the maximum height of the map, obviously.
+/* z coord of the upstair is the maximum height of the map for underground levels
  * upstair is not rendered on dep=>0, but must still be present.
  * if invalid coords are given for a warp (typically {$FF,$FF}),
  * then the player is dumped at the location indicated by home.
@@ -1267,8 +1876,8 @@ unsigned char keynum
  * if the player has invalid coords, then the error string "fell out of terminal",N1=x,N2=y is generated.
  */
 
-struct subroomtyp:
-signed char tiledata[8][8][16]
+struct subroomtyp: //used by mapgen
+signed char tiledata[MAX_Z][MAX_Z][MAX_Z]	//cube of MAX_Z
 coord3 dim
 enttype *ent_head
 enttype *ent_tail
@@ -1279,15 +1888,14 @@ lightyp *lamp_tail
 
 /*      .r8 : binary data that is organized into 8 bit segments
  *     .r16 : binary data that is organized into 16 bit segments
- *     .hex : binary data that is not organized
- *     .csv : UTF-8 record seperated with commas and line breaks
- *     .tsv : UTF-8 record seperated with tabs and line breaks
- *     .dat : UTF-8 record seperated with control characters $1C-$1F and line breaks
- *     .txt : UTF-8 encoded text document, usually stored in the program's static files, which is CAT-ed to provide dialouge.
- *     .ini : key-value pairs.
- *    .conf : key-value pairs and operations. may also be a dotfile.
- *    .json : originally from javascript. used in data dumps.
- *     .xml : used in data dumps for complicated structs.
+ *     .hex : binary data that is organized into segments that are not 8 or 16 bits
+ *     .csv : UTF-8 text record seperated with commas and line breaks
+ *     .tsv : UTF-8 text record seperated with tabs and line breaks
+ *     .txt : UTF-8 text document. usually stored in the program's static files, which is CAT-ed to provide dialouge; also used in dumps of primatives
+ *    .conf : plugin or configuration file. may also be a dotfile.
+ *     .ini : key-value pairs. used in dumps of non-nested structs that do not contain pointers.
+ *    .json : originally from javascript. used in data dumps of nested structs not containing pointers.
+ *     .xml : used in data dumps for pointer-containing structs. will have an href= in the tag for the pointer, linked to the dump of the pointer's deref; /dev/null if null pointer.
  *  .tar.gz : by default, each room's directory is automatically compressed using an os call to prevent disk hogging (tar -xzf to open, or tar -czf to store)
  * .tar.bz2 : by default, each plane's directory is further compressed (tar -xjf to open, or tar -cjf to store). savefiles are also this format. all compression options are changeable before compile.
  *   .man.# : a manpage
@@ -1297,20 +1905,20 @@ lightyp *lamp_tail
 
 struct mapgen_bordertyp {
 tileset *hightiles_n
-signed char north[8][MAX_X]
+signed char north[MAX_Z][MAX_X]
 tileset *hightiles_s
-signed char south[8][MAX_X]
+signed char south[MAX_Z][MAX_X]
 tileset *hightiles_e
-signed char east[8][MAX_Y]
+signed char east[MAX_Z][MAX_Y]
 tileset *hightiles_w
-signed char west[8][MAX_Y]
+signed char west[MAX_Z][MAX_Y]
 tileset *hightiles_u
 signed char up[MAX_Y][MAX_X]
 tileset *hightiles_d
 signed char down[MAX_Y][MAX_X]
 }//only used during mapgen, freed immediatly
 
-struct shadowmask bitfield[MAX_Y][MAX_X]
+struct shadowmask bitfield[2][MAX_Y][MAX_X]
 
 typedef tilemeta* tileset[128]
 
@@ -1334,7 +1942,7 @@ symtabref ice : 7
 symtabref melt : 7
 symtabref stone : 7
 
-char16_t Rune : 16
+Rune unichar : 16
 }
 /* tiles can be effected by stuff happening around them.
  *
@@ -1451,7 +2059,8 @@ unsigned char metadata : 8
 struct eventtyp:
 (self) *prev
 (self) *next
-char16_t Rune
+Rune unichar
+triggerenum whenthis
 triggerfunc ifthis()
 eventfunc dothis(paramtyp)
 paramtyp params
@@ -1466,6 +2075,8 @@ unsigned long duration
  * will be found in the game's introduction cutscene.
  */
 
+enum truggerenum {BUMP_FLAG,LOOK_FLAG,FARLOOK_FLAG,MORNING_FLAG,NOON_FLAG,EVENING_FLAG,MIDNIGHT_FLAG,ALWAYS_CHECK_FLAG}
+
 struct qglobobj: //queued global object
 (self) *prev
 (self) *next
@@ -1477,7 +2088,9 @@ void* data
 
 struct qglobflags {
 race : 8
-class : 6
+race-specific : 1
+role : 2
+class : 3
 lawfulgood : 1
 neutralgood : 1
 chaoticgood : 1
@@ -1494,7 +2107,7 @@ struct traptyp:
 (self) *prev
 (self) *next
 unsigned char color
-char16_t Rune
+Rune unichar
 coord3 loc
 unsigned short duration
 magictyp
@@ -1520,7 +2133,7 @@ struct warptyp:
 (self) *prev
 (self) *next
 unsigned char color
-char16_t Rune
+Rune unichar
 latlontyp glob_loc
 coord3 loc
 latlontyp glob_dest
@@ -1604,17 +2217,20 @@ an UNDERLINE is a shadow
 ⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves. % is food. $ is gold. ¢ is copper.
 ⌘ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♪ is a music instrument. ⍖ is a writing instrument.
 ¿ are potions (fragile). ∬ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet.
-/ is a wand. ~ is a liquid. ≈ is a liquid source. ∿ is a wave. ≣ is a ladder. ⋎ is a fountain or gyser.
-⌁ is electricity. * is ice. ⎈ spider web. ↥ are spikes. ⋏ is fire. ⌸ is a door. ⍯ is a locked door. ⎕ is an open door.
-? is invisible. ! is trouble. ⌑ is a light source. ⎙ ⍝ are tombstones. ⚄ is a signpost. ␥ is glass. ⑆ are footprints.
-• is a boulder. . is a rock. : is a rockslide. ◆ is a gemstone. ◊ is a giant magic crystal. ♠ ♣ ‡ are trees.
+/ is a wand. ≣ is a ladder. ⋎ is a fountain or gyser. ⍾ is a bell. ⎋ is a clockface. ♠ ♣ ‡ are trees. ⋏ is fire.
+~ is shallow liquid. ≈ is deep liquid's surface or a waterfall. ⍽ is a liquid (as seen while submerged). ∿ is a wave.
+⌁ is electricity. * is ice. ⎈ spider web. ↥ are spikes. ⌸ is a door. ⍯ is a locked door. ⎕ is an open door.
+? is invisible. ! is trouble. ⌑ is a light source. ⎙ ⍝ ∎ ⎅ are tombstones or signs. ␥ is glass. 
+• is a boulder. . is a rock. : is a rockslide. ◆ is a gemstone. ◊ is a giant magic crystal. ⑆ are footprints.
 ∪ is a sink. ⏍ is a chest. ↯ (cyan) is the thunderbolt. ∅ is an anomaly (do not touch). < > are level stairs. 
 ← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are cannons (the kind that goes boom).
 # █ ▓ ▒ ░ ▞ ▚ (etc) are thick walls or floor. ≋ is a cloud (no walking; keep your head out of them).
 ^ ␣ are holes. ' is a stalagtite or icicle. , is a plant. ; is a grain or sunflower (impassable).
-box drawings are low walls or columns. ⑉ ⋮ are iron bars. · is an ember or star. ` is a flower petal.
+box drawings are low walls or columns. ⑉ ⋮ are iron bars. · is an ember or star. ` ´ are flower petals.
 ✪ is a rune. ː is a trap. ‽ ¶ is gas. " deliminates text. \ deliminates commands.
 ⍰ is a missingno.
+
+~ may be centered ∼ or high ˜, depending on font. recommended font has high ˜ placement.
 
 box drawings:
  ╒╤╕     ╔╦╗
@@ -1648,7 +2264,7 @@ directional symbols:
 £G, NG, CG, £N, CN, £E, NE, CE, +N, -N, ☠, outer planes;
 
 /* if digging causes a ≈ of to become uncontained, it will immediately spawn a ∿
- * which leaves ≈ behind it when it moves. it's behavior differs depending on
+ * which leaves ~ behind it when it moves. it's behavior differs depending on
  * the liquid's viscosity:
  * 	highly viscus (lava): deflected only by solid objects,
  * 	sensitive to edges at ║1║1. moves by ║1║∞.
@@ -1657,21 +2273,24 @@ directional symbols:
  * 	by any object, sensitive to edges at ║3║1. distance from starting position
  * 	to ending position is up to ║3║∞ in xy, and -9 in z
  *
- *	≈≈≈ half wave
- *	∿ ≈
+ * 	~~~ half wave
+ * 	∿ ~
  *
  * if the ∿ reaches an edge, it will queue itself to be loaded in the room it panned to.
  */
 
 unsigned char getsixbit_template() {
 switch (getc(stdin)) {
+	case ' ' :
+		return 0;
+		break;
 	case '!' :
 		return 01;
 		break;
 	case '"' :
 		return 02;
 		break;
-	case 'f' :
+	case '#' :
 		return 03;
 		break;
 	case '$' :
@@ -1886,7 +2505,7 @@ switch (getc(stdin)) {
 		return 077;
 		break;
 	default :
-		return 0;
+		return 037;
 		break;
 	}
 }
@@ -2009,6 +2628,8 @@ pseudosubroutine zmovecheck(zmove)
 	- if > floor 100 and at bottom of room, calls mapscrollz(1,1)
 	- if the above 2 don't apply, checks for holes. if none are present,
 	  keeps you from flying out of the room.
+
+//in-game altitude is given as the distance from layer 100
 
 pseudosubroutine newtonlaw(xmove,ymove,zmove)
 	- checks if you're flying magically, on ice, or in a liquid
@@ -2159,20 +2780,22 @@ unsigned char zpos
 if (zpos == 0) {
 	return zpos
 	}
-else if !(mapderef(xpos,ypos,zpos-1).liquid) {
+else if (mapderef(xpos,ypos,zpos-1).solid) {
 	underline(xpos,ypos,zpos)
 	return zpos
-	} else {
+	}
+else {
 	zpos--
 	for (;zpos!=0;zpos--) {
-		if (mapderef(xpos,ypos,zpos-1).solid {
+		if (mapderef(xpos,ypos,zpos-1).solid) {
 			underline(xpos,ypos,zpos)
-			if !(mapderef(xpos,ypos,zpos-1).liquid) {
-				return zpos
-				}
+			return zpos
+			}
+		else if (mapderef(xpos,ypos,zpos-1).liquid) {
+			underline(xpos,ypos,zpos)
 			}
 		}
-	underline(xpos,ypos,zpos)
+	underline(xpos,ypos,zpos) //escape zpos==0
 	return zpos
 	}
 
@@ -2182,15 +2805,16 @@ unsigned char ycoord
 unsigned char xcoord
 shadowmask mask
 {
-switch (zcoord) : {
-	case 0 : return mask[ycoord][xcoord].a;
-	case 1 : return mask[ycoord][xcoord].b;
-	case 2 : return mask[ycoord][xcoord].c;
-	case 3 : return mask[ycoord][xcoord].d;
-	case 4 : return mask[ycoord][xcoord].w;
-	case 5 : return mask[ycoord][xcoord].x;
-	case 6 : return mask[ycoord][xcoord].y;
-	case 7 : return mask[ycoord][xcoord].z;
+div_t tmp = div(zcoord,8)
+switch (tmp.rem) : {
+	case 0 : return mask[tmp.quot][ycoord][xcoord].a;
+	case 1 : return mask[tmp.quot][ycoord][xcoord].b;
+	case 2 : return mask[tmp.quot][ycoord][xcoord].c;
+	case 3 : return mask[tmp.quot][ycoord][xcoord].d;
+	case 4 : return mask[tmp.quot][ycoord][xcoord].w;
+	case 5 : return mask[tmp.quot][ycoord][xcoord].x;
+	case 6 : return mask[tmp.quot][ycoord][xcoord].y;
+	case 7 : return mask[tmp.quot][ycoord][xcoord].z;
 	default : return 0;
 	}
 }
@@ -2202,15 +2826,16 @@ unsigned char xcoord;
 shadowmask mask;
 bool value;
 {
-switch (zcoord) : {
-	case 0 : mask[ycoord][xcoord].a = value; break;
-	case 1 : mask[ycoord][xcoord].b = value; break;
-	case 2 : mask[ycoord][xcoord].c = value; break;
-	case 3 : mask[ycoord][xcoord].d = value; break;
-	case 4 : mask[ycoord][xcoord].w = value; break;
-	case 5 : mask[ycoord][xcoord].x = value; break;
-	case 6 : mask[ycoord][xcoord].y = value; break;
-	case 7 : mask[ycoord][xcoord].z = value; break;
+div_t tmp = div(zcoord,8)
+switch (tmp.rem) : {
+	case 0 : mask[tmp.quot][ycoord][xcoord].a = value; break;
+	case 1 : mask[tmp.quot][ycoord][xcoord].b = value; break;
+	case 2 : mask[tmp.quot][ycoord][xcoord].c = value; break;
+	case 3 : mask[tmp.quot][ycoord][xcoord].d = value; break;
+	case 4 : mask[tmp.quot][ycoord][xcoord].w = value; break;
+	case 5 : mask[tmp.quot][ycoord][xcoord].x = value; break;
+	case 6 : mask[tmp.quot][ycoord][xcoord].y = value; break;
+	case 7 : mask[tmp.quot][ycoord][xcoord].z = value; break;
 	default : return 1;
 	}
 return 0;
@@ -2219,7 +2844,7 @@ return 0;
 unsigned char defaulthightget(zcoord)
 unsigned char zcoord
 {
-if (zcoord ≥ 100) {return UCHAR_MAX;}
+if (zcoord ≥ 100) {return MAX_Z - 1;}
 div_t tmp = div(zcoord,2)
 if (tmp.quot > 50) {ERROR_GRAPHIC("heisenbug",(tmp.quot * 2) + tmp.rem,MAX(zcoord,99),false); return false}
 switch (tmp.rem) : {
