@@ -6,9 +6,14 @@
  *
  * enviromental requirements:
  * - UTF-8 terminal of at least 25*80 characters
- * 	"Fixed" font is recommended
- * - 16 or more fg colors, 8 or more bg colors, said colors CGA compatible
+ * 	"Fixed" font is recommended (specifically because
+ * 		it is a raster font; monospaced raster fonts are more uniform in width than the majority of vector so-called "monospaced" fonts;
+ * 		it is unicode, having a wide range of characters; and
+ * 		it is extreamly common, being the default font for the linux console, xterm, and urxvt)
+ * - 16 or more fg colors, 8 or more bg colors, said colors are CGA compatible
+ * 	(ncurses should take care of this, but ncurses only requires 8 fg colors)
  * - Bold, Underline, Reverse, Blink, Invisible text effects
+ * 	(ncurses will take care of this)
  * - Full Keyboard, Mouse
  * 	(most keyboard layouts with all ASCII characters *should*
  * 	work, but only QWERTY (US-ANSI) was used in design because
@@ -17,7 +22,7 @@
  * 	want to eventually guaruntee support for other keymappings;
  * 	not just for other QWERTY layouts, but also for QWERTZ, AZERTY,
  * 	and Dvorak layouts, by request and/or the ability to remap keys
- * 	by dotfiles.
+ * 	by dotfiles.)
  *
  * Controls:
  * - number keys or arrow keys move in xy
@@ -2231,6 +2236,13 @@ box drawings are low walls or columns. ⑉ ⋮ are iron bars. · is an ember or 
 ⍰ is a missingno.
 
 ~ may be centered ∼ or high ˜, depending on font. recommended font has high ˜ placement.
+
+the symbol for gemstone and giant crystal has been the source of much headache,
+but any truly monospace font should render their relative sizes correctly;
+if the font is only pretending to be monospace (like the default github font),
+you'll have bigger issues of non-uniform characters warping and tearing
+the world's projection grid. it is for this reason that the recommended font
+is a raster one.
 
 box drawings:
  ╒╤╕     ╔╦╗
