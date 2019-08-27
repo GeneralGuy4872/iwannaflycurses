@@ -2216,12 +2216,12 @@ an UNDERLINE is a shadow
 ) is a sword or dagger. ⍏ is a polearm. ¦ is a staff. ℓ is a club or mace. ⦅ is a bow. ⇤ is an arrow.
 ⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves. % is food. $ is gold. ¢ is copper.
 ⌘ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♪ is a music instrument. ⍖ is a writing instrument.
-¿ are potions (fragile). ∬ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet.
+¿ are potions (fragile). ∬ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet. ⌤ is a crown.
 / is a wand. ≣ is a ladder. ⋎ is a fountain or gyser. ⍾ is a bell. ⎋ is a clockface. ♠ ♣ ‡ are trees. ⋏ is fire.
 ~ is shallow liquid. ≈ is deep liquid's surface or a waterfall. ⍽ is a liquid (as seen while submerged). ∿ is a wave.
 ⌁ is electricity. * is ice. ⎈ spider web. ↥ are spikes. ⌸ is a door. ⍯ is a locked door. ⎕ is an open door.
 ? is invisible. ! is trouble. ⌑ is a light source. ⎙ ⍝ ∎ ⎅ are tombstones or signs. ␥ is glass. 
-• is a boulder. . is a rock. : is a rockslide. ◆ is a gemstone. ◊ is a giant magic crystal. ⑆ are footprints.
+• is a boulder. . is a rock. : is a rockslide. ⌬ is a gemstone. ◊ is a giant magic crystal. ⑆ are footprints.
 ∪ is a sink. ⏍ is a chest. ↯ (cyan) is the thunderbolt. ∅ is an anomaly (do not touch). < > are level stairs. 
 ← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are cannons (the kind that goes boom).
 # █ ▓ ▒ ░ ▞ ▚ (etc) are thick walls or floor. ≋ is a cloud (no walking; keep your head out of them).
