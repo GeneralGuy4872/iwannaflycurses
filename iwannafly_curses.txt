@@ -18,10 +18,10 @@
  * 	(most keyboard layouts with all ASCII characters *should*
  * 	work, but only QWERTY (US-ANSI) was used in design because
  * 	I don't have access to any others, so at best controls may
- * 	be strange on others.
+ * 	be strange on them.
  * 	want to eventually guaruntee support for other keymappings;
  * 	not just for other QWERTY layouts, but also for QWERTZ, AZERTY,
- * 	and Dvorak layouts, by request and/or the ability to remap keys
+ * 	and Dvorak, by request and/or the ability to remap keys
  * 	by dotfiles.)
  *
  * Controls:
@@ -671,7 +671,7 @@ Rune unichar
 {
 if (unichar > UCHAR_MAX) {
 	switch unichar {
-	case 0x2301 : {return 0x04}
+	case 0x2301 : {return 0x04}	//add symbols for C0
 	case 0x237E : {return '\a'}
 	case 0x232B : {return '\b'}
 	case 0x2318 : {return 0x11}
@@ -1825,7 +1825,7 @@ unsigned char club : 2 //+skill to club-type weapon attack
 unsigned char bow : 2 //+(4 * skill) to bow-type weapon range
 unsigned char throw : 2 //+(4 * skill) to javalin-type weapon range
 unsigned char monk : 4 //+(2*skill) to unarmed attack, unlocks more modes of attack.
-unsigned char shield : 3 //skill in (damage-defense)+|damage-defense| chance of blocking
+unsigned char shield : 3 //skill in (damage-defense)+abs(damage-defense) chance of blocking
 unsigned char locks : 3 //1 in 2^(lock.level - (skill)) chance of picking
 unsigned char caster : 6 //-(skill-1)/4 to casting cost, +(skill-1)/4 to spatk and spdef, unlocks spells, 0 is non-caster
 bool swim : 1 //learned in shallow water; may be lost by polymorphing to a form with different locomotion.
@@ -1834,6 +1834,8 @@ bool fly : 2 //0 = never had wings, 1 = slow falling, 2 = cannot gain altitude, 
 /* damage(incoming)-defense =
  * ⎰if >0: damage(target)
  * ⎱if ≤0: moot
+ *
+ * polyshock = -abs(base.hplvl-poly.hplvl) * !mainh__roll(1,20,0)
  */
 
 readtyp:
@@ -2270,7 +2272,7 @@ magic AOE symbols
 
 directional symbols:
 ←, ↑, →, ↓, ↖, ↗, ↘, ↙, direction in XY;
-§ far side; ↧, ↥, direction in Z;
+! far side; ↧, ↥, direction in Z;
 ↹ different plane;
 ◬, ⍫, △, ▽, ※, ↯, μ, ♠, ☼, ☽, ∅, inner planes;
 £G, NG, CG, £N, CN, £E, NE, CE, +N, -N, ☠, outer planes;
