@@ -947,26 +947,26 @@ for 0->50 do
 
 the following algorithems can be combined to generate terrain:
 
-random_prim(replace,tile,*list of coords,grid spacing,top left corner)
-random_kruskal(replace,tile,*list of coords,grid spacing,top left corner)
-random_revdelete(replace,tile,*list of coords,grid spacing,top left corner)
+random_prim(bool ortho,normenum norm,bool replace,schar tile,setcoord *coordlist,uchar grid,coord3 corner)
+random_kruskal(bool ortho,normenum norm,bool replace,schar tile,setcoord *coordlist,uchar grid,coord3 corner)
+random_revdelete(bool ortho,normenum norm,bool replace,schar tile,setcoord *coordlist,uchar grid,coord3 corner)
 
-prim(replace,tile,*list of coords)
-kruskal(replace,tile,*list of coords)
-revdelete(replace,tile,*list of coords)
-	
-dijkstra(replace,tile,pointa,pointb)
-astar(tile,pointa,pointb)	//with replace on, would *always* reduce to linereplace
-linereplace(tile,pointa,pointb)
-line(pointa,pointb)
+prim(bool ortho,normenum norm,bool replace,schar tile,setcoord *coordlist)
+kruskal(bool ortho,normenum norm,bool replace,schar tile,setcoord *coordlist)
+revdelete(bool ortho,normenum norm,bool replace,schar tile,setcoord *coordlist)
 
-attractor(replace,tile,*list of coords, iterations, invert)
+dijkstra(bool ortho,bool replace,schar tile,coord3 pointa,coord3 pointb)
+astar(schar tile,coord3 pointa,coord3 pointb)	//with replace on, would *always* reduce to linereplace
+linereplace(schar tile,coord3 pointa,coord3 pointb)
+line(coord3 pointa,coord3 pointb)
+
+attractor(bool replace,schar tile,setcoord *coordlist,uchar iterations,bool invert)
 	/* uchar xcoord = roll 1dMAX_X
 	 * uchar ycoord = roll 1dMAX_Y
 	 * uchar zcoord = roll 1dCEILING
 	 *
 	 * uint rotate = random()
-	 * for (;rotate;rotate--) {list = list->next}
+	 * for (;rotate;rotate--) {coordlist = coordlist->next}
 	 * xcoord = (xcoord + list->x) / 2
 	 * ycoord = (ycoord + list->y) / 2
 	 * zcoord = (zcoord + list->z) / 2
@@ -974,7 +974,7 @@ attractor(replace,tile,*list of coords, iterations, invert)
 	 *
 	 * for (;iterations;iterations--) {
 	 * 	uint rotate = random()
-	 * 	for (;rotate;rotate--) {list = list->next}
+	 * 	for (;rotate;rotate--) {coordlist = coordlist->next}
 	 * 	xcoord = (xcoord + list->x) / 2
 	 * 	ycoord = (ycoord + list->y) / 2
 	 * 	zcoord = (zcoord + list->z) / 2
@@ -1168,6 +1168,8 @@ schar xrel;
 schar yrel;
 schar zrel;
 {return MAX(MAX(abs(xrel),abs(yrel)),abs(zrel));}
+
+enum normenum {NORM_INF,NORM_TAXI,NORM_EUCLID}
 
 struct diceodds:
 uchar num : 3
@@ -1595,7 +1597,7 @@ uchar color : 8
  * entitys of larger size automaticly win grapples.
  * entitys of 2 sizes smaller can be picked up and thrown.
  * entitys of size 1 can instakill entitys of size -2. squish.
- * size 1: dragon, size 0: human, size -1: elf, size -2: pixie
+ * size 1: dragon, size 0: human, size -1: dwarf, size -2: pixie
  */
 
 struct aggrotyp:
@@ -2417,9 +2419,9 @@ an UNDERLINE is a shadow
 ¿ are potions (fragile). ∬ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet. ⌤ is a crown.
 / is a wand. ≣ is a ladder. ⋎ is a fountain or gyser. ⍾ is a bell. ⎋ is a clockface. ♠ ♣ ‡ are trees. ⋏ is fire.
 ~ is shallow liquid. ≈ is deep liquid's surface or a waterfall. ⍽ is a liquid (as seen while submerged). ∿ is a wave.
-⌁ is electricity. * is ice. ⎈ spider web. ↥ are spikes. ⌸ is a door. ⍯ is a locked door. ⎕ is an open door.
+⌁ is electricity. * is ice. ⎈ spider web. ⌬ beehive. ↥ are spikes. ⌸ is a door. ⍯ is a locked door. ⎕ is an open door.
 ? is invisible. ! is trouble. ⌑ is a light source. ⎙ ⍝ ∎ ⎅ are tombstones or signs. ␥ is glass. 
-• is a boulder. . is a rock. : is a rockslide. ⌬ is a gemstone. ◊ is a giant magic crystal. ⑆ are footprints.
+• is a boulder. . is a rock. : is a rockslide. ◇ is a gemstone. ◊ is a giant magic crystal. ⑆ are footprints.
 ∪ is a sink. ⏍ is a chest. ↯ (cyan) is the thunderbolt. ∅ is an anomaly (do not touch). < > are level stairs. 
 ← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are cannons (the kind that goes boom).
 # █ ▓ ▒ ░ ▞ ▚ (etc) are thick walls or floor. ≋ is a cloud (no walking; keep your head out of them).
@@ -3135,7 +3137,7 @@ only decimal numbers may be negative.
 
 simple code can also be included:
 	+ - * ** / % ++ --
-	> < >= <= != ==
+	> < ≥ ≤ != ==
 	&& || ! !&& !|| <> 
 	& | ~ ~& ~| ^ ~^
 	log() lb() ln() sqrt() fact()
