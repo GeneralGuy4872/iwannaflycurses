@@ -946,17 +946,52 @@ for 0->50 do
 		register (room's doors)
 
 the following algorithems can be combined to generate terrain:
-maze:	randomkruskal(replace,tile,*list of coords,grid spacing)
-paths:	dijkstra(replace,tile,*list of coords)
-fractal:	attractor(replace,tile,*list of coords, iterations, invert)
-noise:	spikenoise(replace,tile,floor or ceiling)
-		/* generate a (MAX_X/4) by (MAX_Y/4) array of random vector2's.
-		 * these vectors effect an 8*8 area centered on a grid line, and each quadrent overlaps with exactly 3 other such areas.
-		 * sum the vectors affecting each quadrent and form a gradient of values
-		 * values of less than zero are flat, values greater are spikes. future versions may use classical perlin noise instead.
-		 */
-	hailofdice(replace,tile,number)
-		//while number { roll(1dMAX_X,1dMAX_Y,1dCEILING); put tile; number--}
+
+random_prim(replace,tile,*list of coords,grid spacing,top left corner)
+random_kruskal(replace,tile,*list of coords,grid spacing,top left corner)
+random_revdelete(replace,tile,*list of coords,grid spacing,top left corner)
+
+prim(replace,tile,*list of coords)
+kruskal(replace,tile,*list of coords)
+revdelete(replace,tile,*list of coords)
+	
+dijkstra(replace,tile,pointa,pointb)
+astar(tile,pointa,pointb)	//with replace on, would *always* reduce to linereplace
+linereplace(tile,pointa,pointb)
+line(pointa,pointb)
+
+attractor(replace,tile,*list of coords, iterations, invert)
+	/* uchar xcoord = roll 1dMAX_X
+	 * uchar ycoord = roll 1dMAX_Y
+	 * uchar zcoord = roll 1dCEILING
+	 *
+	 * uint rotate = random()
+	 * for (;rotate;rotate--) {list = list->next}
+	 * xcoord = (xcoord + list->x) / 2
+	 * ycoord = (ycoord + list->y) / 2
+	 * zcoord = (zcoord + list->z) / 2
+	 * put tile (xcoord,ycoord,zcoord)
+	 *
+	 * for (;iterations;iterations--) {
+	 * 	uint rotate = random()
+	 * 	for (;rotate;rotate--) {list = list->next}
+	 * 	xcoord = (xcoord + list->x) / 2
+	 * 	ycoord = (ycoord + list->y) / 2
+	 * 	zcoord = (zcoord + list->z) / 2
+	 * 	put tile (xcoord,ycoord,zcoord)
+	 *	}
+	 */
+
+spikenoise(replace,tile,floor or ceiling)
+	/* generate a (MAX_X/4) by (MAX_Y/4) array of random vector2's. 
+	 * make an 8*8 gradient from a vector.
+	 * sum it onto a MAX_X*MAX_Y array of values, spaced every 4 lines, each quadrent overlapping.
+	 * values of less than zero are flat, values greater are spikes.
+	 */
+
+hailofdice(replace,tile,number)
+	//while number { roll(1dMAX_X,1dMAX_Y,1dCEILING); put tile; number--; }
+
 /* If no room exists, check ║2║∞ radius for existing or fixed rooms,
  * generate any rooms in a ║1║∞ radius of these rooms && a ║1║∞ radius
  * of the room to be generated, with borders saned. THEN check a ║1║∞
@@ -1106,6 +1141,13 @@ struct setcoord3:
 uchar x
 uchar y
 uchar z
+
+struct setpoints:
+(self) *prev
+(self) *next
+setcoord3* pointa
+setcoord3* pointb
+float dist
 
 //some specific uses call for spheres. these are simply numeric types.
 
