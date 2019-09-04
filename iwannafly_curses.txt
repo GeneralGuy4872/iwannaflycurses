@@ -122,7 +122,7 @@
 #define COMPR_FLAGCLOSEFAST "czf"
 #define SND_CALL "beep"
 
-//ℰ will be used to abbriviate "and" the conjunction, to avoid ambiguity with the usage of & and && as "and" the function
+//ℰ will be used to abbriviate "and" the conjunction in comments, to avoid ambiguity with the usage of & and && as "and" the function
 
 /*TYPES*/
 #define uchar16t unsigned char16_t
@@ -963,11 +963,14 @@ uchar yoff : 7
 the following algorithems can be combined to generate terrain:
 /* ortho: disallow diagonal steps.
  * internal calculations might be done as intergers if there is no reason to expect floats
+ *
+ * note that the pathfinding is one of the most egregious examples of winning the battle and
+ * loosing the war regarding memory usage, another will likely be the save file format.
  */
 
 test_dijkstra(bool ortho,schar mode,uchar runningnorm,coord3 pointa,coord3 pointb)	//replace && taxicab && ortho would equal norm1 exactly
 dijkstra(bool ortho,schar mode,uchar runningnorm,schar tile,coord3 pointa,coord3 pointb)
-	//nearest node first, no information about room or relative location.
+	//nearest path head first, no information about room or relative location.
 
 test_astar(bool ortho,astarparamtyp params,coord3 pointa,coord3 pointb)	//replace && !(taxicab || ortho) would approximate to norm2, replace && taxicab && ortho would equal norm1 exactly
 astar(bool ortho,astarparamtyp params,schar tile,coord3 pointa,coord3 pointb)
@@ -982,19 +985,50 @@ astar(bool ortho,astarparamtyp params,schar tile,coord3 pointa,coord3 pointb)
 	 * indecisive mode:
 	 * 	- does not abort until all other active heads have reached the length of the chosen path
 	 * 		node's parent is only replaced when it would result in a lower distance
-	 * 		these distances are propagated by re-placing a sethydra entry at the point of update
+	 * 		these distances are propagated by re-placing a sethydra path head entry
+	 * 		at the point of update
 	 *
 	 * recursive mode:
 	 * 	- populates the grid using dijkstra from point b instead of norm distance from b.
 	 *
-	 * if mode is given as -2, gives soft warning (called wrong pathfinder function, n1ℰn2 = most negative number) and then calls dijkstra()
+	 * if mode is given as -2, gives soft warning (called wrong pathfinder function, n1=most negative number, n2=ortho) and then calls dijkstra()
 	 */
 
-prim(bool ortho,astarparamtyp params,schar tile,setcoord3 *coordlist)	//ortho is inherintly true
-random_prim(bool ortho,astarparamtyp params,schar tile,setcoord3 *coordlist)
+setedge* completegraph(bool ortho,astarparamtyp params,setcoord3 *coordlist)
+setedge* random_completegraph(setcoord3 *coordlist)
 
-revkruskal(bool ortho,astarparamtyp params,schar tile,setcoord3 *coordlist)	//ortho is inherintly true
-random_revkruskal(bool ortho,astarparamtyp params,schar tile,setcoord3 *coordlist)
+prim(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist)
+	/* shortest connected edge first
+	 * edges are moved from a complete graph to a final graph
+	 */
+
+kruskal(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist)
+	/* disjoint sets use the meta field of the setedge type
+	 *
+	 * before a new disjoint set is created, the existing list is checked
+	 * for an edge with non-zero membership that has a pointa or pointb
+	 * which matches either the pointa or pointb of the current edge
+	 *
+	 * overall shortest first
+	 * edges are moved from a complete graph to a final graph
+	 */
+
+revdelete(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist)
+	/* something compleatly different
+	 * longest edge is removed from a complete graph and held
+	 * graph is then tested to ensure that all points are connected (using dijkstra's)
+	 * if so, edge is removed. if not, edge is put back and ignored permenantly.
+	 */
+
+sollin(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist)
+	/* disjoint sets use the meta field of the setedge type
+	 *
+	 * before a new disjoint set is created, the existing list is checked
+	 * for an edge with non-zero membership that has a pointa or pointb
+	 * which matches either the pointa or pointb of the current edge
+	 *
+	 * node iteration→tree iteration ; shortest first
+	 */
 
 cubefill(bool replace,schar tile,coord3 pointa,coord3 pointb)
 cubeshell(bool replace,schar tile,coord3 pointa,coord3 pointb)
@@ -1051,7 +1085,7 @@ hailofdice(replace,tile,number)
  * floor heights are also uniform accross spherical shells when possible.)
  */
 
-/* ai can use modifyed versions of dijkstra or any of tha astar varients
+/* ai can use modifyed versions of dijkstra or any of the astar varients
  * particularly, they must be able to handle multiple destinations for the aggro ais
  * or the ability to cycle through a list of checkpoints for passive ais
  */
@@ -1198,11 +1232,13 @@ struct patrolistyp {
 (self) *next
 setcoord3* start
 
-struct setpoints:
+struct setedge:
 (self) *prev
 (self) *next
-coord3 pointa
-coord3 pointb
+setcoord3* pointa
+setcoord3* pointb
+float weight
+uchar meta
 
 struct setpathnode {
 bool dead : 1	//no avalible paths
@@ -1217,7 +1253,7 @@ struct sethydra:
 (self) *next
 setpathnode* node
 
-//some specific uses call for spheres. these are simply numeric types.
+//some specific use cases require spheres. these are simply numeric types.
 
 float norm2(pointa,pointb)
 coord3 pointa
@@ -1500,7 +1536,7 @@ fstab mon2table
  * T: lurker above, trapper, wallmaster, rust monster,
  * t: troll,
  * U: umber hulk,
- * u: unicorn, pegasus, zebra, griphon, hippogriph,
+ * u: unicorn, pegasus, griphon, hippogriph,
  * V: vampire, wolfman,
  * v: bat,
  * W: half dragon, half celestial, tiefling, avian, erinys, harpy, tengu,
@@ -1516,7 +1552,7 @@ fstab mon2table
  * ∞: retribution. (has Summer - Presto as a lietmotif. is chaotic.)
  * ∈: <half elementals>
  * ☠: death. (has Toccata and Fugue in D minor as a lietmotif. is true neutral.)
- * ♞: nightmare, quarterhorse, draft horse, miniature horse,
+ * ♞: quarterhorse, draft horse, miniature horse, zebra, nightmare,
  * ⏍: hungry chest, chest monster,
  */
 
