@@ -1073,17 +1073,21 @@ spikenoise(replace,tile,floor or ceiling)
 hailofdice(replace,tile,number)
 	//while number { roll(1dMAX_X,1dMAX_Y,1dCEILING); put tile; number--; }
 
-/* If no room exists, check ║2║∞ radius for existing or fixed rooms,
- * generate any rooms in a ║1║∞ radius of these rooms && a ║1║∞ radius
- * of the room to be generated, with borders saned. THEN check a ║1║∞
- * radius for existing rooms, and generate the room with borders saned.
+/* generate a room at coordinates foo:
+ * If no room exists at foo, check ║2║∞ radius of foo for existing rooms,
+ * generate any rooms in a ║1║∞ radius of these rooms && a ║2║∞ radius
+ * of foo, with borderes synced. THEN check a ║1║∞ radius of foo for
+ * existing rooms, and generate the room with borders synched.
  * While this is being done, show "Generating map..." at line 13, col 5.
  * Since it involves not just file operations, but also tar, this will
  * be painfully slow, but otherwise could cause players to end up inside
  * a wall or outside the map when rooms are panned.
  *
- * ("saned" borders prevent this by making edge obstructions unbreakable.
- * floor heights are also uniform accross spherical shells when possible.)
+ * ("synched" borders prevent this by making edge obstructions unbreakable,
+ * and making the sides of the room match. all room generation functions should
+ * do this)
+ *
+ * floor heights are also uniform accross spherical shells when possible.
  */
 
 /* ai can use modifyed versions of dijkstra or any of the astar varients
