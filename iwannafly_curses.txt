@@ -2203,11 +2203,22 @@ tileset *hightiles_e
 schar east[MAX_Z][MAX_Y]
 tileset *hightiles_w
 schar west[MAX_Z][MAX_Y]
+tileset *hightiles_ne
+schar northeast[MAX_Z]
+tileset *hightiles_nw
+schar northwest[MAX_Z]
+tileset *hightiles_se
+schar southeast[MAX_Z]
+tileset *hightiles_sw
+schar southwest[MAX_Z]
 tileset *hightiles_u
 schar up[MAX_Y][MAX_X]
 tileset *hightiles_d
 schar down[MAX_Y][MAX_X]
-}//only used during mapgen, freed immediatly
+}
+/* only used during mapgen, freed immediatly since it's so huge
+ * up and down do not need secondary directions as the map cannot be scrolled that way
+ */
 
 struct shadowmask bitfield[2][MAX_Y][MAX_X]
 
