@@ -994,7 +994,8 @@ astar(bool ortho,astarparamtyp params,schar tile,coord3 pointa,coord3 pointb)
 	 * if mode is given as -2, gives soft warning (called wrong pathfinder function, n1=most negative number, n2=ortho) and then calls dijkstra()
 	 */
 
-setedge* completegraph(bool ortho,astarparamtyp params,setcoord3 *coordlist)
+setedge* norm_completegraph(uchar norm,setcoord3 *coordlist)	//errors on invalid norm
+setedge* pathfinder_completegraph(bool ortho,astarparamtyp params,setcoord3 *coordlist)
 setedge* random_completegraph(setcoord3 *coordlist)
 
 prim(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist)
