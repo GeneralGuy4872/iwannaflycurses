@@ -963,16 +963,17 @@ uchar yoff : 7
 the following algorithems can be combined to generate terrain:
 /* ortho: disallow diagonal steps.
  * internal calculations might be done as intergers if there is no reason to expect floats
+ * all other factors being equal, lower azimuth ℰ lower elevation paths will be selected first
  *
  * note that the pathfinding is one of the most egregious examples of winning the battle and
  * loosing the war regarding memory usage, another will likely be the save file format.
  */
 
-test_dijkstra(bool ortho,schar mode,uchar runningnorm,coord3 pointa,coord3 pointb)	//replace && taxicab && ortho would equal norm1 exactly
+float test_dijkstra(bool ortho,schar mode,uchar runningnorm,coord3 pointa,coord3 pointb)	//replace && taxicab && ortho would equal norm1 exactly
 dijkstra(bool ortho,schar mode,uchar runningnorm,schar tile,coord3 pointa,coord3 pointb)
 	//nearest path head first, no information about room or relative location.
 
-test_astar(bool ortho,astarparamtyp params,coord3 pointa,coord3 pointb)	//replace && !(taxicab || ortho) would approximate to norm2, replace && taxicab && ortho would equal norm1 exactly
+float test_astar(bool ortho,astarparamtyp params,coord3 pointa,coord3 pointb)	//replace && !(taxicab || ortho) would approximate to norm2, replace && taxicab && ortho would equal norm1 exactly
 astar(bool ortho,astarparamtyp params,schar tile,coord3 pointa,coord3 pointb)
 	/* - operates with knowlage of the norm distance to the destination
 	 * 	path heads try to move closer first, whenever possible.
@@ -1554,6 +1555,7 @@ fstab mon2table
  * z: <zombies>
  * {: (flesh, straw, clay, stone, glass, paper, leather) golem, (gold, copper) automaton, hungry chest, chest monster,
  * £: justice. (has Beethoven's 5th as a lietmotif. is lawful.)
+ * ¶: da cops.
  * ⑄: retribution. (has Summer - Presto as a lietmotif. is chaotic.)
  * ∈: <half elementals>
  * ∞: grue.
@@ -1577,7 +1579,7 @@ struct conlangtype:
 symtabref id : 5
 bool r : 1
 bool w : 1
-bool x : 1	//can be written with claws or talons
+bool x : 1	//can be engraved by hand, as well as written. (note: those with talons cannot use writing instruments without a much higher dex, and still tend to break them)
 
 char* conlangtab[32] = {"common language","middle elvish","old elvish","dwarvish", "gnomish","gothic","orkish","draconic", "fey","celestic","demonic","blackspeech", "skyspeak","waterspeak","earthspeak","firespeak",
 	"thieves cant",/*?*/,/*?*/,/*?*/, /*?*/,/*?*/,/*?*/,/*?*/, /*?*/,/*?*/,/*?*/,/*?*/, "electric","icespeak","treespeak","metallic"}
@@ -2117,6 +2119,10 @@ uchar fly : 2 //0 = never had wings, 1 = slow falling, 2 = cannot gain altitude,
  * ⎨if -HPMAX < n < 0 : abs(n) Damage (deathmessage: could not withstand the cost of transmutation)
  * ⎪if n = 0          : stun for 1D16 (standardmessage: your mind reels from the transformation...)
  * ⎩if n > 0          : success
+ *
+ * writing =
+ * succeed if 4D6 < dex if !talons, plus 1 in 20 odds of breaking pen on fail
+ * succeed if 6D6 < dex if talons, plus coinflip odds of breaking pen on fail
  */
 
 readtyp:
@@ -2551,21 +2557,21 @@ to avoid confusion, by default the player always uses a unique character: ☻
 
 an UNDERLINE is a shadow
 
-) is a sword or dagger. ⍏ is a polearm. ¦ is a staff. : is a club or mace. ℓ is a whip. ⦅ is a bow. ⇤ is an arrow. ⍖ is a writing instrument.
+) is a sword or dagger. ⍏ are polearms. ¦ is a staff. : is a club or mace. ℓ is a whip. ⦅ is a bow. ⇤ is an arrow. ⍖ is a writing instrument.
 ⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves. % is meat. ⊞ is food (don't shoot it). $ is gold. ¢ is copper.
 ⌘ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♫ is a lyre. ƒ is a violin. ♪ is a different music instrument.
 ¿ are potions (fragile). ∫ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet. ^ is a crown.
 / is a wand. ♮ is a ladder. ⋎ is a fountain or gyser. ⍾ is a bell. ⎋ is a clockface. ♠ ♣ ‡ are trees. ⋏ is fire. ♜ is a pedestal.
 ≃ is shallow liquid. ≈ is deep liquid's surface. ∬ is a waterfall. ~ is a liquid (as seen while submerged). ∿ is a wave.
-⌁ is electricity. * is ice. ⎈ spider web. ⌬ beehive. ↥ are spikes. ⌸ is a door. ⍯ is a locked door. ⎕ is an open door.
+⌁ is electricity. * is ice. ⎈ spider web. ⌬ beehive. ♤ ↥ are spikes. ⌸ is a door. ⍯ is a locked door. ⎕ is an open door.
 ? is invisible. ! is trouble. ⌑ is a light source. ⎙ ⍝ ⎍ ∎ ⎅ are tombstones or signs. ␥ is glass.
 • is a boulder. . is a rock. ◇ is a gemstone. ◊ is a giant magic crystal. ⑆ are footprints.
-∪ is a sink. ⏍ is a chest. ↯ (cyan) is the thunderbolt. ∅ is an anomaly (do not touch). < > are level stairs. 
+∪ is a sink. ⏍ is a chest. ↯ (cyan) is the thunderbolt. ∅ is a spacetime anomaly (do not touch). < > are level stairs. 
 ← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are cannons (the kind that goes boom).
 # █ ▓ ▒ ░ ▞ ▚ (etc) are thick walls or floor. ≣ is a staircase. ≋ is a cloud (no walking; keep your head out of them).
 ␣ is a hole. ' is a stalagtite or icicle. , is a plant. ; is a grain or sunflower (impassable).
 box drawings are low walls or columns. ⑉ ⋮ are iron bars. · is an ember or star. ` ´ are flower petals.
-✪ is a rune. ː ⍽ are traps. ‽ ¶ is gas. " deliminates text. \ deliminates commands.
+✪ is a rune. ː ⍽ are traps. ⁂ ‽ is gas. " deliminates text. \ deliminates commands.
 ⍰ is a missingno.
 
 the symbol for gemstone and giant crystal has been the source of much headache,
@@ -2588,23 +2594,23 @@ REVERSE video is a magic spell's area of effect
 
 rune symbols
 ◬ air, ⍫ earth, △ fire, ▽ water, ⍰ missingno
-※ ice, ↯ (yellow) electricity, μ metal, ♠ nature
-‽ status effect, ¶ stoning, ∅ entropy
+※ ice, ↯ (yellow) electricity, μ metal, ♮ nature
+⁂ status effect, ‽ stoning, ∅ entropy
 ☼ light, ☽ dark, § polymorph, ↹ planer
 ♥ healing
 
 magic AOE symbols
 ≋ air, • earth, ⋏ fire, ≈ water
 * ice, ⌁ electricity, $ metal, ♠ nature
-‽ status effect, ¶ stoning, ∅ entropy
+⁂ status effect, ‽ stoning, ∅ entropy
 ⌑ light, ⎈ dark, § polymorph
 
 directional symbols:
 ←, ↑, →, ↓, ↖, ↗, ↘, ↙, direction in XY;
 ! far side; ↧, ↥, direction in Z;
 ↹ different plane;
-◬, ⍫, △, ▽, ※, ↯, μ, ♠, ☼, ☽, ∅, inner planes;
-£G, NG, CG, £N, CN, £E, NE, CE, TN, U, ☠, outer planes;
+◬, ⍫, △, ▽, ※, ↯, μ, ♧, ☼, ☽, ∅, inner planes;
+LG, NG, CG, LN, CN, LE, NE, CE, TN, U, ☠, outer planes;
 
 /* if digging causes a ≈ or ∬ to become uncontained, it will immediately spawn a ∿
  * which leaves ≃ or ∬ behind it when it moves. it's behavior differs depending on
