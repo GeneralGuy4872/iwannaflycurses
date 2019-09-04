@@ -90,7 +90,6 @@
 
 /*ENVIROMENTALS*/
 #define BUFFER_MAX 512
-
 #define GAMENAME "Default Game"
 #define GM_VERSION "0.0"
 #define DEVEL_STATE "Prealpha"
@@ -122,6 +121,8 @@
 #define COMPR_FLAGCLOSESMALL "cjf"
 #define COMPR_FLAGCLOSEFAST "czf"
 #define SND_CALL "beep"
+
+//ℰ will be used to abbriviate "and" the conjunction, to avoid ambiguity with the usage of & and && as "and" the function
 
 /*TYPES*/
 #define uchar16t unsigned char16_t
@@ -901,14 +902,14 @@ move(10,0); printw("  [Z] %s?",opt3)
 }
 
 /*GLOBALS*/
-#define GRAV 1.62
+#define GRAV 3.2174	/*if you backtrack this to determine the size of a grid unit, you're trying to hard*/
 playertyp PLAYER
 coord3 PLAYERSHD	//position of player's shadow, for renderer
 latlontyp WORLD
 roomtyp ROOM
 roomgentyp MAPGENBYTES[ROOF][(EQUATOR/2)+1][EQUATOR]
 #define MAX_X 64	//
-#define MAX_Y 24	//MAX_X > MAX_Y > MAX_Z
+#define MAX_Y 24	//MAX_X ≥ MAX_Y ≥ MAX_Z
 #define MAX_Z 16	//
 #define CEILING ROOM.upstair.z
 #define ROOF 201	//it is decreed: mortals shall fly no higher. (this means you!)
@@ -945,20 +946,65 @@ for 0->50 do
 		block (room)
 		register (room's doors)
 
+struct astarparamtyp {
+schar mode : 2	//+>0=replace, 0=no replace no avoid, -<0=avoid nonzero or different
+schar pathtype : 2	//1=indecisive astar, 0=normal astar, -1=dijkstra-recursive astar, -2=dijkstra
+uchar weightnorm : 2	//norm used with the distance grid
+uchar runningnorm : 2	//norm used to keep running distance
+}
+
+struct mazealignparamtyp {
+bool xalign : 1	//align to !north or +south
+uchar xoff : 7
+bool yalign : 1	//align to !left or +right
+uchar yoff : 7
+}
+
 the following algorithems can be combined to generate terrain:
+/* ortho: disallow diagonal steps.
+ * internal calculations might be done as intergers if there is no reason to expect floats
+ */
 
-random_prim(bool ortho,normenum norm,bool replace,schar tile,setcoord *coordlist,uchar grid,coord3 corner)
-random_kruskal(bool ortho,normenum norm,bool replace,schar tile,setcoord *coordlist,uchar grid,coord3 corner)
-random_revdelete(bool ortho,normenum norm,bool replace,schar tile,setcoord *coordlist,uchar grid,coord3 corner)
+test_dijkstra(bool ortho,schar mode,uchar runningnorm,coord3 pointa,coord3 pointb)	//replace && taxicab && ortho would equal norm1 exactly
+dijkstra(bool ortho,schar mode,uchar runningnorm,schar tile,coord3 pointa,coord3 pointb)
+	//nearest node first, no information about room or relative location.
 
-prim(bool ortho,normenum norm,bool replace,schar tile,setcoord *coordlist)
-kruskal(bool ortho,normenum norm,bool replace,schar tile,setcoord *coordlist)
-revdelete(bool ortho,normenum norm,bool replace,schar tile,setcoord *coordlist)
+test_astar(bool ortho,astarparamtyp params,coord3 pointa,coord3 pointb)	//replace && !(taxicab || ortho) would approximate to norm2, replace && taxicab && ortho would equal norm1 exactly
+astar(bool ortho,astarparamtyp params,schar tile,coord3 pointa,coord3 pointb)
+	/* - operates with knowlage of the norm distance to the destination
+	 * 	path heads try to move closer first, whenever possible.
+	 * 	should generalize an unobstructed path to a raster line if norm distance is calculated in norm2
+	 * - does not switch to a different path head until one is exausted
+	 * 	(exausted: no more avalible moves, finds target, or reaches the length of the previously selected best path)
+	 * 	other heads are selected longest-first; when a winning path has been found, all longer heads are dropped
+	 * - when 2 equally weighted options are avalible, the head's execution continues on the path that has the most similar trajectory
+	 *
+	 * indecisive mode:
+	 * 	- does not abort until all other active heads have reached the length of the chosen path
+	 * 		node's parent is only replaced when it would result in a lower distance
+	 * 		these distances are propagated by re-placing a sethydra entry at the point of update
+	 *
+	 * recursive mode:
+	 * 	- populates the grid using dijkstra from point b instead of norm distance from b.
+	 *
+	 * if mode is given as -2, gives soft warning (called wrong pathfinder function, n1ℰn2 = most negative number) and then calls dijkstra()
+	 */
 
-dijkstra(bool ortho,bool replace,schar tile,coord3 pointa,coord3 pointb)
-astar(schar tile,coord3 pointa,coord3 pointb)	//with replace on, would *always* reduce to linereplace
-linereplace(schar tile,coord3 pointa,coord3 pointb)
-line(coord3 pointa,coord3 pointb)
+prim(bool ortho,astarparamtyp params,schar tile,setcoord3 *coordlist)	//ortho is inherintly true
+random_prim(bool ortho,astarparamtyp params,schar tile,setcoord3 *coordlist)
+
+revkruskal(bool ortho,astarparamtyp params,schar tile,setcoord3 *coordlist)	//ortho is inherintly true
+random_revkruskal(bool ortho,astarparamtyp params,schar tile,setcoord3 *coordlist)
+
+cubefill(bool replace,schar tile,coord3 pointa,coord3 pointb)
+cubeshell(bool replace,schar tile,coord3 pointa,coord3 pointb)
+normfill(bool replace,schar tile,normenum norm,coord3 center,float radius)
+normshell(bool replace,schar tile,normenum norm,coord3 center,float radius)
+
+setcoord3* makemaze(uchar ceilheight,bool do_upstair,bool do_downstair,uchar gridspacing,mazealignparamtyp maze)	//sets basic aspects of the room, generates a grid of points, puts upstair, downstair, and home on that grid.
+
+addwalls(schar tile,coord3 pointa,coord3 pointb)	//outlines all currently generated tiles inside pointa and pointb
+replacetiles(schar foo,schar bar)
 
 attractor(bool replace,schar tile,setcoord *coordlist,uchar iterations,bool invert)
 	/* uchar xcoord = roll 1dMAX_X
@@ -970,7 +1016,7 @@ attractor(bool replace,schar tile,setcoord *coordlist,uchar iterations,bool inve
 	 * xcoord = (xcoord + list->x) / 2
 	 * ycoord = (ycoord + list->y) / 2
 	 * zcoord = (zcoord + list->z) / 2
-	 * put tile (xcoord,ycoord,zcoord)
+	 * if ( (!tile(xcoord,ycoord,zcoord) || (replace) ) {put tile (xcoord,ycoord,zcoord)}
 	 *
 	 * for (;iterations;iterations--) {
 	 * 	uint rotate = random()
@@ -978,7 +1024,7 @@ attractor(bool replace,schar tile,setcoord *coordlist,uchar iterations,bool inve
 	 * 	xcoord = (xcoord + list->x) / 2
 	 * 	ycoord = (ycoord + list->y) / 2
 	 * 	zcoord = (zcoord + list->z) / 2
-	 * 	put tile (xcoord,ycoord,zcoord)
+	 * 	if ( (!tile(xcoord,ycoord,zcoord) || (replace) ) {put tile(xcoord,ycoord,zcoord)}
 	 *	}
 	 */
 
@@ -1003,6 +1049,11 @@ hailofdice(replace,tile,number)
  *
  * ("saned" borders prevent this by making edge obstructions unbreakable.
  * floor heights are also uniform accross spherical shells when possible.)
+ */
+
+/* ai can use modifyed versions of dijkstra or any of tha astar varients
+ * particularly, they must be able to handle multiple destinations for the aggro ais
+ * or the ability to cycle through a list of checkpoints for passive ais
  */
 
 struct turntyp:
@@ -1142,34 +1193,61 @@ uchar x
 uchar y
 uchar z
 
+struct patrolistyp {
+(self) *prev
+(self) *next
+setcoord3* start
+
 struct setpoints:
 (self) *prev
 (self) *next
-setcoord3* pointa
-setcoord3* pointb
-float dist
+coord3 pointa
+coord3 pointb
+
+struct setpathnode {
+bool dead : 1	//no avalible paths
+bool win : 1	//selected path
+unsigned char az : 3	//az and el point to parent; ((az+4)%8,-el) is the trajectory of the node.
+signed char el : 3	// -2,-1,0,1,2 are valid, 3 is starting point
+float runningdist	//calculated running shortest-path distance from point a.
+float goaldist	//norm distance from point b
+
+struct sethydra:
+(self) *prev
+(self) *next
+setpathnode* node
 
 //some specific uses call for spheres. these are simply numeric types.
 
-float norm2(xrel,yrel,zrel)
-schar xrel;
-schar yrel;
-schar zrel;
-{return root( ((float) xrel * xrel) + ((float) yrel * yrel) + ((float) zrel * zrel) );}
+float norm2(pointa,pointb)
+coord3 pointa
+coord3 pointb
+{
+sshort xrel = pointb.x - pointa.x;
+sshort yrel = pointb.y - pointa.y;
+sshort zrel = pointb.z - pointa.z;
+return root( ((float) xrel * xrel) + ((float) yrel * yrel) + ((float) zrel * zrel) );
+}
 
-ushort norm1(xrel,yrel,zrel)
-schar xrel;
-schar yrel;
-schar zrel;
-{return (ushort) (abs(xrel) + abs(yrel) + abs(zrel));}
+ushort norm1(pointa,pointb)
+coord3 pointa
+coord3 pointb
+{
+sshort xrel = pointb.x - pointa.x;
+sshort yrel = pointb.y - pointa.y;
+sshort zrel = pointb.z - pointa.z;
+return (ushort) (abs(xrel) + abs(yrel) + abs(zrel));
+}
 
-uchar normINF(xrel,yrel,zrel)
-schar xrel;
-schar yrel;
-schar zrel;
-{return MAX(MAX(abs(xrel),abs(yrel)),abs(zrel));}
-
-enum normenum {NORM_INF,NORM_TAXI,NORM_EUCLID}
+ushort normINF(pointa,pointb)
+coord3 pointa
+coord3 pointb
+{
+sshort xrel = pointb.x - pointa.x;
+sshort yrel = pointb.y - pointa.y;
+sshort zrel = pointb.z - pointa.z;
+return MAX(MAX(abs(xrel),abs(yrel)),abs(zrel));
+}
 
 struct diceodds:
 uchar num : 3
@@ -1265,8 +1343,8 @@ nochaos : b1
  * starting alignment must be one of the high nibble (crossbar "OR" ↔∪↕ if one or more than 2 are selected, crossbar AND ↔∩↕ ║2║1 if exactly 2 are selected, true neutral ║1║1 if none are selected).
  * alignment may NEVER enter any of the low nibble, marked "no" (crossbar "OR" ↔∪↕ always, overrides whitelist).
  *
- * there are 2 other ways that alignment masks may be specified,
- * both of which have finer grained control.
+ * there are other ways that alignment masks may be specified,
+ * all of which have finer grained control.
  */
 
 struct bitfield:
@@ -1384,14 +1462,14 @@ fstab mon2table
  * A: astral, ætherial, celestial, archon
  * a: newt, salamander, frog, 
  * B: bear, polar bear, bugbear, owlbear,
- * b: mockingbird, parrot, macaw, cockatoo, songbird, sparrow, starling,
+ * b: mockingbird, parakeet, parrot, macaw, cockatoo, songbird, sparrow, starling,
  * C: satyr, centaur,
  * c: raven, rook, jackdaw, crow, jay, magpie,
  * D: wyrm, great wyrm, (△red,↯copper,◬white,*cyan,▽blue,♠green,⍫brown,$gold,☽black,☼silver,∅purple) dragon, hydra,
  * d: hellhound, wolf, dire wolf, dog, fox, cyote,
  * E: <elementals>, stalker,
  * e: floating eye,
- * F: turkey, rooster, chicken, peahen, peacock, duck, goose, albatross, gull,
+ * F: turkey, rooster, chicken, peacock, duck, goose, swan, albatross, gull,
  * f: panther, lion, tiger, manticore, cat, lynx, bobcat, displacer beast,
  * G: ghost, banshee, revenent, barrow wight,
  * g: gremlin, gargoyle, winged gargoyle,
@@ -1428,16 +1506,17 @@ fstab mon2table
  * W: half dragon, half celestial, tiefling, avian, erinys, harpy, tengu,
  * w: purple worm,
  * X: velociraptor, tyrannasaurus,
- * x: <corpses>
+ * x: grue,
  * Y: yeti, bigfoot,
  * y: ape, monkey, gorilla,
- * Z: grue, mind flayer,
+ * Z: mind flayer,
  * z: <zombies>
- * £: justice. (has Beethoven's 5th as a lietmotif)
+ * {: (flesh, straw, clay, stone, glass, paper, leather) golem, (gold, copper) automaton, hungry chest, chest monster,
+ * £: justice. (has Beethoven's 5th as a lietmotif. is lawful.)
+ * ∞: retribution. (has Summer - Presto as a lietmotif. is chaotic.)
  * ∈: <half elementals>
- * ☠: death. (has Toccata and Fugue in D minor as a lietmotif)
+ * ☠: death. (has Toccata and Fugue in D minor as a lietmotif. bane of the strong. is true neutral.)
  * ♞: nightmare, quarterhorse, draft horse, miniature horse,
- * ♜: (flesh, straw, clay, stone, glass, paper, leather, gold, copper) golem, automaton, hungry chest, chest monster,
  * ⏍: hungry chest, chest monster,
  */
 
@@ -1471,12 +1550,14 @@ shiftertyp polycounter
 coord3 loc
 polar facing
 vector3 velo
+float carryover	//leftover moves; never exceeds 2
 paffectyp permenent
 effectyp fromequip
 scoord2 align
 ushort hp	//they're fun and easy to...wait
 ushort mp
 uchar air
+ushort uptime
 ulong xp
 uchar lvl
 sshort food
@@ -1576,11 +1657,10 @@ aggrotype aggro	//here, shiftable denotes a monster's aggro state is locked. als
 paffectyp base
 venomtyp venom
 uchar spd	//distance calculations use M_SQRT2 for diagonals
-uchar fly
 uchar hplvl
 uchar mplvl
 uchar xplvl
-uchar airmax
+uchar airmax	//how long you can hold your breath
 symtabref lang0 : 6
 symtabref lang1 : 6
 symtabref spell0
@@ -1612,10 +1692,12 @@ struct enttyp:
 (self) *next
 classobjtyp class
 aggrotyp aggro
+setcoord3* coordlist
 symtabref race
 coord3 loc
 polar facing
 vector3 velo
+float carryover
 paffectyp paffect
 effectyp effect
 ushort hp
@@ -1651,6 +1733,7 @@ shiftertyp polycounter
 coord3 loc
 polar facing
 vector3 velo
+float carryover
 paffectyp permenent
 effectyp fromequip
 scoord2 align
@@ -1873,7 +1956,7 @@ bool nolungs : 1	//effects breathing above water
 bool noswim : 1	//effects swimming
 bool atktail : 1	//effects unarmed attacks, swimming, flying
 bool atkwing : 1	//effects unarmed attacks, swimming, flying
-schar atkbite : 2	//effects unarmed attacks; +1 = swallow, -1 = bite, -2 = bite & breath
+schar atkbite : 2	//effects unarmed attacks; +1 = swallow, -1 = bite, -2 = bite ℰ breath
 
 struct venomtyp {
 elixtyp claws
@@ -1969,12 +2052,13 @@ diceodds odds
 
 struct skilltyp:
 uchar sword : 3 //+skill to sword-type weapon attack
-uchar knife : 2 //+skill to knife-type weapon attack
+uchar knife : 3 //+skill to knife-type weapon attack
 uchar stave : 3 //+skill to stave-type weapon attack
 uchar spear : 3 //+skill to club-type weapon attack
+uchar whip : 3 //+skill to whip-type weapon range (unused range added to attack)
 uchar club : 2 //+skill to club-type weapon attack
-uchar bow : 2 //+(4 * skill) to bow-type weapon range
-uchar throw : 2 //+(4 * skill) to javalin-type weapon range
+uchar bow : 4 //+(2 * skill) to bow-type weapon range
+uchar throw : 4 //+(2 * skill) to javalin-type weapon range
 uchar monk : 4 //+(2*skill) to unarmed attack, unlocks more modes of attack.
 uchar shield : 3 //skill in (damage-defense)+abs(damage-defense) chance of blocking
 uchar locks : 3 //1 in 2^(lock.level - (skill)) chance of picking
@@ -2021,6 +2105,7 @@ tileset *hightiles
 schar tiledata[MAX_Z][MAX_Y][MAX_X] //entity coords refer to the 3-grid boxes of a given coord, while tiles refer to a given xy square on the plane that is the lower bound of said boxes.
 shadowmask seen
 encontyp *encon_ptr
+patrolistyp *patrol_ptr
 enttyp *ent_ptr
 mapobjtyp *obj_ptr
 lightyp *lamp_ptr
@@ -2413,24 +2498,22 @@ to avoid confusion, by default the player always uses a unique character: ☻
 
 an UNDERLINE is a shadow
 
-) is a sword or dagger. ⍏ is a polearm. ¦ is a staff. ℓ is a club or mace. ⦅ is a bow. ⇤ is an arrow.
-⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves. % is food. $ is gold. ¢ is copper.
+) is a sword or dagger. ⍏ is a polearm. ¦ is a staff. : is a club or mace. ℓ is a whip. ⦅ is a bow. ⇤ is an arrow.
+⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves. % is meat. ⊞ is food (don't shoot it). $ is gold. ¢ is copper.
 ⌘ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♪ is a music instrument. ⍖ is a writing instrument.
-¿ are potions (fragile). ∫ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet. ⌤ is a crown.
-/ is a wand. ≣ is a ladder. ⋎ is a fountain or gyser. ⍾ is a bell. ⎋ is a clockface. ♠ ♣ ‡ are trees. ⋏ is fire.
+¿ are potions (fragile). ∫ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet. ^ is a crown.
+/ is a wand. ≣ is a ladder. ⋎ is a fountain or gyser. ⍾ is a bell. ⎋ is a clockface. ♠ ♣ ‡ are trees. ⋏ is fire. ♜ is a pedestal.
 ≃ is shallow liquid. ≈ is deep liquid's surface. ∬ is a waterfall. ~ is a liquid (as seen while submerged). ∿ is a wave.
 ⌁ is electricity. * is ice. ⎈ spider web. ⌬ beehive. ↥ are spikes. ⌸ is a door. ⍯ is a locked door. ⎕ is an open door.
-? is invisible. ! is trouble. ⌑ is a light source. ⎙ ⍝ ∎ ⎅ are tombstones or signs. ␥ is glass. 
-• is a boulder. . is a rock. : is a rockslide. ◇ is a gemstone. ◊ is a giant magic crystal. ⑆ are footprints.
+? is invisible. ! is trouble. ⌑ is a light source. ⎙ ⍝ ⎍ ∎ ⎅ are tombstones or signs. ␥ is glass.
+• is a boulder. . is a rock. ◇ is a gemstone. ◊ is a giant magic crystal. ⑆ are footprints.
 ∪ is a sink. ⏍ is a chest. ↯ (cyan) is the thunderbolt. ∅ is an anomaly (do not touch). < > are level stairs. 
 ← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are cannons (the kind that goes boom).
 # █ ▓ ▒ ░ ▞ ▚ (etc) are thick walls or floor. ≋ is a cloud (no walking; keep your head out of them).
-^ ␣ are holes. ' is a stalagtite or icicle. , is a plant. ; is a grain or sunflower (impassable).
+␣ is a hole. ' is a stalagtite or icicle. , is a plant. ; is a grain or sunflower (impassable).
 box drawings are low walls or columns. ⑉ ⋮ are iron bars. · is an ember or star. ` ´ are flower petals.
-✪ is a rune. ː is a trap. ‽ ¶ is gas. " deliminates text. \ deliminates commands.
+✪ is a rune. ː ⍽ are traps. ‽ ¶ is gas. " deliminates text. \ deliminates commands.
 ⍰ is a missingno.
-
-~ may be centered ∼ or high ˜, depending on font. recommended font has high ˜ placement.
 
 the symbol for gemstone and giant crystal has been the source of much headache,
 but any truly monospace font should render their relative sizes correctly;
@@ -2470,8 +2553,8 @@ directional symbols:
 ◬, ⍫, △, ▽, ※, ↯, μ, ♠, ☼, ☽, ∅, inner planes;
 £G, NG, CG, £N, CN, £E, NE, CE, TN, U, ☠, outer planes;
 
-/* if digging causes a ≈ of to become uncontained, it will immediately spawn a ∿
- * which leaves ~ or ≈ behind it when it moves. it's behavior differs depending on
+/* if digging causes a ≈ or ∬ to become uncontained, it will immediately spawn a ∿
+ * which leaves ≃ or ∬ behind it when it moves. it's behavior differs depending on
  * the liquid's viscosity:
  * 	highly viscus (lava): deflected only by solid objects,
  * 	sensitive to edges at ║1║1. moves by ║1║∞.
@@ -2480,9 +2563,8 @@ directional symbols:
  * 	by any object, sensitive to edges at ║3║1. distance from starting position
  * 	to ending position is up to ║3║∞ in xy, and -9 in z
  *
- * 	           ~~~   ~~~
- * 	half wave: ∿ ~ ; ~
- *                       ∿
+ * 	           ≃≃≃                ≃≃
+ * 	half wave: ∿ ≃ (horizontal) ; ∿  (diagonal)
  *
  * if the ∿ reaches an edge, it will queue itself to be loaded in the room it panned to.
  */
@@ -2756,7 +2838,7 @@ pasta(uncooked) pasta ramen(uncooked) ramen*
 dumplings(uncooked) dumplings* tofu(uncooked) tofu
 meatballs marinara alfredosauce parmisian
 lasagnia* pizza* spaghetti alfredo
-spaghetti&meatballs ramen&dumplings chickenalfredo brocllialfredo
+spaghettiℰmeatballs ramenℰdumplings chickenalfredo brocllialfredo
 guacamole nachos* chili salsa
 pie* cake* soda* chips
 salad* hotdog* hamburger* fries
@@ -2767,8 +2849,8 @@ sourcream butter/shortening* mayo dressing*
 pie* pie_alamode* englishfruitcake bread*
 cake* pancake* waffle* stackofpancakes*
 frozenpancake frozenwaffle flavoredmilk* juice*
-roast* gravy foo&gravy* foo_chicken*
-bakedpotato loadedbakedpotato mashpotatos tatties&neeps
+roast* gravy fooℰgravy* foo_chicken*
+bakedpotato loadedbakedpotato mashpotatos tattiesℰneeps
 sunnysideup overeasy scrambled hardboiled
 bacon* sausage* jerky* spam
 nutbrittle* trailmix rasin* peanutbuttersandwich*
