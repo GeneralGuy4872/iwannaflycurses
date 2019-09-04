@@ -1515,7 +1515,7 @@ fstab mon2table
  * £: justice. (has Beethoven's 5th as a lietmotif. is lawful.)
  * ∞: retribution. (has Summer - Presto as a lietmotif. is chaotic.)
  * ∈: <half elementals>
- * ☠: death. (has Toccata and Fugue in D minor as a lietmotif. bane of the strong. is true neutral.)
+ * ☠: death. (has Toccata and Fugue in D minor as a lietmotif. is true neutral.)
  * ♞: nightmare, quarterhorse, draft horse, miniature horse,
  * ⏍: hungry chest, chest monster,
  */
@@ -2498,9 +2498,9 @@ to avoid confusion, by default the player always uses a unique character: ☻
 
 an UNDERLINE is a shadow
 
-) is a sword or dagger. ⍏ is a polearm. ¦ is a staff. : is a club or mace. ℓ is a whip. ⦅ is a bow. ⇤ is an arrow.
+) is a sword or dagger. ⍏ is a polearm. ¦ is a staff. : is a club or mace. ℓ is a whip. ⦅ is a bow. ⇤ is an arrow. ⍖ is a writing instrument.
 ⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves. % is meat. ⊞ is food (don't shoot it). $ is gold. ¢ is copper.
-⌘ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♪ is a music instrument. ⍖ is a writing instrument.
+⌘ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♫ is a lyre. ƒ is a violin. ♪ is a different music instrument.
 ¿ are potions (fragile). ∫ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet. ^ is a crown.
 / is a wand. ≣ is a ladder. ⋎ is a fountain or gyser. ⍾ is a bell. ⎋ is a clockface. ♠ ♣ ‡ are trees. ⋏ is fire. ♜ is a pedestal.
 ≃ is shallow liquid. ≈ is deep liquid's surface. ∬ is a waterfall. ~ is a liquid (as seen while submerged). ∿ is a wave.
