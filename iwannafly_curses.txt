@@ -1545,17 +1545,18 @@ fstab mon2table
  * V: vampire, wolfman,
  * v: bat,
  * W: half dragon, half celestial, tiefling, avian, erinys, harpy, tengu,
- * w: purple worm,
+ * w: purple worm, nightcrawler,
  * X: velociraptor, tyrannasaurus,
- * x: grue,
+ * x: monitor, alligator, crocodile, skink,
  * Y: yeti, bigfoot,
  * y: ape, monkey, gorilla,
  * Z: mind flayer,
  * z: <zombies>
  * {: (flesh, straw, clay, stone, glass, paper, leather) golem, (gold, copper) automaton, hungry chest, chest monster,
  * £: justice. (has Beethoven's 5th as a lietmotif. is lawful.)
- * ∞: retribution. (has Summer - Presto as a lietmotif. is chaotic.)
+ * ⑄: retribution. (has Summer - Presto as a lietmotif. is chaotic.)
  * ∈: <half elementals>
+ * ∞: grue.
  * ☠: death. (has Toccata and Fugue in D minor as a lietmotif. is true neutral.)
  * ♞: quarterhorse, draft horse, miniature horse, zebra, nightmare,
  * ⏍: hungry chest, chest monster,
@@ -2554,14 +2555,14 @@ an UNDERLINE is a shadow
 ⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves. % is meat. ⊞ is food (don't shoot it). $ is gold. ¢ is copper.
 ⌘ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♫ is a lyre. ƒ is a violin. ♪ is a different music instrument.
 ¿ are potions (fragile). ∫ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet. ^ is a crown.
-/ is a wand. ≣ is a ladder. ⋎ is a fountain or gyser. ⍾ is a bell. ⎋ is a clockface. ♠ ♣ ‡ are trees. ⋏ is fire. ♜ is a pedestal.
+/ is a wand. ♮ is a ladder. ⋎ is a fountain or gyser. ⍾ is a bell. ⎋ is a clockface. ♠ ♣ ‡ are trees. ⋏ is fire. ♜ is a pedestal.
 ≃ is shallow liquid. ≈ is deep liquid's surface. ∬ is a waterfall. ~ is a liquid (as seen while submerged). ∿ is a wave.
 ⌁ is electricity. * is ice. ⎈ spider web. ⌬ beehive. ↥ are spikes. ⌸ is a door. ⍯ is a locked door. ⎕ is an open door.
 ? is invisible. ! is trouble. ⌑ is a light source. ⎙ ⍝ ⎍ ∎ ⎅ are tombstones or signs. ␥ is glass.
 • is a boulder. . is a rock. ◇ is a gemstone. ◊ is a giant magic crystal. ⑆ are footprints.
 ∪ is a sink. ⏍ is a chest. ↯ (cyan) is the thunderbolt. ∅ is an anomaly (do not touch). < > are level stairs. 
 ← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are cannons (the kind that goes boom).
-# █ ▓ ▒ ░ ▞ ▚ (etc) are thick walls or floor. ≋ is a cloud (no walking; keep your head out of them).
+# █ ▓ ▒ ░ ▞ ▚ (etc) are thick walls or floor. ≣ is a staircase. ≋ is a cloud (no walking; keep your head out of them).
 ␣ is a hole. ' is a stalagtite or icicle. , is a plant. ; is a grain or sunflower (impassable).
 box drawings are low walls or columns. ⑉ ⋮ are iron bars. · is an ember or star. ` ´ are flower petals.
 ✪ is a rune. ː ⍽ are traps. ‽ ¶ is gas. " deliminates text. \ deliminates commands.
