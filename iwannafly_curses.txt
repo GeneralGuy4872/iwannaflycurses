@@ -54,6 +54,10 @@
  * sound only being avalible for root; this is a bug beyond my relm of influence.
  * these distros will probably not support sound after beep has been replaced with
  * a midi library either.
+ *
+ * fair warning: the way unicode is handled is likely going to be beyond the relm of
+ * "interesting" and into the territory of just plain "wierd". Also note that Radix-50
+ * is being used to compress internal text (lossy,75%) in as many places as possible.
  */
 
 /**standard libraries**/
@@ -103,7 +107,7 @@
  */
 
 char16_t TILDEW
-char* TILDE = setilde(TILDEW)	//ensures centered tilde
+char* TILDE = setilde(&TILDEW)	//ensures centered tilde
 
 /*FUNCTION MACROS*/
 #define BRIGHT 010
@@ -163,7 +167,7 @@ keypad(stdscr, true);
 initscr();
 
 char* setilde(value)
-char16_t value
+char16_t* value
 {
 move(12,4); printw("is this tilde between the lines? (y,n)")
 
@@ -176,8 +180,8 @@ mvaddch(16,18,"-")
 char got = getch()
 
 switch (got) : {
-case 'y' : value = '~'; output = malloc(sizeof(char)); *output = "~"; return output;
-case 'n' : value = 0x223C; output = malloc(sizeof(char * 3)); *output = "∼"; return output;
+case 'y' : *value = '~'; char* output = malloc(sizeof(char)); *output = "~"; return output;
+case 'n' : *value = 0x223C; char* output = malloc(sizeof(char * 3)); *output = "∼"; return output;
 }
 
 }
@@ -281,7 +285,12 @@ uchar char1
 uchar char2
 uchar char3
 switch (string[0]) {
+	case '_' : noop()
+	case ' ' :
+		char1=0;
+		break;
 	case 'A' : noop();
+	case '@' : noop();
 	case 'a' :
 		char1=01;
 		break;
@@ -385,12 +394,21 @@ switch (string[0]) {
 	case 'z' :
 		char1=032;
 		break;
+	case '&' : noop();
+	case '?' : noop();
 	case '$' :
 		char1=033;
 		break;
+	case '"' : noop();
+	case '\'' : noop();
+	case ';' : noop();
+	case ':' : noop();
+	case ',' : noop();
 	case '.' :
 		char1=034;
 		break;
+	case '#' : noop();
+	case '/' : noop();
 	case '%' :
 		char1=035;
 		break;
@@ -429,7 +447,12 @@ switch (string[0]) {
 		break;
 	}
 switch (string[1]) {
+	case '_' : noop();
+	case ' ' :
+		char2=0;
+		break;
 	case 'A' : noop();
+	case '@' : noop();
 	case 'a' :
 		char2=01;
 		break;
@@ -533,12 +556,22 @@ switch (string[1]) {
 	case 'z' :
 		char2=032;
 		break;
+	case '&' : noop();
+	case '?' : noop();
 	case '$' :
 		char2=033;
 		break;
+
+	case '"' : noop();
+	case '\'' : noop();
+	case ';' : noop();
+	case ':' : noop();
+	case ',' : noop();
 	case '.' :
 		char2=034;
 		break;
+	case '#' : noop();
+	case '/' : noop();
 	case '%' :
 		char2=035;
 		break;
@@ -577,7 +610,12 @@ switch (string[1]) {
 		break;
 	}
 switch (string[3]) {
+	case '_' : noop();
+	case ' ' :
+		char3=0;
+		break;
 	case 'A' : noop();
+	case '@' : noop();
 	case 'a' :
 		char3=01;
 		break;
@@ -681,12 +719,21 @@ switch (string[3]) {
 	case 'z' :
 		char3=032;
 		break;
+	case '&' : noop();
+	case '?' : noop();
 	case '$' :
 		char3=033;
 		break;
+	case '"' : noop();
+	case '\'' : noop();
+	case ';' : noop();
+	case ':' : noop();
+	case ',' : noop();
 	case '.' :
 		char3=034;
 		break;
+	case '#' : noop();
+	case '/' : noop();
 	case '%' :
 		char3=035;
 		break;
@@ -728,17 +775,68 @@ switch (string[3]) {
 return (char1*1600)+(char2*40)+char3
 }
 
-char* unsquoze(squozed)
-char16_t squozed
+char radixtoascii(radix50,symbol1,symbol2,symbol3)
+uchar radix50 symbol1 symbol2 symbol3
 {
-static char* output
+switch (radix50) {
+	case 0 : return ' ';
+	case 01 : return 'A';
+	case 02 : return 'B';
+	case 03 : return 'C';
+	case 04 : return 'D';
+	case 05 : return 'E';
+	case 06 : return 'F';
+	case 07 : return 'G';
+	case 010 : return 'H';
+	case 011 : return 'I';
+	case 012 : return 'J';
+	case 013 : return 'K';
+	case 014 : return 'L';
+	case 015 : return 'M';
+	case 016 : return 'N';
+	case 017 : return 'O';
+	case 020 : return 'P';
+	case 021 : return 'Q';
+	case 022 : return 'R';
+	case 023 : return 'S';
+	case 024 : return 'T';
+	case 025 : return 'U';
+	case 026 : return 'V';
+	case 027 : return 'W';
+	case 030 : return 'X';
+	case 031 : return 'Y';
+	case 032 : return 'Z';
+	case 033 : return symbol1;
+	case 034 : return symbol2;
+	case 035 : return symbol3;
+	case 036 : return '0';
+	case 037 : return '1';
+	case 040 : return '2';
+	case 041 : return '3';
+	case 042 : return '4';
+	case 043 : return '5';
+	case 044 : return '6';
+	case 045 : return '7';
+	case 046 : return '8';
+	case 047 : return '9';
+	default : return ' ';
+	}
+}
+
+char* unsquoze(squozed,symbol1,symbol2,symbol3)
+char16_t squozed
+char symbol1 symbol2 symbol3
+{
+static char* output = "   "
 if (squozed > 63999) {ERROR_GRAPHIC("tried to unsquoze invalid RADIX-50 hash",'u',squozed,1,63999,false}
 tmp = div(squozed,1600)
-char char1 = tmp.quot
+uchar char1 = tmp.quot
 tmp = div(div.rem,40)
-char char2 = tmp.quot
-char char3 = tmp.rem
-//convert back to ascii
+uchar char2 = tmp.quot
+uchar char3 = tmp.rem
+output[0] = radixtoascii(char1,symbol1,symbol2,symbol3)
+output[1] = radixtoascii(char2,symbol1,symbol2,symbol3)
+output[2] = radixtoascii(char3,symbol1,symbol2,symbol3)
 }
 
 /* the game's internal representation uses 6 different character sets:
@@ -2680,7 +2778,7 @@ LG, NG, CG, LN, CN, LE, NE, CE, TN, U, ☠, outer planes;
  * if the ∿ reaches an edge, it will queue itself to be loaded in the room it panned to.
  */
 
-char* ucs_to_utf(input)
+char* ucstoutf(input)
 char16_t input
 {
 if (input < 0x80) {static char* output = " ", output[0] = input}
