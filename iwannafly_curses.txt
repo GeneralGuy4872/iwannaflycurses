@@ -63,19 +63,18 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <math.h>
 #define SQRT3 1.732050807568877293528
 #include <limits.h>
 #include <time.h>
 #include <string.h>
-
-#ifndef __STDC_ISO_10646__
-#warning This program MUST HAVE UNICODE. Are you SURE this system has it?
-#endif
+#include <ctype.h>
 
 /**system libraries**/
 #include <unistd.h>
 #include <signal.h>
+#include <locale.h>
 //#include <regex.h>
 //#include <sys/types.h>
 //#include <sys/ioctl.h>
@@ -103,6 +102,9 @@
  * revision: Changes.Fixes
  */
 
+char16_t TILDEW
+char* TILDE = setilde(TILDEW)	//ensures centered tilde
+
 /*FUNCTION MACROS*/
 #define BRIGHT 010
 #define BACKGROUND 0x10
@@ -113,33 +115,38 @@
 #define MAX(A,B) (A > B ? A : B)
 #define MIN(A,B) (A < B ? A : B)
 #define CLAMP(N,A,B) MIN(MAX(N,A),B)
+#define COORDSUB(Z,Y,X) ((MAX_Y * Z) + (MAX_X * Y) + X)
+
+//prettify the tokens my eyes don't parse
 #define ≥ >=
 #define ≤ <=
+#define → ->
+
 #define COMPR_CALL "tar"
 #define COMPR_FLAGOPENSMALL "xjf"
 #define COMPR_FLAGOPENFAST "xzf"
 #define COMPR_FLAGCLOSESMALL "cjf"
 #define COMPR_FLAGCLOSEFAST "czf"
 #define SND_CALL "beep"
-
-//ℰ will be used to abbriviate "and" the conjunction in comments, to avoid ambiguity with the usage of & and && as "and" the function
+#define BREAKCURSES scr_dump(CURSESSCRBUFFER);clear();refresh();move(0,0);
+#define FIXCURSES scr_restore(CURSESSCRBUFFER);
+//ɛ̩̍ will be used for "and" the conjunction in comments where logical && would give a totally different yet possibly valid meaning.
 
 /*TYPES*/
-#define uchar16t unsigned char16_t
+//ensure size names work on all systems
 #define uint unsigned int
 #define sint signed int
-#define uchar unsigned char
-#define schar signed char
-#define ushort unsigned short
-#define sshort signed short
-#define ulong unsigned long
-#define slong signed long
-#define ulonglong unsigned long long
-#define slonglong signed long long
-typedef uchar16t Rune
-#define tern schar
+#define byte uint8_t
+#define uchar uint8_t
+#define schar int8_t
+#define ushort uint16_t
+#define sshort int16_t
+#define ulong uint32_t
+#define slong int32_t
+#define ulonglong uint64_t
+#define slonglong int64_t
 
-/* the 3d version of Iwannafly started off as a general RT-RPG library that
+/* the 3D version of Iwannafly started off as a general RT-RPG library that
  * then became narrowed to a specific game. this version was originally
  * supposed to be the same game reworked for ncurses,
  * but is now becoming closer to the general library concept,
@@ -152,16 +159,39 @@ typedef uchar16t Rune
 setlocale(LC_ALL, "");
 cbreak();
 noecho();
-keypad(stdscr, TRUE);
+keypad(stdscr, true);
+initscr();
+
+char* setilde(value)
+char16_t value
+{
+move(12,4); printw("is this tilde between the lines? (y,n)")
+
+mvaddch(16,14,"-")
+mvaddch(16,15,"-")
+mvaddch(16,16,"~")
+mvaddch(16,17,"-")
+mvaddch(16,18,"-")
+
+char got = getch()
+
+switch (got) : {
+case 'y' : value = '~'; output = malloc(sizeof(char)); *output = "~"; return output;
+case 'n' : value = 0x223C; output = malloc(sizeof(char * 3)); *output = "∼"; return output;
+}
+
+}
+
 
 /* backslash enters console mode. characters are fetched and printed
  * with ncurses, as well as stored in a temporary file.
  * autocomplete will be implemented, using a gradually diminishing
- * linked list of sixbit matches between your ascii and the command's
- * radix-50 name. once only one match remains, it will be shown
+ * linked list of matches between your toupper-ed input and the command's
+ * decoded radix-50 name. once only one match remains, it will be shown
  * on-screen in reverse video mode, and can be inserted with tab.
- * autocomplete is not implemented for item or entity names;
- * spaces in these are replaced by underscore.
+ * autocomplete is not implemented for item or entity names; an exact
+ * match must be found in the stabs. underscores in the entry are
+ * replaced by spaces.
  *
  * once the enter key is pressed, the temp file is rewound.
  * fscanf is used to process tokens.
@@ -193,14 +223,14 @@ enum cli_argstypes
 typedef cli_func *int(*void)
 
 enum commandenum
-uchar16t commandstabs[256][4] //uchar16t[4] easily converts to fourbysix[3]
+char16_t commandstabs[256][4] //radix50
 cli_func commandtable[256]
 cli_argstypes commandargs[256]
 
 struct cli_matches {
 (self) *prev
 (self) *next
-fourbysix text[3]
+char text[12]
 symtabref id
 }
 
@@ -244,14 +274,7 @@ struct
  * } Rune; //not needed
  */
 
-struct fourbysix {
-uchar a : 6
-uchar b : 6
-uchar c : 6
-uchar d : 6
-}
-
-uchar16t squoze(string)
+char16_t squoze(string)
 char string[3]
 {
 uchar char1
@@ -705,106 +728,23 @@ switch (string[3]) {
 return (char1*1600)+(char2*40)+char3
 }
 
-coord3 unsquoze(squozed)
-uchar16t squozed
+char* unsquoze(squozed)
+char16_t squozed
 {
-coord3 return
-if (squozed > 63999) {ERROR_GRAPHIC("tried to unsquoze invalid RADIX-50 hash",squozed,63999,false}
+static char* output
+if (squozed > 63999) {ERROR_GRAPHIC("tried to unsquoze invalid RADIX-50 hash",'u',squozed,1,63999,false}
 tmp = div(squozed,1600)
-char1 = tmp.quot
+char char1 = tmp.quot
 tmp = div(div.rem,40)
-char2 = tmp.quot
-char3 = tmp.rem
+char char2 = tmp.quot
+char char3 = tmp.rem
 //convert back to ascii
 }
 
-char isosqueeze (unichar)
-Rune unichar
-{
-if (unichar > UCHAR_MAX) {
-	switch unichar {
-	case 0x2301 : {return 0x04}	//add symbols for C0
-	case 0x237E : {return '\a'}
-	case 0x232B : {return '\b'}
-	case 0x2318 : {return 0x11}
-	case 0x21D1 : {return 0x12}
-	case 0x2325 : {return 0x13}
-	case 0x2324 : {return 0x14}
-	case 0x238B : {return 033}
-	case 0x20AC : {return 0x80}	//add a subset of windows-1252 since control codes are not being used
-	case 0x0192 : {return 0x83}
-	case 0x2026 : {return 0x85}
-	case 0x2022 : {return 0x95}
-	case 0x2030 : {return 0x89}
-	case 0x0160 : {return 0x8A}
-	case 0x0161 : {return 0x9A}
-	case 0x2039 : {return 0x8B}
-	case 0x203A : {return 0x9B}
-	case 0x0152 : {return 0x8C}
-	case 0x0153 : {return 0x9C}
-	case 0x017D : {return 0x8E}
-	case 0x017E : {return 0x9E}
-	case 0x0178 : {return 0x9F}
-	else {return 0x1A}	//C0 control character SUBstitute
-else {return (char) (unichar | 0x00FF)}
-}
-
-Rune isoexpand (isochar,do_c0)
-char isochar
-bool do_c0
-{
-/*sanitize*/
-if ((isochar < ' ') && !do_c0)
-	switch isochar {
-		case '\0' : {return 0x2400}
-		case 0x04 : {return 0x2301}
-		case '\a' : {return 0x237E}
-		case '\b' : {return 0x232B}
-		case '\t' : {return ' '}
-		case '\n' : {return '\n'}
-		case '\v' : {return '\n'}
-		case '\f' : {return '\n'}
-		case '\r' : {return '\n'}
-		case 0x11 : {return 0x2318}
-		case 0x12 : {return 0x21D1}
-		case 0x13 : {return 0x2325}
-		case 0x14 : {return 0x2324}
-		case 033 : {return 0x238B}
-		case 0x1C : {return '\n'}
-		case 0x1D : {return ';'}
-		case 0x1E : {return ','}
-		case 0x1F : {return ' '}
-		default : {return 0xFFFD}
-	}
-else if ((isochar > '\x7E') && (isochar < '\xA1')) {
-	switch isochar {
-		case 0x7F : {return 0x2326}
-		case 0x80 : {return 0x20AC}
-		case 0x83 : {return 0x0192}
-		case 0x85 : {return 0x2026}
-		case 0x95 : {return 0x2022}
-		case 0x89 : {return 0x2030}
-		case 0x8A : {return 0x0160}
-		case 0x9A : {return 0x0161}
-		case 0x8B : {return 0x2039}
-		case 0x9B : {return 0x203A}
-		case 0x8C : {return 0x0152}
-		case 0x9C : {return 0x0153}
-		case 0x8E : {return 0x017D}
-		case 0x9E : {return 0x017E}
-		case 0x9F : {return 0x0178}
-		case 0xA0 : {return 0x237D}
-		default : {return 0xFFFD}
-	}
-else if (isochar == 0xAD) {return '-'}
-else {return isochar}
-}
-
 /* the game's internal representation uses 6 different character sets:
- * - UTF-8 for all input and output, as well as external text storage
+ * - UTF-8 for all input ɛ̩̍ output, as well as external text storage
  * - UCS-2 for internal unicode text
- * - ISO-8859-1 (with extentions from Windows-1252 and Mac-Roman) for most other internal text
- * - DEC-SIXBIT for 4:3 lossy compression of ascii text
+ * - ISO-8859-1 for most other internal text
  * - RADIX-50 (16 bit) for 3:2 lossy compression of ascii text
  *
  * the game does not use EBCDIC.
@@ -839,41 +779,45 @@ return accum;
 
 #define mainh__flip (rand() % 2)
 
-#define MISSING_FILE(F) fprintf(stderr,"File \"%s\" not found",F); move(0,24); attron(COLOR_PAIR((BACKGROUND*COLOR_RED)+BRIGHT+COLOR_WHITE); printw("File \"%s\" not found",F); attroff(COLOR_PAIR((BACKGROUND*COLOR_RED)+BRIGHT+COLOR_WHITE);
+#define MISSING_FILE(F) fprintf(stderr,"File \"%s\" not found",F); move(2,4); attron(COLOR_PAIR((BACKGROUND*COLOR_RED)+BRIGHT+COLOR_WHITE); printw("\"%s\"",F); attroff(COLOR_PAIR((BACKGROUND*COLOR_RED)+BRIGHT+COLOR_WHITE);
 
 file_cat (path)
 const char *path;
 {
-FILE *tmp = fopen(path,"r");
+FILE *openfile = fopen(path,"r");
 int lines;
-if (tmp == NULL) {
+if (openfile == NULL) {
 	MISSING_FILE(path);
+	ERROR_GRAPHIC("File not found",0,0,0,0,false);
 	return -1;
 	}
 char tmpbuffer[BUFFER_MAX];
-for (bool n = TRUE;n;noop()) {
-	if (fgets(tmpbuffer,BUFFER_MAX,tmp) == NULL) {
-		n = FALSE;
+BREAKCURSES
+for (bool n = true;n;noop()) {
+	if (fgets(tmpbuffer,BUFFER_MAX,openfile) == NULL) {
+		n = false;
 		} else {
-		printf(tmpbuffer);
+		printf(tmpbuffer);fflush(stdout);
 		lines++;
 		}
 	}
-fclose(tmp);
+FIXCURSES
+fclose(openfile);
 return lines;
 }
 
-/* should also output __FILE__ and __LINE__, which will likely be the program's version of
+/* should also output __FILE__ ɛ̩̍ __LINE__, which will likely be the program's version of
  * undecipherable hex codes to anyone not extreamly fammiliar with the source. less severe
  * errors will prompt for [Q]uit, [A]bort, or [Z] continue. more severe ones will prompt
  * [Q]uit, [A]bort, [Z] restart. When other keyboard layout options are supported, QAZ will
  * be replaced with the left column of letters (under 1). replacements for QAZ might be:
- * QAY, AQW, "A:, FUJ. if Q or A are present in this group, they will be [Q]uit and [A]bort,
+ * QAY, AQW, "A:, FUJ. if Q or A are present in this group, they will be [Q]uit ɛ̩̍ [A]bort,
  * swapping places with the other option. otherwise, the quit-abort-option3 order will be kept.
  */
-ERROR_GRAPHIC(string,num1,num2,hard)
+ERROR_GRAPHIC(string,sign1,num1,sign2,num2,hard)
 char* string
-ulong num1 num2 //since the program plays it fast and loose with number formatting and storage, only hex values are given
+char sign1 sign2
+intptr_t num1 num2
 bool hard
 {
 char* opt3
@@ -886,11 +830,22 @@ else {
 	opt3 = "Continue"
 	}
 
-move( 0,0); printw("*┐  Error!")
-move( 1,0); printw("▗█▖  \"%s\"",string)
-move( 2,0); printw("███ N1 = $%08lX",num1,num1) //note: char is hh, short is h, long is l, long long is ll
-move( 3,0); printw("▝█▘ N2 = $%08lX",num2,num2)
-
+move(0,0); printw("*┐  Error!")
+move(1,0); printw("▗█▖  \"%s\"",string)
+switch sign1 : {
+case 'u' : {move(2,0); printw("███ N1 = %u",num1);break;}
+case 'i' : {move(2,0); printw("███ N1 = %+i",num1);break;}
+case 'p' : {move(2,0); printw("███ N1 = %p",num1);break;}
+case 'X' : {move(2,0); printw("███ N1 = $%08X",num1);break;}
+default : {move( 2,0); printw("███");break;}
+}
+switch sign2 : {
+case 'u' : {move(3,0); printw("▝█▘ N2 = %u",num2);break;}
+case 'i' : {move(3,0); printw("▝█▘ N2 = %+i",num2);break;}
+case 'p' : {move(3,0); printw("▝█▘ N2 = %p",num2));break;}
+case 'X' : {move(3,0); printw("▝█▘ N2 = $%08X",num2);break;}
+default : {move( 3,0); printw("▝█▘");break;}
+}
 move( 5,0); printw("File: %s",__FILE__)
 move( 6,0); printw("Line: %i",__LINE__)
 
@@ -924,22 +879,59 @@ uchar ROOMTURN
 ulonglong KILLS
 char* SAVEPATH
 followtype *FOLLOW_ptr	//pursuers, i.e. paid assasins, ninjas, the reaper...
-eventtyp *EVNT_ptr	//FOO_ptr refers to the doubly linked list's head. the tail is FOO_ptr->prev
+eventtyp *EVNT_ptr	//FOO_ptr refers to the doubly linked list's head. the tail is FOO_ptr→prev
 placetyp *PLACE_ptr
 placetyp *PLACE_ptr
 hintyp *hint_ptr
 globalbools GLOBREG	//set to true whenever you enter a room and every day at 6am
-FILE* CLIBUFFER = tmpfile()
+FILE* LINEBUFFER = tmpfile()	//line buffered input
+FILE* CURSESSCRBUFFER = tmpfile()
 /*end GLOBALS*/
+
+getlinebuffer (y,x)
+uchar y x
+{
+move(y,x)
+int ch
+forever {
+	ch = getch();
+	if ((ch > UCHAR_MAX) || (ch < 0)) {
+		switch ch : {
+			case KEY_ENTER : rewind(LINEBUFFER); return 0;
+			case KEY_PRINT : rewind(LINEBUFFER); return 0;
+			case KEY_SEND : rewind(LINEBUFFER); return 0;
+			case KEY_DC : rewind(LINEBUFFER); return -1;
+			case KEY_DL : rewind(LINEBUFFER); return -1;
+			case KEY_CANCEL : rewind(LINEBUFFER); return -1;
+			case KEY_CLOSE : rewind(LINEBUFFER); return -1;
+			case KEY_BACKSPACE : fseek(LINEBUFFER,-1,SEEK_CUR); break;
+			case KEY_UNDO : fseek(LINEBUFFER,-1,SEEK_CUR); break;
+			case KEY_LEFT : fseek(LINEBUFFER,-1,SEEK_CUR); break;
+			case KEY_HOME : rewind(LINEBUFFER); break;
+			case KEY_BTAB : rewind(LINEBUFFER); break;
+			default : printf("\a"); break;
+			} break;
+		}
+	else {
+		switch ch : {
+			case 0x17 : rewind(LINEBUFFER); return -1;
+			case 0x7F : rewind(LINEBUFFER); return -1;
+			case '\n' : rewind(LINEBUFFER); return 0;
+			case '\b' : fseek(LINEBUFFER,-1,SEEK_CUR); break;
+			}
+		printw(ch);
+		}
+	}
+}
 
 pseudosubroutine mapgenunderground
 rooms:
-for 0->50 do
-	roll <FOOdBAR> -> index
+for 0→50 do
+	roll <FOOdBAR> → index
 	rotateby 1d4
-	roll 1d(MAX_Y-subrooms[index].dim.y) -> posY
-	roll 1d(MAX_X-subrooms[index].dim.x) -> posX
-	roll 1d(8-subrooms[index].dim.z) -> posZ
+	roll 1d(MAX_Y-subrooms[index].dim.y) → posY
+	roll 1d(MAX_X-subrooms[index].dim.x) → posX
+	roll 1d(8-subrooms[index].dim.z) → posZ
 	try put subrooms[index] at (posX,posY,posZ)
 	if !overlapping
 		draw room
@@ -963,7 +955,7 @@ uchar yoff : 7
 the following algorithems can be combined to generate terrain:
 /* ortho: disallow diagonal steps.
  * internal calculations might be done as intergers if there is no reason to expect floats
- * all other factors being equal, lower azimuth ℰ lower elevation paths will be selected first
+ * all other factors being equal, lower azimuth && lower elevation paths will be selected first
  *
  * note that the pathfinding is one of the most egregious examples of winning the battle and
  * loosing the war regarding memory usage, another will likely be the save file format.
@@ -1048,18 +1040,18 @@ attractor(bool replace,schar tile,setcoord *coordlist,uchar iterations,bool inve
 	 * uchar zcoord = roll 1dCEILING
 	 *
 	 * uint rotate = random()
-	 * for (;rotate;rotate--) {coordlist = coordlist->next}
-	 * xcoord = (xcoord + list->x) / 2
-	 * ycoord = (ycoord + list->y) / 2
-	 * zcoord = (zcoord + list->z) / 2
+	 * for (;rotate;rotate--) {coordlist = coordlist→next}
+	 * xcoord = (xcoord + list→x) / 2
+	 * ycoord = (ycoord + list→y) / 2
+	 * zcoord = (zcoord + list→z) / 2
 	 * if ( (!tile(xcoord,ycoord,zcoord) || (replace) ) {put tile (xcoord,ycoord,zcoord)}
 	 *
 	 * for (;iterations;iterations--) {
 	 * 	uint rotate = random()
-	 * 	for (;rotate;rotate--) {coordlist = coordlist->next}
-	 * 	xcoord = (xcoord + list->x) / 2
-	 * 	ycoord = (ycoord + list->y) / 2
-	 * 	zcoord = (zcoord + list->z) / 2
+	 * 	for (;rotate;rotate--) {coordlist = coordlist→next}
+	 * 	xcoord = (xcoord + list→x) / 2
+	 * 	ycoord = (ycoord + list→y) / 2
+	 * 	zcoord = (zcoord + list→z) / 2
 	 * 	if ( (!tile(xcoord,ycoord,zcoord) || (replace) ) {put tile(xcoord,ycoord,zcoord)}
 	 *	}
 	 */
@@ -1254,6 +1246,33 @@ signed char el : 3	// -2,-1,0,1,2 are valid, 3 is starting point
 float runningdist	//calculated running shortest-path distance from point a.
 float goaldist	//norm distance from point b
 
+struct pathfinderdata {
+ushort best
+coord3 pointa
+coord3 pointb
+setcoord3 morepoints	//sometimes multiple points are used to make a contour map-like weight distribution
+setpathnode* grid	//note: scaler pointer, so can't be multi-subscripted. use COORDSUB
+sethydra* hydra_ptr
+}
+
+pathfinderdata makepathgrid(inpointa,inpointb)
+coord3 pointa pointb
+{
+pathfinderdata output
+setpathnode* pathgrid = calloc(CEILING * MAX_Y * MAX_X,sizeof(pathfinderdata))
+sethydra* urhydra
+
+urhydra→prev = urhydra
+urhydra→next = urhydra
+urhydra→node = NULL
+
+output.pointa = inpointa
+output.pointb = inpointb
+output.morepoints = NULL
+output.grid = pathgrid
+output.hydra_ptr = urhydra
+}
+
 struct sethydra:
 (self) *prev
 (self) *next
@@ -1329,14 +1348,14 @@ schar el : 2
  * -2	entropy		oathbreakers	abandon all hope ye who enter here
  *
  * errors related to this section may generate one of 2 errors:
- * "fell off the edge of the world", N1=lat,N2=lon
- * "froze to death on pluto", N1=az,N2=el
+ * "fell off the edge of the world", N1=±lat,N2=±lon
+ * "froze to death on pluto", N1=+az,N2=±el
  */
 
 struct placetyp {
 (self) *prev
 (self) *next
-long id
+ulong id
 latlontyp latlon
 coord3 pos
 }
@@ -1656,42 +1675,42 @@ int itemswap (item1,item2)
 heldobjtyp *item1
 heldobjtyp *item2
 {
-heldobjtyp *prev1 = item1->prev
-heldobjtyp *prev2 = item2->prev
-heldobjtyp *next1 = item1->next
-heldobjtyp *next2 = item2->next
-if (item1->next = item2) {
-	prev1->next = item2
-	item2->prev = prev1
+heldobjtyp *prev1 = item1→prev
+heldobjtyp *prev2 = item2→prev
+heldobjtyp *next1 = item1→next
+heldobjtyp *next2 = item2→next
+if (item1→next = item2) {
+	prev1→next = item2
+	item2→prev = prev1
 
-	item2->next = item1
-	item1->prev = item2
+	item2→next = item1
+	item1→prev = item2
 
-	next2->prev = item1
-	item1->next = next2
+	next2→prev = item1
+	item1→next = next2
 	}
-if (item2->next = item1) {
-	prev2->next = item1
-	item1->prev = prev2
+if (item2→next = item1) {
+	prev2→next = item1
+	item1→prev = prev2
 
-	item1->next = item2
-	item2->prev = item1
+	item1→next = item2
+	item2→prev = item1
 
-	next1->prev = item2
-	item2->next = next1
+	next1→prev = item2
+	item2→next = next1
 	}
 else {
-	prev1->next = item2
-	item2->prev = prev1
+	prev1→next = item2
+	item2→prev = prev1
 
-	next1->prev = item2
-	item2->next = next1
+	next1→prev = item2
+	item2→next = next1
 
-	prev2->next = item1
-	item1->prev = prev2
+	prev2→next = item1
+	item1→prev = prev2
 
-	next2->prev = item1
-	item1->next = next2
+	next2→prev = item1
+	item1→next = next2
 	}
 }
 
@@ -1712,7 +1731,7 @@ symtabref spell1
 symtabref spell2
 symtabref spell3
 bitfield psyattack
-Rune unichar
+char16_t unichar
 bool unaligned : 1
 bool keepindark : 1
 schar size : 2
@@ -2000,7 +2019,7 @@ bool nolungs : 1	//effects breathing above water
 bool noswim : 1	//effects swimming
 bool atktail : 1	//effects unarmed attacks, swimming, flying
 bool atkwing : 1	//effects unarmed attacks, swimming, flying
-schar atkbite : 2	//effects unarmed attacks; +1 = swallow, -1 = bite, -2 = bite ℰ breath
+schar atkbite : 2	//effects unarmed attacks; +1 = swallow, -1 = bite, -2 = bite ɛ̩̍ breath
 
 struct venomtyp {
 elixtyp claws
@@ -2133,14 +2152,14 @@ uchar subject : 2 //0 = cooking, 1 = weapons, 2 = language, 3 = spellcraft
 uchar uses : 6
 *void contents
 
-char* wandmaterials[16] = {"oak","ash","yew","honeylocust","silver","bronze","iron","orichalcum","marble","bone","dragon fang","unicorn horn","glass","lead crystal","adamantine","stardust"} //stoning -> marble
+char* wandmaterials[16] = {"oak","ash","yew","honeylocust","silver","bronze","iron","orichalcum","marble","bone","dragon fang","unicorn horn","glass","lead crystal","adamantine","stardust"} //stoning → marble
 
 wandtyp:
 uchar matter : 4
 uchar uses : 4
 symtabref bound : 8
 
-char* baubmaterials[8] = {"yew","bronze","silver","gold","soapstone","ivory","obsidian","stardust"} //stoning -> soapstone
+char* baubmaterials[8] = {"yew","bronze","silver","gold","soapstone","ivory","obsidian","stardust"} //stoning → soapstone
 
 baubtype :
 schar type : 2 //0=ring, 1=bracelet, -1=amulet, -2=tiara
@@ -2227,7 +2246,40 @@ schar down[MAX_Y][MAX_X]
  * up and down do not need secondary directions as the map cannot be scrolled that way
  */
 
-struct shadowmask bitfield[2][MAX_Y][MAX_X]
+typedef bitfield shadowmask[MAX_Z/8][MAX_Y][MAX_X]
+typedef bitfield starfield[MAX_Y][MAX_X/8]
+
+struct petaltyp {
+starfield acute
+starfield grave
+}
+
+bitfield starfield_generator() {
+uchar xor_rand = (uchar) (random() ^ (~random() + 1))
+bitfield output
+output.a = (bool) (xor_rand | 0x80)
+output.b = (bool) (xor_rand | 0x40)
+output.c = (bool) (xor_rand | 0x20)
+output.d = (bool) (xor_rand | 0x10)
+output.w = (bool) (xor_rand | 0x08)
+output.x = (bool) (xor_rand | 0x04)
+output.y = (bool) (xor_rand | 0x02)
+output.z = (bool) (xor_rand | 0x01)
+return output
+}
+
+starfield_step(tube)
+starfield tube
+{
+xiter = MAX_X / 8
+for (uchar n = MAX_Y;n;n--) {
+	for (uchar x = 0;x < xiter;x++) {
+		tube[n][m] = tube[n-1][m]
+		}
+	}
+for (uchar x = 0;x < xiter;x++) {
+	tube[0][m] = starfield_generator()
+	}
 
 typedef tilemeta* tileset[128]
 
@@ -2251,7 +2303,7 @@ symtabref ice : 7
 symtabref melt : 7
 symtabref stone : 7
 
-Rune unichar : 16
+char16_t unichar : 16
 }
 /* tiles can be effected by stuff happening around them.
  *
@@ -2395,7 +2447,7 @@ ushort identnumber : 16
 struct eventtyp:
 (self) *prev
 (self) *next
-Rune unichar
+char16_t unichar
 eventidentyp eventident
 triggertyp whenthis
 triggerfunc ifthis()
@@ -2450,7 +2502,7 @@ struct traptyp:
 (self) *prev
 (self) *next
 uchar color
-Rune unichar
+char16_t unichar
 coord3 loc
 ushort duration
 magictyp
@@ -2476,7 +2528,7 @@ struct warptyp:
 (self) *prev
 (self) *next
 uchar color
-Rune unichar
+char16_t unichar
 latlontyp glob_loc
 coord3 loc
 latlontyp glob_dest
@@ -2561,16 +2613,16 @@ an UNDERLINE is a shadow
 ⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves. % is meat. ⊞ is food (don't shoot it). $ is gold. ¢ is copper.
 ⌘ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♫ is a lyre. ƒ is a violin. ♪ is a different music instrument.
 ¿ are potions (fragile). ∫ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet. ^ is a crown.
-/ is a wand. ♮ is a ladder. ⋎ is a fountain or gyser. ⍾ is a bell. ⎋ is a clockface. ♠ ♣ ‡ are trees. ⋏ is fire. ♜ is a pedestal.
+/ is a wand. ♮ is a ladder. ⋎ is a fountain or gyser. ≏ is a bell. ⎋ is a clockface. ♠ ♣ ‡ are trees. ⋏ is fire. ♜ is a pedestal.
 ≃ is shallow liquid. ≈ is deep liquid's surface. ∬ is a waterfall. ~ is a liquid (as seen while submerged). ∿ is a wave.
-⌁ is electricity. * is ice. ⎈ spider web. ⌬ beehive. ♤ ↥ are spikes. ⌸ is a door. ⍯ is a locked door. ⎕ is an open door.
+⌁ is electricity. * is ice. ⎈ spider web. ⌬ beehive. ↥ are spikes. ⌸ is a door. ⍯ is a locked door. ⎕ is an open door.
 ? is invisible. ! is trouble. ⌑ is a light source. ⎙ ⍝ ⎍ ∎ ⎅ are tombstones or signs. ␥ is glass.
 • is a boulder. . is a rock. ◇ is a gemstone. ◊ is a giant magic crystal. ⑆ are footprints.
 ∪ is a sink. ⏍ is a chest. ↯ (cyan) is the thunderbolt. ∅ is a spacetime anomaly (do not touch). < > are level stairs. 
 ← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are cannons (the kind that goes boom).
-# █ ▓ ▒ ░ ▞ ▚ (etc) are thick walls or floor. ≣ is a staircase. ≋ is a cloud (no walking; keep your head out of them).
-␣ is a hole. ' is a stalagtite or icicle. , is a plant. ; is a grain or sunflower (impassable).
-box drawings are low walls or columns. ⑉ ⋮ are iron bars. · is an ember or star. ` ´ are flower petals.
+# █ ▓ ▒ ░ ▞ ▚ (etc) are thick walls or floor. ≋ is a cloud (no walking; keep your head out of them). ≣ is a staircase. 
+˜ ␣ are holes. ' is a stalagtite or icicle. , is a plant. ; is a grain or sunflower (impassable).
+box drawings are low walls or columns. ⑉ ⋮ are iron bars. · is an ember or star. ` ´ ˇ are flower petals.
 ✪ is a rune. ː ⍽ are traps. ⁂ ‽ is gas. " deliminates text. \ deliminates commands.
 ⍰ is a missingno.
 
@@ -2594,7 +2646,7 @@ REVERSE video is a magic spell's area of effect
 
 rune symbols
 ◬ air, ⍫ earth, △ fire, ▽ water, ⍰ missingno
-※ ice, ↯ (yellow) electricity, μ metal, ♮ nature
+※ ice, ↯ (yellow) electricity, ♤ metal, π nature
 ⁂ status effect, ‽ stoning, ∅ entropy
 ☼ light, ☽ dark, § polymorph, ↹ planer
 ♥ healing
@@ -2609,7 +2661,7 @@ directional symbols:
 ←, ↑, →, ↓, ↖, ↗, ↘, ↙, direction in XY;
 ! far side; ↧, ↥, direction in Z;
 ↹ different plane;
-◬, ⍫, △, ▽, ※, ↯, μ, ♧, ☼, ☽, ∅, inner planes;
+◬, ⍫, △, ▽, ※, ↯, ♤, π, ☼, ☽, ∅, inner planes;
 LG, NG, CG, LN, CN, LE, NE, CE, TN, U, ☠, outer planes;
 
 /* if digging causes a ≈ or ∬ to become uncontained, it will immediately spawn a ∿
@@ -2628,235 +2680,13 @@ LG, NG, CG, LN, CN, LE, NE, CE, TN, U, ☠, outer planes;
  * if the ∿ reaches an edge, it will queue itself to be loaded in the room it panned to.
  */
 
-uchar getsixbit_template() {
-switch (getc(stdin)) {
-	case ' ' :
-		return 0;
-		break;
-	case '!' :
-		return 01;
-		break;
-	case '"' :
-		return 02;
-		break;
-	case '#' :
-		return 03;
-		break;
-	case '$' :
-		return 04;
-		break;
-	case '%' :
-		return 05;
-		break;
-	case '&' :
-		return 06;
-		break;
-	case '\'' :
-		return 07;
-		break;
-	case '(' :
-		return 010;
-		break;
-	case ')' :
-		return 011;
-		break;
-	case '*' :
-		return 012;
-		break;
-	case '+' :
-		return 013;
-		break;
-	case ',' :
-		return 014;
-		break;
-	case '-' :
-		return 015;
-		break;
-	case '.' :
-		return 016;
-		break;
-	case '/' :
-		return 017;
-		break;
-	case '0' :
-		return 020;
-		break;
-	case '1' :
-		return 021;
-		break;
-	case '2' :
-		return 022;
-		break;
-	case '3' :
-		return 023;
-		break;
-	case '4' :
-		return 024;
-		break;
-	case '5' :
-		return 025;
-		break;
-	case '6' :
-		return 026;
-		break;
-	case '7' :
-		return 027;
-		break;
-	case '8' :
-		return 030;
-		break;
-	case '9' :
-		return 031;
-		break;
-	case ':' :
-		return 032;
-		break;
-	case ';' :
-		return 033;
-		break;
-	case '<' :
-		return 034;
-		break;
-	case '=' :
-		return 035;
-		break;
-	case '>' :
-		return 036;
-		break;
-	case '?' :
-		return 037;
-		break;
-	case '@' : noop();
-	case '`' :
-		return 040;
-		break;
-	case 'A' : noop();
-	case 'a' :
-		return 041;
-		break;
-	case 'B' : noop();
-	case 'b' :
-		return 042;
-		break;
-	case 'C' : noop();
-	case 'c' :
-		return 043;
-		break;
-	case 'D' : noop();
-	case 'd' :
-		return 044;
-		break;
-	case 'E' : noop();
-	case 'e' :
-		return 045;
-		break;
-	case 'F' : noop();
-	case 'f' :
-		return 046;
-		break;
-	case 'G' : noop();
-	case 'g' :
-		return 047;
-		break;
-	case 'H' : noop();
-	case 'h' :
-		return 050;
-		break;
-	case 'I' : noop();
-	case 'i' :
-		return 051;
-		break;
-	case 'J' : noop();
-	case 'j' :
-		return 052;
-		break;
-	case 'K' : noop();
-	case 'k' :
-		return 053;
-		break;
-	case 'L' : noop();
-	case 'l' :
-		return 054;
-		break;
-	case 'M' : noop();
-	case 'm' :
-		return 055;
-		break;
-	case 'N' : noop();
-	case 'n' :
-		return 056;
-		break;
-	case 'O' : noop();
-	case 'o' :
-		return 057;
-		break;
-	case 'P' : noop();
-	case 'p' :
-		return 060;
-		break;
-	case 'Q' : noop();
-	case 'q' :
-		return 061;
-		break;
-	case 'R' : noop();
-	case 'r' :
-		return 062;
-		break;
-	case 'S' : noop();
-	case 's' :
-		return 063;
-		break;
-	case 'T' : noop();
-	case 't' :
-		return 064;
-		break;
-	case 'U' : noop();
-	case 'u' :
-		return 065;
-		break;
-	case 'V' : noop();
-	case 'v' :
-		return 066;
-		break;
-	case 'W' : noop();
-	case 'w' :
-		return 067;
-		break;
-	case 'X' : noop();
-	case 'x' :
-		return 070;
-		break;
-	case 'Y' : noop();
-	case 'y' :
-		return 071;
-		break;
-	case 'Z' : noop();
-	case 'z' :
-		return 072;
-		break;
-	case '[' : noop();
-	case '{' :
-		return 073;
-		break;
-	case '\' : noop();
-	case '|' :
-		return 074;
-		break;
-	case ']' : noop();
-	case '}' :
-		return 075;
-		break;
-	case '^' : noop();
-	case '~' :
-		return 076;
-		break;
-	case '_' :
-		return 077;
-		break;
-	default :
-		return 037;
-		break;
-	}
+char* ucs_to_utf(input)
+char16_t input
+{
+if (input < 0x80) {static char* output = " ", output[0] = input}
+else if (input < 0x800) {static char* output = "  "; output[0] = (((uchar) (input >> 6) & 0x1F) | 0xDF); output[1] = (((uchar) input & 0x3F) | 0xBF)}
+else {static char* output = "   "; output[0] = (((uchar) (input >> 12) & 0x0F) | 0xDF); output[1] = (((uchar) (input >> 6) & 0x3F) | 0xBF); output[2] = (((uchar) input & 0x3F) | 0xBF)}
+return output;
 }
 
 foods (* = uses meta)
@@ -2897,7 +2727,7 @@ pasta(uncooked) pasta ramen(uncooked) ramen*
 dumplings(uncooked) dumplings* tofu(uncooked) tofu
 meatballs marinara alfredosauce parmisian
 lasagnia* pizza* spaghetti alfredo
-spaghettiℰmeatballs ramenℰdumplings chickenalfredo brocllialfredo
+spaghetti&meatballs ramen&dumplings chickenalfredo brocllialfredo
 guacamole nachos* chili salsa
 pie* cake* soda* chips
 salad* hotdog* hamburger* fries
@@ -2908,8 +2738,8 @@ sourcream butter/shortening* mayo dressing*
 pie* pie_alamode* englishfruitcake bread*
 cake* pancake* waffle* stackofpancakes*
 frozenpancake frozenwaffle flavoredmilk* juice*
-roast* gravy fooℰgravy* foo_chicken*
-bakedpotato loadedbakedpotato mashpotatos tattiesℰneeps
+roast* gravy foo&gravy* foo_chicken*
+bakedpotato loadedbakedpotato mashpotatos tatties&neeps
 sunnysideup overeasy scrambled hardboiled
 bacon* sausage* jerky* spam
 nutbrittle* trailmix rasin* peanutbuttersandwich*
@@ -3217,20 +3047,20 @@ uchar zcoord
 {
 if (zcoord ≥ 100) {return MAX_Z - 1;}
 div_t tmp = div(zcoord,2)
-if (tmp.quot > 50) {ERROR_GRAPHIC("math: heisenbug",(tmp.quot * 2) + tmp.rem,MAX(zcoord,99),false); return false}
+if (tmp.quot > 50) {ERROR_GRAPHIC("math: heisenbug",'u',(tmp.quot * 2) + tmp.rem,'u',MAX(zcoord,99),false); return false}
 switch (tmp.rem) : {
 	case 0 : return MAPGENHIGHTS[tmp.quot].lo;
 	case 1 : return MAPGENHIGHTS[tmp.quot].hi;
-	default : ERROR_GRAPHIC("math: invalid remainder",temp.rem,2,true); return 0;
+	default : ERROR_GRAPHIC("math: invalid remainder",'u',temp.rem,'u',2,true); return 0;
 	}
 }
 
 bool langetx(id)
 uchar id
 {
-if (id > 31) {ERROR_GRAPHIC("math: out of bounds",id,31,false); return false}
+if (id > 31) {ERROR_GRAPHIC("math: out of bounds",'u',id,'u',31,false); return false}
 div_t tmp = div(id,8)
-if (tmp.quot > 3) {ERROR_GRAPHIC("math: heisenbug",(tmp.quot * 8) + tmp.rem,MAX(id,31),false); return false}
+if (tmp.quot > 3) {ERROR_GRAPHIC("math: heisenbug",'u',(tmp.quot * 8) + tmp.rem,'u',MAX(id,31),false); return false}
 switch (tmp.rem) : {
 	case 0 : return conlangx[tmp.quot].a;
 	case 1 : return conlangx[tmp.quot].b;
@@ -3240,7 +3070,7 @@ switch (tmp.rem) : {
 	case 5 : return conlangx[tmp.quot].x;
 	case 6 : return conlangx[tmp.quot].y;
 	case 7 : return conlangx[tmp.quot].z;
-	default : ERROR_GRAPHIC("math: invalid remainder",temp.rem,8,true); return 0;
+	default : ERROR_GRAPHIC("math: invalid remainder",'u',temp.rem,'u',8,true); return 0;
 	}
 }
 
@@ -3326,7 +3156,7 @@ pseudo <follow|ent>_iter () {
 <ent|follow>typ* ptr = <head>
 while (ptr != NULL) {
 	<follow|ent>_act(&ptr) //&ptr's turn
-	ptr = ptr->next
+	ptr = ptr→next
 	}
 }
 
@@ -3336,13 +3166,13 @@ uchar tableid
 {
 encontyp *ptr = ROOM.encon_head
 for (;tableid != 0;tableid--) {
-	ptr = ptr->next
+	ptr = ptr→next
 	}
 uchar try;
 for (;count != 0;count--) {
 	try = mainh_roll(10,20,1)
-	if (try > ptr->tobeat) {
-		summonfunc(ptr->spawn)
+	if (try > ptr→tobeat) {
+		summonfunc(ptr→spawn)
 		}
 	}
 }
