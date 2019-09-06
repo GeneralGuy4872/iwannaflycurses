@@ -4,6 +4,12 @@
  * the sorce code, and witty comments, are intended to supplement the
  * manpages, as well as give a deeper understanding of the program.
  *
+ * This engine should be compiled as an EXECUTABLE SHARED LIBRARY, so
+ * that those who only download the binarys can still compile their own
+ * games using the API functions by linking against it. such a program
+ * need only call enginehook() to engage the engine. save generators may
+ * also be compiled against the engine.
+ *
  * enviromental requirements:
  * - UTF-8 terminal of at least 25*80 characters
  * 	"Fixed" font is recommended (specifically because
@@ -51,6 +57,30 @@
  * fair warning: the way unicode is handled is likely going to be beyond the relm of
  * "interesting" and into the territory of just plain "wierd". Also note that Radix-50
  * is being used to compress internal text (lossy,75%) in as many places as possible.
+ *
+ * This program is divided into 3 layers:
+ *
+ * the API layer is the part that provides functions to help with events.
+ * 	this is the only part you should need to know to compile your own
+ * 	games that can get fairly complex. these alse include the internal
+ * 	utilitys for character encoding conversion, input buffering, room
+ * 	generation and pathfinding algorithems, dice, warping, dying, error,
+ * 	and the internal implementation of cat.
+ *
+ * while the API functions have a simple enough calling convention,
+ * there is no garuntee that the code underneath is not hundreds of lines long.
+ *
+ * the middle layer, or the guts, is where the engine actually happens, and
+ * 	it isn't pretty. if you want to change how the game works,
+ * 	it's going to get messy. this is where the functions for
+ * 	the RPG system itself, loading and saving, turns, shadows,
+ * 	3D rendering, and room changing are placed. these should not
+ * 	usually called directly by events, only by other builtin
+ *	functions; some are only called by enginehook.
+ *
+ * the backend consists of shims between generalized internal representations of
+ * 	a thing, and the actual way that a library or driver expects it to be
+ * 	formatted. So far, the only use of this layer will be in MIDI.
  */
 
 /**standard libraries**/
@@ -125,7 +155,7 @@ addnwstr(&wch,1);
  * revision: Changes.Fixes
  */
 
-char16_t TILDEWIDE
+char16_t TILDEWIDE = setwidetilde()
 
 /*FUNCTION MACROS*/
 #define BRIGHT 010
@@ -187,8 +217,7 @@ for (uchar bg = 0; bg < BGCOLORS; bg++) {
 		}
 	}
 
-char16_t setwidetilde()
-{
+char16_t setwidetilde() {
 move(12,4); printw("is this tilde between the lines? (y,n)")
 
 mvaddch(14,14,"-")
@@ -1366,13 +1395,20 @@ bool behind : 1	//EQUATOR/2 degrees are added to azimuth
  * -1
  */
 
-note_type {
+notetyp {
 (self) next
-nibbles stat
-uchar note
+uchar evnt : 4
+uchar chan : 4
+uchar note : 8
+uchar velo : 8
 clock_t delay
 }
-//for interfacing with a raw midi library
+/* for interfacing with a raw midi library
+ *
+ * delay is not part of the midi data, rather,
+ * it tells how long to wait until sending the
+ * next packet. set to 0 to send immidiately.
+ */
 
 struct setcoord3:
 (self) *prev
@@ -1380,6 +1416,9 @@ struct setcoord3:
 uchar x
 uchar y
 uchar z
+
+typedef setcoord3 setcoordneighborortho[8]
+typedef setcoord3 setcoordneighborhood[26]
 
 struct patrolistyp {
 (self) *prev

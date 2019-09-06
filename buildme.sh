@@ -1,7 +1,7 @@
 #!/bin/sh
 cp conf.ini old_conf.ini
 cp defaults.ini conf.ini
-if cc main.c -g -lX11 -lXaw -lXt -lm -lGL -lGLU -lncurses -lncursesw -lmenu -trigraphs; then
+if gcc -fPIC -pie -o iwannafly_ncurses.xso main.c -g -Wl,-E; then
 printf "12s/.*/" > date.tmp;
 printf -- "- last faulty build : " >> date.tmp;
 date "+%H:%M:%S %a %b %d %Y %Z" >> date.tmp;
