@@ -10,9 +10,9 @@
  * 		it is a raster font; monospaced raster fonts are more uniform in width than the majority of vector so-called "monospaced" fonts;
  * 		it is unicode, having a wide range of characters; and
  * 		it is extreamly common, being the default font for the linux console, xterm, and urxvt)
- * - 16 or more fg colors, 8 or more bg colors, said colors are CGA compatible
- * 	(ncurses should take care of this, but ncurses only requires 8 fg colors)
- * - Bold, Underline, Reverse, Blink, Invisible text effects
+ * - 16 CGA compatible colors
+ * 	(ncurses should take care of this, but it only requires 8 fg colors)
+ * - Bold, Italic, Underline, Reverse, Blink, Invisible text effects
  * 	(ncurses will take care of this)
  * - Full Keyboard, Mouse
  * 	(most keyboard layouts with all ASCII characters *should*
@@ -46,14 +46,7 @@
  * currently, the following OS calls are used to expidite a proof-of-concept.
  * ideally, these will all be internalized later (...okay, MUCH later):
  *
- * beep
  * tar, both bz2 and gz in different cases
- *
- * this list may also include cat if the internalized drop-in replacement barfs during testing
- * note that some distrobutions have screwy perms for beep, which will result in
- * sound only being avalible for root; this is a bug beyond my relm of influence.
- * these distros will probably not support sound after beep has been replaced with
- * a midi library either.
  *
  * fair warning: the way unicode is handled is likely going to be beyond the relm of
  * "interesting" and into the territory of just plain "wierd". Also note that Radix-50
@@ -74,6 +67,7 @@
 #include <time.h>
 #include <string.h>
 #include <ctype.h>
+#include <uchar.h>
 
 /**system libraries**/
 #include <unistd.h>
@@ -91,8 +85,33 @@
 /**curses libforms**/
 #include <forms.h>
 
+// need to find a MIDI library.
+
+mvaddch16(int x,int y,char16_t raw) {
+const wchar_t wch = raw;
+mvaddnwstr(13,16,&wch,1);
+}
+
+addch16(char16_t raw) {
+const wchar_t wch = raw;
+addnwstr(&wch,1);
+}
+
+/* some output modes that will be used:
+ *
+ * using narrow characters with printw or addch
+ * using wide characters with these functions
+ * setting attributes with attrset, attron, attroff, and chgat
+ * 	uses A_BOLD, A_ITALIC, A_UNDERLINE, A_REVERSE, A_BLINK, A_INVIS, and 256 color pairs made from 16 colors
+ * using the above custom functions to put wide characters on the screen
+ * using addstr, addnstr, addwstr, addnwstr to print strings
+ * pausing curses and dumping an entire file with printf
+ */
+
 /*ENVIROMENTALS*/
 #define BUFFER_MAX 512
+#define BGCOLORS 16
+#define FGCOLORS 16
 #define GAMENAME "Default Game"
 #define GM_VERSION "0.0"
 #define DEVEL_STATE "Prealpha"
@@ -106,8 +125,7 @@
  * revision: Changes.Fixes
  */
 
-char16_t TILDEW
-char* TILDE = setilde(&TILDEW)	//ensures centered tilde
+char16_t TILDEWIDE
 
 /*FUNCTION MACROS*/
 #define BRIGHT 010
@@ -118,29 +136,28 @@ char* TILDE = setilde(&TILDEW)	//ensures centered tilde
 
 #define MAX(A,B) (A > B ? A : B)
 #define MIN(A,B) (A < B ? A : B)
-#define CLAMP(N,A,B) MIN(MAX(N,A),B)
+#define INTERVAL(A,N,B) MIN(MAX(N,A),B)
 #define COORDSUB(Z,Y,X) ((MAX_Y * Z) + (MAX_X * Y) + X)
+#define BREAKCURSES scr_dump(CURSESSCRBUFFER);clear();refresh();move(0,0);
+#define FIXCURSES scr_restore(CURSESSCRBUFFER);
+#define forever for (;;)
 
 //prettify the tokens my eyes don't parse
 #define ≥ >=
 #define ≤ <=
 #define → ->
+//ɛ̩̍ will be used for "and" the conjunction in comments where logical && would give a totally different yet possibly valid meaning.
 
 #define COMPR_CALL "tar"
 #define COMPR_FLAGOPENSMALL "xjf"
 #define COMPR_FLAGOPENFAST "xzf"
 #define COMPR_FLAGCLOSESMALL "cjf"
 #define COMPR_FLAGCLOSEFAST "czf"
-#define SND_CALL "beep"
-#define BREAKCURSES scr_dump(CURSESSCRBUFFER);clear();refresh();move(0,0);
-#define FIXCURSES scr_restore(CURSESSCRBUFFER);
-//ɛ̩̍ will be used for "and" the conjunction in comments where logical && would give a totally different yet possibly valid meaning.
 
 /*TYPES*/
 //ensure size names work on all systems
 #define uint unsigned int
 #define sint signed int
-#define byte uint8_t
 #define uchar uint8_t
 #define schar int8_t
 #define ushort uint16_t
@@ -166,24 +183,28 @@ noecho();
 keypad(stdscr, true);
 initscr();
 
-char* setilde(value)
-char16_t* value
+for (uchar bg = 0; bg < BGCOLORS; bg++) {
+	for (uchar fg = 0; fg < FGCOLORS; fg++) {
+		init_pair((BACKGROUND * bg) + fg, fg, bg);
+		}
+	}
+
+char16_t setwidetilde()
 {
 move(12,4); printw("is this tilde between the lines? (y,n)")
 
-mvaddch(16,14,"-")
-mvaddch(16,15,"-")
-mvaddch(16,16,"~")
-mvaddch(16,17,"-")
-mvaddch(16,18,"-")
+mvaddch(14,14,"-")
+mvaddch(14,15,"-")
+mvaddch(14,16,"~")
+mvaddch(14,17,"-")
+mvaddch(14,18,"-")
 
 char got = getch()
 
 switch (got) : {
-case 'y' : *value = '~'; char* output = malloc(sizeof(char)); *output = "~"; return output;
-case 'n' : *value = 0x223C; char* output = malloc(sizeof(char * 3)); *output = "∼"; return output;
-}
-
+	case 'y' : return '~';
+	case 'n' : return = 0x223C;
+	}
 }
 
 
@@ -774,7 +795,7 @@ switch (string[3]) {
 }
 return (char1*1600)+(char2*40)+char3
 }
-
+/**|7|7|7|**/
 char radixtoascii(radix50,symbol1,symbol2,symbol3)
 uchar radix50 symbol1 symbol2 symbol3
 {
@@ -877,7 +898,7 @@ return accum;
 
 #define mainh__flip (rand() % 2)
 
-#define MISSING_FILE(F) fprintf(stderr,"File \"%s\" not found",F); move(2,4); attron(COLOR_PAIR((BACKGROUND*COLOR_RED)+BRIGHT+COLOR_WHITE); printw("\"%s\"",F); attroff(COLOR_PAIR((BACKGROUND*COLOR_RED)+BRIGHT+COLOR_WHITE);
+#define MISSING_FILE(F) fprintf(stderr,"File \"%s\" not found",F); move(22,2); attrset(COLOR_PAIR((BACKGROUND*COLOR_RED)+BRIGHT+COLOR_WHITE); printw("File Error : \"%s\"",F); attroff(COLOR_PAIR((BACKGROUND*COLOR_RED)+BRIGHT+COLOR_WHITE);
 
 file_cat (path)
 const char *path;
@@ -920,11 +941,11 @@ bool hard
 {
 char* opt3
 if (hard) {
-	attron(A_REVERSE,COLOR_PAIR((BACKGROUND*COLOR_RED)+BRIGHT+COLOR_YELLOW)
+	attrset(COLOR_PAIR((BACKGROUND*(BRIGHT+COLOR_YELLOW))+COLOR_RED)
 	opt3 = "Restart"
 	}
 else {
-	attron(A_REVERSE,COLOR_PAIR(BRIGHT+COLOR_YELLOW)
+	attrset(COLOR_PAIR(BACKGROUND*(BRIGHT+COLOR_YELLOW))
 	opt3 = "Continue"
 	}
 
@@ -995,31 +1016,62 @@ forever {
 	ch = getch();
 	if ((ch > UCHAR_MAX) || (ch < 0)) {
 		switch ch : {
-			case KEY_ENTER : rewind(LINEBUFFER); return 0;
-			case KEY_PRINT : rewind(LINEBUFFER); return 0;
-			case KEY_SEND : rewind(LINEBUFFER); return 0;
-			case KEY_DC : rewind(LINEBUFFER); return -1;
-			case KEY_DL : rewind(LINEBUFFER); return -1;
-			case KEY_CANCEL : rewind(LINEBUFFER); return -1;
-			case KEY_CLOSE : rewind(LINEBUFFER); return -1;
-			case KEY_BACKSPACE : fseek(LINEBUFFER,-1,SEEK_CUR); break;
-			case KEY_UNDO : fseek(LINEBUFFER,-1,SEEK_CUR); break;
-			case KEY_LEFT : fseek(LINEBUFFER,-1,SEEK_CUR); break;
-			case KEY_HOME : rewind(LINEBUFFER); break;
-			case KEY_BTAB : rewind(LINEBUFFER); break;
-			default : printf("\a"); break;
+			case KEY_ENTER : move(y,x); rewind(LINEBUFFER); return 0;
+			case KEY_BACKSPACE : move(y,x); rewind(LINEBUFFER); return -1;
+			case KEY_HOME : move(y,x); rewind(LINEBUFFER); break;
+			case KEY_LEFT : move(y,x); rewind(LINEBUFFER); break;
+			case KEY_SLEFT : move(y,x); rewind(LINEBUFFER); break;
+			default : break;
 			} break;
 		}
 	else {
 		switch ch : {
-			case 0x17 : rewind(LINEBUFFER); return -1;
-			case 0x7F : rewind(LINEBUFFER); return -1;
-			case '\n' : rewind(LINEBUFFER); return 0;
-			case '\b' : fseek(LINEBUFFER,-1,SEEK_CUR); break;
+			case 0x17 : move(y,x); rewind(LINEBUFFER); return -1;
+			case '\n' : move(y,x); rewind(LINEBUFFER); return 0;
+			case '\b' : move(y,x); rewind(LINEBUFFER); return -1;
+			default: fputc(ch,LINEBUFFER); break;
 			}
 		printw(ch);
 		}
 	}
+}
+
+ulong getsixteen (y,x)
+uchar y x
+{
+char hexbuffer[8] = "00000000"
+move(y,x-5);printw("[    -    ]");
+int ch
+uchar subscript = 0
+schar offset = subscript < 4 ? subscript-4 : subscript-3
+bool exiterr
+forever {
+	ch = getch();
+	if ((ch > UCHAR_MAX) || (ch < 0)) {
+		switch ch : {
+			case KEY_ENTER : goto(fin);
+			case KEY_BACKSPACE : subscript = INTERVAL(0,subscript-1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			case KEY_LEFT : subscript = INTERVAL(0,subscript-1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			case KEY_RIGHT : subscript = INTERVAL(0,subscript+1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			case KEY_HOME : subscript = 0; offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			case KEY_SLEFT : subscript = 0; offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			case KEY_HOME : subscript = 7; offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			case KEY_SRIGHT : subscript = 7; offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			default : break;
+			} break;
+		}
+	else {
+		switch ch : {
+			case '\n' : goto(fin);
+			case '\b' : subscript = INTERVAL(0,subscript-1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			case ' ' : subscript = INTERVAL(0,subscript+1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			default: if (isxdigit(ch)) {hexbuffer[subscript] = ch; printw(ch);}; subscript = INTERVAL(0,subscript+1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			}
+		}
+	move(y,x+offset);
+	}
+fin:
+return (ulong) strtoul(hexbuffer,NULL,16);
 }
 
 pseudosubroutine mapgenunderground
@@ -1059,12 +1111,12 @@ the following algorithems can be combined to generate terrain:
  * loosing the war regarding memory usage, another will likely be the save file format.
  */
 
-float test_dijkstra(bool ortho,schar mode,uchar runningnorm,coord3 pointa,coord3 pointb)	//replace && taxicab && ortho would equal norm1 exactly
-dijkstra(bool ortho,schar mode,uchar runningnorm,schar tile,coord3 pointa,coord3 pointb)
+float test_dijkstra(bool ortho,schar mode,uchar runningnorm,coord3 pointa,coord3 pointb,bool fly,bool swim)	//replace && taxicab && ortho would equal norm1 exactly
+dijkstra(bool ortho,schar mode,uchar runningnorm,schar tile,coord3 pointa,coord3 pointb,bool fly,bool swim)
 	//nearest path head first, no information about room or relative location.
 
-float test_astar(bool ortho,astarparamtyp params,coord3 pointa,coord3 pointb)	//replace && !(taxicab || ortho) would approximate to norm2, replace && taxicab && ortho would equal norm1 exactly
-astar(bool ortho,astarparamtyp params,schar tile,coord3 pointa,coord3 pointb)
+float test_astar(bool ortho,astarparamtyp params,coord3 pointa,coord3 pointb,bool fly,bool swim)	//replace && !(taxicab || ortho) would approximate to norm2, replace && taxicab && ortho would equal norm1 exactly
+astar(bool ortho,astarparamtyp params,schar tile,coord3 pointa,coord3 pointb,bool fly,bool swim)
 	/* - operates with knowlage of the norm distance to the destination
 	 * 	path heads try to move closer first, whenever possible.
 	 * 	should generalize an unobstructed path to a raster line if norm distance is calculated in norm2
@@ -1086,7 +1138,7 @@ astar(bool ortho,astarparamtyp params,schar tile,coord3 pointa,coord3 pointb)
 	 */
 
 setedge* norm_completegraph(uchar norm,setcoord3 *coordlist)	//errors on invalid norm
-setedge* pathfinder_completegraph(bool ortho,astarparamtyp params,setcoord3 *coordlist)
+setedge* pathfinder_completegraph(bool ortho,astarparamtyp params,setcoord3 *coordlist,bool fly,bool swim)
 setedge* random_completegraph(setcoord3 *coordlist)
 
 prim(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist)
@@ -1316,6 +1368,14 @@ bool behind : 1	//EQUATOR/2 degrees are added to azimuth
  * -1
  */
 
+note_type {
+(self) next
+nibbles stat
+uchar note
+clock_t delay
+}
+//for interfacing with a raw midi library
+
 struct setcoord3:
 (self) *prev
 (self) *next
@@ -1337,10 +1397,12 @@ float weight
 uchar meta
 
 struct setpathnode {
-bool dead : 1	//no avalible paths
+bool obs : 1	//obstructed
 bool win : 1	//selected path
-unsigned char az : 3	//az and el point to parent; ((az+4)%8,-el) is the trajectory of the node.
-signed char el : 3	// -2,-1,0,1,2 are valid, 3 is starting point
+unsigned char az : 3	//trajectory
+bool up : 1
+bool fwd : 1
+bool down : 1
 float runningdist	//calculated running shortest-path distance from point a.
 float goaldist	//norm distance from point b
 
@@ -1348,9 +1410,9 @@ struct pathfinderdata {
 ushort best
 coord3 pointa
 coord3 pointb
-setcoord3 morepoints	//sometimes multiple points are used to make a contour map-like weight distribution
+setcoord3* morepoints	//sometimes multiple points are used to make a contour map-like weight distribution
 setpathnode* grid	//note: scaler pointer, so can't be multi-subscripted. use COORDSUB
-sethydra* hydra_ptr
+setcoord3* hydra_ptr
 }
 
 pathfinderdata makepathgrid(inpointa,inpointb)
@@ -1358,11 +1420,13 @@ coord3 pointa pointb
 {
 pathfinderdata output
 setpathnode* pathgrid = calloc(CEILING * MAX_Y * MAX_X,sizeof(pathfinderdata))
-sethydra* urhydra
+setcoord3* urhydra = malloc(sizeof(setcoord3))
 
 urhydra→prev = urhydra
 urhydra→next = urhydra
-urhydra→node = NULL
+urhydra→x = inpointa.x
+urhydra→y = inpointa.y
+urhydra→z = inpointa.z
 
 output.pointa = inpointa
 output.pointb = inpointb
@@ -1371,10 +1435,7 @@ output.grid = pathgrid
 output.hydra_ptr = urhydra
 }
 
-struct sethydra:
-(self) *prev
-(self) *next
-setpathnode* node
+setpathobs(pathfinderdata* pathgrid,bool fly,bool swim)
 
 //some specific use cases require spheres. these are simply numeric types.
 
@@ -1672,7 +1733,7 @@ fstab mon2table
  * z: <zombies>
  * {: (flesh, straw, clay, stone, glass, paper, leather) golem, (gold, copper) automaton, hungry chest, chest monster,
  * £: justice. (has Beethoven's 5th as a lietmotif. is lawful.)
- * ¶: da cops.
+ * ¶: da fuzz. (are lawful.)
  * ⑄: retribution. (has Summer - Presto as a lietmotif. is chaotic.)
  * ∈: <half elementals>
  * ∞: grue.
@@ -1690,7 +1751,6 @@ fort : 5
 intl : 5
 wis : 5
 bluff : 5
-
 
 struct conlangtype:
 symtabref id : 5
@@ -2304,7 +2364,7 @@ lightyp *lamp_ptr
  *     .tsv : UTF-8 text record deliminated with tabs and line breaks
  *     .dat : UTF-4 text record deliminated with non-printable C0 control characters
  *     .txt : UTF-8 text document. usually stored in the program's static files, which is CAT-ed to provide dialouge; also used in dumps of primatives
- *      .sh : a shell script; almost universally music for beep in this context
+ *      .sh : a shell script
  *    .conf : plugin or configuration file. may also be a dotfile.
  *     .ini : key-value pairs. used in dumps of non-nested structs that do not contain pointers.
  *    .json : originally from javascript. used in data dumps of nested structs not containing pointers.
@@ -2315,8 +2375,6 @@ lightyp *lamp_ptr
  *    .html : extended documentation
  *      .md : extended documentation
  */
-
-music shall be in a pthread. bgm loops for(;;). music is stopped by pthread_cancel. music is started by running a beep shell script.
 
 struct mapgen_bordertyp {
 tileset *hightiles_n
@@ -2762,6 +2820,13 @@ directional symbols:
 ◬, ⍫, △, ▽, ※, ↯, ♤, π, ☼, ☽, ∅, inner planes;
 LG, NG, CG, LN, CN, LE, NE, CE, TN, U, ☠, outer planes;
 
+STYLE GUIDE:
+the following nonstandard punctuation may be used in dialouge (list not exaustive) :  ‽ explosive disbelief  ⸮ rhetorical  .ˢ sarcasm  ♪ playful  ♥ careing  ♩♯ taunt  ↯ explosive anger  ☠ foul oath
+nonstandard punctuation should be established in obvious, unambiguous, context before being used to disambiguate sentence meaning later on.
+monospaced raster fonts presented light-on-dark can be unappealing to the uninitiated, so every opportunity should be taken to make the text more appealing.
+other nonstandard punctuation that is not used to disambiguate meaning (♪, ♥, ♩♯, ↯, ☠) helps to paint the medium, making the dialouge come alive;
+for the same reason, dialouge should be colored and styled as appropriate whenever possible.
+
 /* if digging causes a ≈ or ∬ to become uncontained, it will immediately spawn a ∿
  * which leaves ≃ or ∬ behind it when it moves. it's behavior differs depending on
  * the liquid's viscosity:
@@ -2777,15 +2842,6 @@ LG, NG, CG, LN, CN, LE, NE, CE, TN, U, ☠, outer planes;
  *
  * if the ∿ reaches an edge, it will queue itself to be loaded in the room it panned to.
  */
-
-char* ucstoutf(input)
-char16_t input
-{
-if (input < 0x80) {static char* output = " ", output[0] = input}
-else if (input < 0x800) {static char* output = "  "; output[0] = (((uchar) (input >> 6) & 0x1F) | 0xDF); output[1] = (((uchar) input & 0x3F) | 0xBF)}
-else {static char* output = "   "; output[0] = (((uchar) (input >> 12) & 0x0F) | 0xDF); output[1] = (((uchar) (input >> 6) & 0x3F) | 0xBF); output[2] = (((uchar) input & 0x3F) | 0xBF)}
-return output;
-}
 
 foods (* = uses meta)
 hardtak tortilla cornmeal cornbread
