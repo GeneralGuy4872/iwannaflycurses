@@ -130,9 +130,7 @@ char16_t TILDEWIDE
 /*FUNCTION MACROS*/
 #define BRIGHT 010
 #define BACKGROUND 0x10
-/* example: (BACKGROUND*COLOR_BLUE)+BRIGHT+COLOR_RED
- * color pairs are a complete 16 * 8 CGA color combination grid
- */
+// example: (BACKGROUND*COLOR_BLUE)+BRIGHT+COLOR_RED
 
 #define MAX(A,B) (A > B ? A : B)
 #define MIN(A,B) (A < B ? A : B)
@@ -1420,6 +1418,15 @@ coord3 pointa pointb
 {
 pathfinderdata output
 setpathnode* pathgrid = calloc(CEILING * MAX_Y * MAX_X,sizeof(pathfinderdata))
+for (uchar z;z < CEILING;z++) {
+	for (uchar y;y < MAX_Y;y++) {
+		for (uchar x;x < MAX_X;x++) {
+			pathgrid[COORDSUB(z,y,x)].runningdist = -HUGE_VAL
+			pathgrid[COORDSUB(z,y,x)].goaldist = -HUGE_VAL
+			}
+		}
+	}
+
 setcoord3* urhydra = malloc(sizeof(setcoord3))
 
 urhydra→prev = urhydra
