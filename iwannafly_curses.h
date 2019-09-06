@@ -1406,15 +1406,12 @@ float goaldist	//norm distance from point b
 
 struct pathfinderdata {
 ushort best
-coord3 pointa
-coord3 pointb
-setcoord3* morepoints	//sometimes multiple points are used to make a contour map-like weight distribution
 setpathnode* grid	//note: scaler pointer, so can't be multi-subscripted. use COORDSUB
 setcoord3* hydra_ptr
 }
 
-pathfinderdata makepathgrid(inpointa,inpointb)
-coord3 pointa pointb
+pathfinderdata makepathgrid(xcoord,ycoord,zcoord)
+uchar xcoord ycoord zcoord
 {
 pathfinderdata output
 setpathnode* pathgrid = calloc(CEILING * MAX_Y * MAX_X,sizeof(pathfinderdata))
@@ -1431,12 +1428,10 @@ setcoord3* urhydra = malloc(sizeof(setcoord3))
 
 urhydra→prev = urhydra
 urhydra→next = urhydra
-urhydra→x = inpointa.x
-urhydra→y = inpointa.y
-urhydra→z = inpointa.z
+urhydra→x = xcoord
+urhydra→y = ycoord
+urhydra→z = zcoord
 
-output.pointa = inpointa
-output.pointb = inpointb
 output.morepoints = NULL
 output.grid = pathgrid
 output.hydra_ptr = urhydra

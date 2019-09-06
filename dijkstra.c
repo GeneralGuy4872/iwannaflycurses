@@ -1,4 +1,4 @@
-datakeeper = makepathdata({pointa},{pointb})	//set grid to -1.0,0,false,false,false
+datakeeper = makepathdata(pointa.x,pointa.y,pointa.z)	//set grid to -1.0,0,false,false,false
 
 datakeeper→grid[COORDSUB(pointa.z,pointa.y,pointa.x + 1)].runningdist = 0.0
 datakeeper→grid[COORDSUB(pointa.z,pointa.y,pointa.x + 1)].up = true
@@ -640,7 +640,7 @@ forever {
 	current = datakeeper→hydra_ptr→next
 	nearest = datakeeper→hydra_ptr
 	for (;current != datakeeper→hydra_ptr;current = current→next) {
-		if ((current→x == pointb.x) && (current→y == pointb.y) && (current→z == pointb.z)) {goto(breakout)}
+		if (current.up && current.down) {goto(breakout)}
 		nearest→runningdist < current→runningdist ? noop() : nearest = current
 		}
 	}
