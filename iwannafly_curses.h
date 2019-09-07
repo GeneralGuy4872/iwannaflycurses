@@ -85,7 +85,7 @@
  *
  *
  *
- * GPLv3 All Wrongs Reserved
+ * GPLv2 or later, All Wrongs Reserved
  */
 
 /**standard libraries**/
