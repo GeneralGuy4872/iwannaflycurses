@@ -18,8 +18,7 @@
  * 		it is a raster font; monospaced raster fonts are more uniform in width than the majority of vector so-called "monospaced" fonts;
  * 		it is unicode, having a wide range of characters; and
  * 		it is extreamly common, being the default font for the linux console, xterm, and urxvt)
- * - 16 CGA compatible colors
- * 	(ncurses should take care of this, but it only requires 8 fg colors)
+ * - 8 colors
  * - Bold, Italic, Underline, Reverse, Blink, Invisible text effects
  * 	(ncurses will take care of this)
  * - Full Keyboard, Mouse
@@ -84,26 +83,9 @@
  * 	a thing, and the actual way that a library or driver expects it to be
  * 	formatted. So far, the only use of this layer will be in MIDI.
  *
- *                      >>Quantum Licensing<<
- * (or: solving the multi-porting liscense propogation problem)
- * This program is implicitly granted with the license that will meet your needs,
- * which may be one of the following:
- * "GPLv2 or any later version"
- * "Apache License 2.0"
- * "MIT-like Licenses"
- * "BSD 3-Clause License"
- * "TNF 2-Clause License"
  *
- * at the point of macro expansion, the license that was granted is determined
- * based on the licenses of the libraries that are called to compile the program.
- * before this time, all of the listed licenses exist simultaniously in a box
- * (beside a cat) and the code should be treated as having the license that is
- * most compatible with your enviroment, as that will be the one inherited.
-
- * !GAMES COMPILED UNDER DIFFERENT LICENSES SHOULDN'T CONTACT EACHOTHER!
  *
- * this might summon scary lawyers; you should never have to worry about this,
- * as it would only happen if you have multiple versions of libc installed.
+ * GPLv3 All Wrongs Reserved
  */
 
 /**standard libraries**/
@@ -139,9 +121,9 @@
 
 /**ncurses libraries**/
 #include <ncursesw/ncurses.h>
-#include <menu.h>
+//#include <menu.h>
 /**curses libforms**/
-#include <forms.h>
+//#include <forms.h>
 
 // need to find a MIDI library.
 
@@ -168,8 +150,8 @@ addnwstr(&wch,1);
 
 /*ENVIROMENTALS*/
 #define BUFFER_MAX 512
-#define BGCOLORS 16
-#define FGCOLORS 16
+#define BGCOLORS 8
+#define FGCOLORS 8
 #define GAMENAME "Default Game"
 #define GM_VERSION "0.0"
 #define DEVEL_STATE "Prealpha"
@@ -185,16 +167,14 @@ addnwstr(&wch,1);
 char16_t TILDEWIDE = setwidetilde()
 
 /*FUNCTION MACROS*/
-#define BRIGHT 010
-#define BACKGROUND 0x10
-// example: (BACKGROUND*COLOR_BLUE)+BRIGHT+COLOR_RED
+#define BACKGROUND 010
 
 #define MAX(A,B) (A > B ? A : B)
 #define MIN(A,B) (A < B ? A : B)
 #define INTERVAL(A,N,B) MIN(MAX(N,A),B)
 #define COORDSUB(Z,Y,X) ((MAX_Y * Z) + (MAX_X * Y) + X)
 #define BREAKCURSES scr_dump(CURSESSCRBUFFER);clear();refresh();move(0,0);
-#define FIXCURSES scr_restore(CURSESSCRBUFFER);
+#define FIXCURSES printf("\033c\033[2J\033[0H");scr_restore(CURSESSCRBUFFER);
 #define forever for (;;)
 
 //prettify the tokens my eyes don't parse
@@ -946,7 +926,7 @@ return accum;
 
 #define mainh__flip (rand() % 2)
 
-#define MISSING_FILE(F) fprintf(stderr,"File \"%s\" not found",F); move(22,2); attrset(COLOR_PAIR((BACKGROUND*COLOR_RED)+BRIGHT+COLOR_WHITE); printw("File Error : \"%s\"",F); attroff(COLOR_PAIR((BACKGROUND*COLOR_RED)+BRIGHT+COLOR_WHITE);
+#define MISSING_FILE(F) fprintf(stderr,"File \"%s\" not found",F); move(22,2); attrset(COLOR_PAIR((BACKGROUND*COLOR_RED)+COLOR_WHITE); printw("File Error : \"%s\"",F); attroff(COLOR_PAIR((BACKGROUND*COLOR_RED)+COLOR_WHITE);
 
 file_cat (path)
 const char *path;
@@ -989,11 +969,11 @@ bool hard
 {
 char* opt3
 if (hard) {
-	attrset(COLOR_PAIR((BACKGROUND*(BRIGHT+COLOR_YELLOW))+COLOR_RED)
+	attrset(COLOR_PAIR((BACKGROUND*COLOR_YELLOW)+COLOR_RED)
 	opt3 = "Restart"
 	}
 else {
-	attrset(COLOR_PAIR(BACKGROUND*(BRIGHT+COLOR_YELLOW))
+	attrset(COLOR_PAIR(BACKGROUND*COLOR_YELLOW)
 	opt3 = "Continue"
 	}
 
@@ -3416,4 +3396,27 @@ bool upstair : 1
 bool downstair : 1
 }
 
-printf("\n\n \033[1;95m~~ Iwannafly Roguelike Engine : %s ~~\033[m\n\033[97m  gamemaster version: %s\n       savefile type: %s\n    compression type: %s\n     sound interface: %s\n\n \033[96m - %s -\033[m\n\033[97m      RPG rules revision: %s\nstory event API revision: %s\n   file handler revision: %s\n\n\033[37mCompiled on %s\n\033m",GAMENAME,GM_VERSION,SAVE_FORMAT,COMPRESSION,"deferred",DEVEL_STATE,REV_RULES,REV_EVENTS,REV_FILES,__DATE__);
+enginehook() {
+	printf("\033c\033[2J\033[0H\n\n \033[1;95m~~ Iwannafly Roguelike Engine : %s ~~\033[m\n\033[97m  gamemaster version: %s\n       savefile type: %s\n    compression type: %s\n     sound interface: %s\n\n \033[96m - %s -\033[m\n\033[97m      RPG rules revision: %s\nstory event API revision: %s\n   file handler revision: %s\n\n\033[37mCompiled on %s\n\033m\a",GAMENAME,GM_VERSION,SAVE_FORMAT,COMPRESSION,"deferred",DEVEL_STATE,REV_RULES,REV_EVENTS,REV_FILES,__DATE__);
+	sleep(10);
+	printf("\033c\033[2J\033[0H\033[1;32mCopyright (C) 2019 "GeneralGuy4872"\n\n    This program is free software: you can redistribute it and/or modify\n    it under the terms of the GNU General Public License as published by\n    the Free Software Foundation, either version 3 of the License, or\n    (at your option) any later version.\n\n    This program is distributed in the hope that it will be useful,\n    but WITHOUT ANY WARRANTY; without even the implied warranty of\n    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n    GNU General Public License for more details.\n\n    You should have received a copy of the GNU General Public License\n    along with this program.  If not, see <https://www.gnu.org/licenses/>.\a");
+	sleep(9);
+	printf("\033c\033[2J\033[0H\033[92mLibraries linked:\nncurses by Zeyd M Ben-Halim, Eric S. Raymond, Thomas E Dickey and the Free Software Foundation\nlibtar by Mark D. Roth\nzlib by Jean-loup Gaully and Mark Adler\nlibbzip2 by Julian Steward");
+	sleep(8);
+	printf("\033c\033[2J\033[0H\033[92mAlgorithems Implemented:\nDijkstra's Algorithem\nPrim's Algorithem\nKruskal's Algorithem and Kruskal's Reverse Algorithem\nBorůvka's Algorithm\nRolling Dice\nSierpiński Attractor\nPerlin Noise\a");
+	sleep(7);
+	printf("\033c\033[2J\033[0H\033[95mContains compositions by Beethoven, Bach, and Vivaldi\a");
+	sleep(6);
+	printf("\033c\033[2J\033[0H\a");
+	sleep(5);
+	printf("\033[1;3,96mIn a WORLD...\a");	//scene
+	sleep(4);
+	printf("\033[93m >>>TEXT HERE<<< \a");	//scene
+	sleep(3);
+	printf("\033[93m >>>TEXT HERE<<< \a");	//scene
+	sleep(2);
+	printf("\033c\033[2J\033[0H\033[5m_\a");
+	sleep(1);
+	printf("\033c\033[2J\033[0HIt is pitch black...\a\a\a\a\a");
+	do_intro_movie();
+	turnloop();
