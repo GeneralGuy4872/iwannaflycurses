@@ -4,11 +4,13 @@
  * the sorce code, and witty comments, are intended to supplement the
  * manpages, as well as give a deeper understanding of the program.
  *
- * This engine should be compiled as an EXECUTABLE SHARED LIBRARY, so
- * that those who only download the binarys can still compile their own
- * games using the API functions by linking against it. such a program
- * need only call enginehook() to engage the engine. save generators may
- * also be compiled against the engine.
+ * If dynamic linking is used, a game linked against this library must
+ * itself be an EXECUTABLE SHARED OBJECT LIBRARY, so that the savefile
+ * utility programs can link to it. note that the game will live in
+ * $PATH, not LD_LIBRARY_PATH, and linking should be done accordingly.
+ *
+ * (If the game is dynamicly linked to a library containing the engine,
+ * that library will likely be unexeptional.)
  *
  * enviromental requirements:
  * - UTF-8 terminal of at least 25*80 characters
@@ -76,11 +78,32 @@
  * 	the RPG system itself, loading and saving, turns, shadows,
  * 	3D rendering, and room changing are placed. these should not
  * 	usually called directly by events, only by other builtin
- *	functions; some are only called by enginehook.
+ *	functions; some are only called by main.
  *
  * the backend consists of shims between generalized internal representations of
  * 	a thing, and the actual way that a library or driver expects it to be
  * 	formatted. So far, the only use of this layer will be in MIDI.
+ *
+ *                      >>Quantum Licensing<<
+ * (or: solving the multi-porting liscense propogation problem)
+ * This program is implicitly granted with the license that will meet your needs,
+ * which may be one of the following:
+ * "GPLv2 or any later version"
+ * "Apache License 2.0"
+ * "MIT-like Licenses"
+ * "BSD 3-Clause License"
+ * "TNF 2-Clause License"
+ *
+ * at the point of macro expansion, the license that was granted is determined
+ * based on the licenses of the libraries that are called to compile the program.
+ * before this time, all of the listed licenses exist simultaniously in a box
+ * (beside a cat) and the code should be treated as having the license that is
+ * most compatible with your enviroment, as that will be the one inherited.
+
+ * !GAMES COMPILED UNDER DIFFERENT LICENSES SHOULDN'T CONTACT EACHOTHER!
+ *
+ * this might summon scary lawyers; you should never have to worry about this,
+ * as it would only happen if you have multiple versions of libc installed.
  */
 
 /**standard libraries**/
@@ -108,6 +131,11 @@
 //#include <sys/ioctl.h>
 //#include <fcntl.h>
 //#include <sys/stat.h>
+
+/**compression libraries**/
+#include <libtar.h>
+#include <zlib.h>
+#include <libbz2.h>
 
 /**ncurses libraries**/
 #include <ncursesw/ncurses.h>
@@ -145,9 +173,8 @@ addnwstr(&wch,1);
 #define GAMENAME "Default Game"
 #define GM_VERSION "0.0"
 #define DEVEL_STATE "Prealpha"
-#define SAVE_FORMAT "original archived raw dump"
-#define COMPR_VERS "system call - "COMPRESSIONCALL
-#define SND_VERS "system call - "SNDCALL
+#define SAVE_FORMAT "raw dump"
+#define COMPR_VERS "libtar, zlib, libbz2
 #define REV_RULES "0.0"
 #define REV_EVENTS "0.0"
 #define REV_FILES "0.0"
@@ -175,12 +202,6 @@ char16_t TILDEWIDE = setwidetilde()
 #define ≤ <=
 #define → ->
 //ɛ̩̍ will be used for "and" the conjunction in comments where logical && would give a totally different yet possibly valid meaning.
-
-#define COMPR_CALL "tar"
-#define COMPR_FLAGOPENSMALL "xjf"
-#define COMPR_FLAGOPENFAST "xzf"
-#define COMPR_FLAGCLOSESMALL "cjf"
-#define COMPR_FLAGCLOSEFAST "czf"
 
 /*TYPES*/
 //ensure size names work on all systems
@@ -1629,7 +1650,6 @@ EVE
 MIDNIT
 
 typedef char* stabs[256] //symbol table strings
-typedef void* fstab[256] //filesystem table
 typedef uchar symtabref //beware of missingno glitches!
 
 enum item_enum
@@ -1644,12 +1664,12 @@ stabs weapstabs //weapons
 stabs armstabs //armor
 stabs shldstabs //shield, cannon, greeves
 stabs baubstabs //rings, amulets, bracelets, tiaras
-fstab itemtable
-fstab spelltable
-fstab weaptable
-fstab armtable
-fstab shldtable
-fstab baubtable
+miscitembasetyp* itemtable[256]
+basespelltyp* spelltable[256]
+baseweaptyp* weaptable[256]
+basearmortyp* armtable[256]
+baseshldtyp* shldtable[256]
+baubtyp* baubtable[256]
 
 char* legendstabs[20] = {"truthseeker","sword of justice","excalibur","thunderbolt"/*torch of smiting*/,"sickle of chaos"/*+drain*/,"stormbringer"/*+drain*/,"devilfork"/*+fire*/,"partisen of tyrants","deathscyth"/*+drain*/,"sunray"/*spear + solar flare*/,"nightedge"/*sword + moonbeam*/,"staff of merlin"/*staff of magic missile*/,"firebrand"/*sword + fireball*/,"tesla's mace"/*+spark*/,"stormgale"/*bow*/,"frostpike"/*+frostbite*/,"trident of the seas"/*+tsunami*/,"staff of the forest"/*staff of animante kudzu*/,"groundshaker"/*+earthquake*/,"imperial baton"/*staff of antagonizing*/}
 legendtyp legendtable[20]
@@ -1697,7 +1717,7 @@ stabs mon1stabs =	//"final name", /*placeholder name*/
 "merfolk",	"seaelf",	"satyr",	"fairy",	"pixie",	"naiad",	"naga",		"dryad",	"orc",		"kobald",	"centaur",		"sphinx",	"half electric elemental",	"half ice elemental",	"half nature elemental",	"half metal elemental",
 };
 
-fstab mon1table
+ptrtab mon1table
 /* contains all polymorphable monsters, of type BASENTYPE.
  * all C0 controls should be valid starting races, or left empty,
  * any polymorphable race can BECOME your base race...
@@ -1715,7 +1735,7 @@ fstab mon1table
  */
 enum mon2_enum
 stabs mon2stabs
-fstab mon2table
+ptrtab mon2table
 
 /* MONSTERS BY LETTER
  * &: horned devil, balrog, pit feind, imp, homunculus, jubilix, drider
@@ -2368,7 +2388,7 @@ paffectyp enchnt
 
 struct roomtyp: //top-down display of a 3d space
 tileset *hightiles
-schar tiledata[MAX_Z][MAX_Y][MAX_X] //entity coords refer to the 3-grid boxes of a given coord, while tiles refer to a given xy square on the plane that is the lower bound of said boxes.
+schar tiledata[MAX_Z][MAX_Y][MAX_X] //both tile and entity coordinets refer to the boxes of the grid
 shadowmask seen
 encontyp *encon_ptr
 patrolistyp *patrol_ptr
@@ -2382,9 +2402,9 @@ bool do_upstair : 1
 bool do_downstair : 1
 bool visited : 1
 bool blank : 1
-uchar meta : 4 //may be used by events
+uchar floorcolor : 4
+uchar meta //may be used by events
 /* z coord of the upstair is the maximum height of the map for underground levels
- * upstair is not rendered on dep=>0, but must still be present.
  * if invalid coords are given for a warp (typically {$FF,$FF}),
  * then the player is dumped at the location indicated by home.
  *
@@ -2400,21 +2420,20 @@ lightyp *lamp_ptr
 
 /*      .r8 : binary data that is organized into 8 bit segments
  *     .r16 : binary data that is organized into 16 bit segments
- *     .hex : binary data that is organized into segments that are not 8 or 16 bits
+ *     .hex : binary data that is unorganized
  *     .csv : UTF-8 text record deliminated with commas and line breaks
  *     .tsv : UTF-8 text record deliminated with tabs and line breaks
- *     .dat : UTF-4 text record deliminated with non-printable C0 control characters
+ *     .dat : UTF-8 text record deliminated with non-printable C0 control characters
  *     .txt : UTF-8 text document. usually stored in the program's static files, which is CAT-ed to provide dialouge; also used in dumps of primatives
- *      .sh : a shell script
- *    .conf : plugin or configuration file. may also be a dotfile.
  *     .ini : key-value pairs. used in dumps of non-nested structs that do not contain pointers.
  *    .json : originally from javascript. used in data dumps of nested structs not containing pointers.
  *     .xml : used in data dumps for pointer-containing structs. will have an href= in the tag for the pointer, linked to the dump of the pointer's deref; /dev/null if null pointer.
- *  .tar.gz : by default, each room's directory is automatically compressed using an os call to prevent disk hogging (tar -xzf to open, or tar -czf to store)
- * .tar.bz2 : by default, each plane's directory is further compressed (tar -xjf to open, or tar -cjf to store). savefiles are also this format. all compression options are changeable before compile.
+ *  .tar.gz : each room is saved as a tar.gz file
+ * .tar.bz2 : each plane is saved as a tar.bz2 file. the save file itself is also a tar.bz2 file.
  *   .man.# : a manpage
  *    .html : extended documentation
  *      .md : extended documentation
+ *   .ptr.d : non-null pointers are converted to directorys
  */
 
 struct mapgen_bordertyp {
@@ -3397,4 +3416,4 @@ bool upstair : 1
 bool downstair : 1
 }
 
-printf("\n\n \033[1;95m~~ Iwannafly Roguelike Engine : %s ~~\033[m\n\033[97m  gamemaster version: %s\n       savefile type: %s\n    compression type: %s\n     sound interface: %s\n\n \033[96m - %s -\033[m\n\033[97m      RPG rules revision: %s\nstory event API revision: %s\n   file handler revision: %s\n\n\033[37mCompiled on %s\033[23m\n\nthis program currently requires the ability to execute system calls; if it cannot, Bad Things may happen!\n\n\033m",GAMENAME,GM_VERSION,SAVE_FORMAT,COMPRESSION,DEVEL_STATE,REV_RULES,REV_EVENTS,REV_FILES,__DATE__);
+printf("\n\n \033[1;95m~~ Iwannafly Roguelike Engine : %s ~~\033[m\n\033[97m  gamemaster version: %s\n       savefile type: %s\n    compression type: %s\n     sound interface: %s\n\n \033[96m - %s -\033[m\n\033[97m      RPG rules revision: %s\nstory event API revision: %s\n   file handler revision: %s\n\n\033[37mCompiled on %s\n\033m",GAMENAME,GM_VERSION,SAVE_FORMAT,COMPRESSION,"deferred",DEVEL_STATE,REV_RULES,REV_EVENTS,REV_FILES,__DATE__);

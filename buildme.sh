@@ -1,18 +1,8 @@
 #!/bin/sh
-cp conf.ini old_conf.ini
-cp defaults.ini conf.ini
-if gcc -fPIC -pie -o iwannafly_ncurses.xso main.c -g -Wl,-E; then
-printf "12s/.*/" > date.tmp;
-printf -- "- last faulty build : " >> date.tmp;
-date "+%H:%M:%S %a %b %d %Y %Z" >> date.tmp;
-else
-printf "13s/.*/" > date.tmp;
-printf -- "- last failed build : " >> date.tmp;
-date "+%H:%M:%S %a %b %d %Y %Z" >> date.tmp;
-fi
-tr '\n' '/' <date.tmp >date
-printf "g" >> date
-rm date.tmp
-sed -n '8,13p' README.md > README-old.md
-sed -i -f date README.md
-rm date
+gcc -fPIC -shared -o libiwannafly_ncurses.so main.c -Wl,-E -Wl,-r -lncursesw
+gcc -o libiwannafly_ncurses.debug main.c -g -lncursesw
+gcc -fPIC -pie -shared -o iwannafly_ncurses_default.xso default.c -g -Wl,-E -Wl,-r -L. -liwannafly_ncurses.so -lncursesw
+gcc -o iwannafly_ncurses_default.debug default.c -g -L. -liwannafly_ncurses.so -lncursesw
+gcc -o iwannafly_ncurses_default_newgame.debug util_newgame.d -g -L. -l:iwannafly_ncurses_default.xso -lncursesw
+gcc -o iwannafly_ncurses_default_editor.debug util_editor.c -g -L. -l:iwannafly_ncurses_default.xso -lncursesw
+#preliminary guesswork at commands to build, nowhere near ready to run them to check
