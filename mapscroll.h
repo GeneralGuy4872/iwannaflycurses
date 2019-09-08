@@ -614,30 +614,25 @@ GLOBREG.FIRST = !(ROOM→visited)
 ROOM→visited = true
 }
 
-switch depmove : {
-	case 0 : noop()
-	case 1 : {
-		if (home) {
-			PLAYER.pos.x = ROOM.home.x
-			PLAYER.pos.y = ROOM.home.y
-		else if (stair) {
-			PLAYER.pos.x = ROOM.downstair.x
-			PLAYER.pos.y = ROOM.downstair.y
-			}
-		PLAYER.pos.z = 0
-		break
+if (depmove ≥ 0) : {
+	if (home) {
+		PLAYER.pos.x = ROOM.home.x
+		PLAYER.pos.y = ROOM.home.y
+	else if (stair) {
+		PLAYER.pos.x = ROOM.downstair.x
+		PLAYER.pos.y = ROOM.downstair.y
 		}
-	default : {
-		if (home) {
-			PLAYER.pos.x = ROOM.home.x
-			PLAYER.pos.y = ROOM.home.y
-		else if (stair) {
-			PLAYER.pos.x = ROOM.upstair.x
-			PLAYER.pos.y = ROOM.upstair.y
-			}
-		PLAYER.pos.z = CEILING
-		break
+	PLAYER.pos.z = 0
+	}
+else {
+	if (home) {
+		PLAYER.pos.x = ROOM.home.x
+		PLAYER.pos.y = ROOM.home.y
+	else if (stair) {
+		PLAYER.pos.x = ROOM.upstair.x
+		PLAYER.pos.y = ROOM.upstair.y
 		}
+	PLAYER.pos.z = CEILING
 	}
 
 GLOBREG.NEW = true
