@@ -8,7 +8,7 @@ bool stair : 1
 bool home : 1
 }
 
-pseudosubroutine mapscroll(args)
+/*implicit*/mapscroll(args)
 mapscrollargs args
 {
 ulong cullrooms
