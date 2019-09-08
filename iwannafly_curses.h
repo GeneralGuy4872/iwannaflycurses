@@ -142,7 +142,7 @@ addnwstr(&wch,1);
  * using narrow characters with printw or addch
  * using wide characters with these functions
  * setting attributes with attrset, attron, attroff, and chgat
- * 	uses A_BOLD, A_ITALIC, A_UNDERLINE, A_REVERSE, A_BLINK, A_INVIS, and 256 color pairs made from 16 colors
+ * 	uses A_BOLD, A_ITALIC, A_UNDERLINE, A_REVERSE, A_BLINK, A_INVIS, and 64 color pairs made from 8 colors
  * using the above custom functions to put wide characters on the screen
  * using addstr, addnstr, addwstr, addnwstr to print strings
  * pausing curses and dumping an entire file with printf
@@ -181,6 +181,7 @@ char16_t TILDEWIDE = setwidetilde()
 #define ≥ >=
 #define ≤ <=
 #define → ->
+#define ← |=
 //ɛ̩̍ will be used for "and" the conjunction in comments where logical && would give a totally different yet possibly valid meaning.
 
 /*TYPES*/
@@ -1007,13 +1008,13 @@ move(10,0); printw("  [Z] %s?",opt3)
 #define GRAV 3.2174	/*if you backtrack this to determine the size of a grid unit, you're trying to hard*/
 playertyp PLAYER
 coord3 PLAYERSHD	//position of player's shadow, for renderer
-latlontyp WORLD
+latlontyp WORLD = ROOM→latlon
 roomtyp ROOM
 roomgentyp MAPGENBYTES[ROOF][(EQUATOR/2)+1][EQUATOR]
 #define MAX_X 64	//
 #define MAX_Y 24	//MAX_X ≥ MAX_Y ≥ MAX_Z
 #define MAX_Z 16	//
-#define CEILING ROOM.upstair.z
+#define CEILING ROOM→upstair.z
 #define ROOF 201	//it is decreed: mortals shall fly no higher. (this means you!)
 #define EQUATOR 360	//the number of rooms in the circumfrence of the sphere
 shadowmask SHADOWKNOWS
@@ -1033,6 +1034,74 @@ hintyp *hint_ptr
 globalbools GLOBREG	//set to true whenever you enter a room and every day at 6am
 FILE* LINEBUFFER = tmpfile()	//line buffered input
 FILE* CURSESSCRBUFFER = tmpfile()
+
+/* buffered room loading for future implementation:
+ *
+roomtyp* ROOMARRAY[3][3][3]
+#define ROOM ROOMARRAY[1][1][1]
+#define ROOM_NORTH ROOMARRAY[1][0][1]
+#define ROOM_NE ROOMARRAY[1][0][2])
+#define ROOM_EAST ROOMARRAY[1][1][2]
+#define ROOM_SE ROOMARRAY[1][2][2]
+#define ROOM_SOUTH ROOMARRAY[1][2][1]
+#define ROOM_SW ROOMARRAY[1][2][0]
+#define ROOM_WEST ROOMARRAY[1][1][0]
+#define ROOM_NW ROOMARRAY[1][0][0]
+#define ROOM_UP ROOMARRAY[0][1][1]
+#define ROOM_UP_NORTH ROOMARRAY[0][0][1]
+#define ROOM_UP_NE ROOMARRAY[0][0][2]
+#define ROOM_UP_EAST ROOMARRAY[0][1][2]
+#define ROOM_UP_SE ROOMARRAY[0][2][2]
+#define ROOM_UP_SOUTH ROOMARRAY[0][2][1]
+#define ROOM_UP_SW ROOMARRAY[0][2][0]
+#define ROOM_UP_WEST ROOMARRAY[0][1][0]
+#define ROOM_UP_NW ROOMARRAY[0][0][0]
+#define ROOM_DOWN ROOMARRAY[2][1][1]
+#define ROOM_DOWN_NORTH ROOMARRAY[2][0][1]
+#define ROOM_DOWN_NE ROOMARRAY[2][0][2]
+#define ROOM_DOWN_EAST ROOMARRAY[2][1][2]
+#define ROOM_DOWN_SE ROOMARRAY[2][2][2]
+#define ROOM_DOWN_SOUTH ROOMARRAY[2][2][1]
+#define ROOM_DOWN_SW ROOMARRAY[2][2][0]
+#define ROOM_DOWN_WEST ROOMARRAY[2][1][0]
+#define ROOM_DOWN_NW ROOMARRAY[2][0][0]
+
+//masks to select rooms
+#define UP_ROOMS_MASK ((ulong) 0xFF400000)
+#define DOWN_ROOMS_MASK ((ulong) 0x000002FF)
+#define NORTH_ROOMS_MASK ((ulong) 0xC10C10C1)
+#define SOUTH_ROOMS_MASK ((ulong) 0x1C01C01C)
+#define EAST_ROOMS_MASK ((ulong) 0x70070070)
+#define WEST_ROOMS_MASK ((ulong) 0x07007007)
+#define ALL_ROOMS_MASK ((ulong) 0xFF4FF2FF)
+
+#define ROOM_NORTH_MASKBIT ((ulong) 0x00080000)
+#define ROOM_NE_MASKBIT ((ulong) 0x00040000)
+#define ROOM_EAST_MASKBIT ((ulong) 0x00020000)
+#define ROOM_SE_MASKBIT ((ulong) 0x00010000)
+#define ROOM_SOUTH_MASKBIT ((ulong) 0x00008000)
+#define ROOM_SW_MASKBIT ((ulong) 0x00004000)
+#define ROOM_WEST_MASKBIT ((ulong) 0x00002000)
+#define ROOM_NW_MASKBIT ((ulong) 0x00001000)
+#define ROOM_UP_MASKBIT ((ulong) 0x00400000)
+#define ROOM_UP_NORTH_MASKBIT ((ulong) 0x80000000)
+#define ROOM_UP_NE_MASKBIT ((ulong) 0x40000000)
+#define ROOM_UP_EAST_MASKBIT ((ulong) 0x20000000)
+#define ROOM_UP_SE_MASKBIT ((ulong) 0x10000000)
+#define ROOM_UP_SOUTH_MASKBIT ((ulong) 0x08000000)
+#define ROOM_UP_SW_MASKBIT ((ulong) 0x04000000)
+#define ROOM_UP_WEST_MASKBIT ((ulong) 0x02000000)
+#define ROOM_UP_NW_MASKBIT ((ulong) 0x01000000)
+#define ROOM_DOWN_MASKBIT ((ulong) 0x00000200)
+#define ROOM_DOWN_NORTH_MASKBIT ((ulong) 0x00000080)
+#define ROOM_DOWN_NE_MASKBIT ((ulong) 0x00000040)
+#define ROOM_DOWN_EAST_MASKBIT ((ulong) 0x00000020)
+#define ROOM_DOWN_SE_MASKBIT ((ulong) 0x00000010)
+#define ROOM_DOWN_SOUTH_MASKBIT ((ulong) 0x00000008)
+#define ROOM_DOWN_SW_MASKBIT ((ulong) 0x00000004)
+#define ROOM_DOWN_WEST_MASKBIT ((ulong) 0x00000002)
+#define ROOM_DOWN_NW_MASKBIT ((ulong) 0x00000001)
+
 /*end GLOBALS*/
 
 getlinebuffer (y,x)
@@ -1933,8 +2002,10 @@ bitfield psyattack
 char16_t unichar
 bool unaligned : 1
 bool keepindark : 1
+bool mindless : 1
+bool incoporeal : 1
 schar size : 2
-uchar color : 8
+uchar color : 6
 /* entitys of size 1 or -2 cannot use armor.
  * entitys of larger size automaticly win grapples.
  * entitys of 2 sizes smaller can be picked up and thrown.
@@ -2367,6 +2438,7 @@ uchar color : 3
 paffectyp enchnt
 
 struct roomtyp: //top-down display of a 3d space
+latlontyp latlon
 tileset *hightiles
 schar tiledata[MAX_Z][MAX_Y][MAX_X] //both tile and entity coordinets refer to the boxes of the grid
 shadowmask seen
@@ -2382,7 +2454,8 @@ bool do_upstair : 1
 bool do_downstair : 1
 bool visited : 1
 bool blank : 1
-uchar floorcolor : 4
+bool shadefloor : 1
+uchar floorcolor : 3
 uchar meta //may be used by events
 /* z coord of the upstair is the maximum height of the map for underground levels
  * if invalid coords are given for a warp (typically {$FF,$FF}),
@@ -2492,12 +2565,17 @@ bool entropy : 1
 bool freezes : 1
 bool melts : 1
 bool petrif : 1
-bool dig : 1
 
-uchar color : 7
-symtabref ice : 7
+bool dig : 1
+bool fence : 1
+
+symtabref freeze : 7
 symtabref melt : 7
 symtabref stone : 7
+uchar density : 7
+
+bool blink : 1
+uchar color : 6
 
 char16_t unichar : 16
 }
@@ -2518,6 +2596,11 @@ char16_t unichar : 16
  * if a tile can be petrified, it is changed to the tile indicated by stone.
  *
  * if a tile can be dug, using a ↧digging tool on it will remove it
+ * digging something triggers updates which cause gravity to affect gases (!liquid,!solid),
+ * liquids(+liquid,!solid), and granulars(+liquid,+solid), wherin less dense
+ * tiles will swap with more dense ones. this effect travels outwards, to the edge of the room,
+ * but will not be applied to the border tiles. granulars are always more dense than liquids,
+ * and liquids are always more dense than gases.
  */
 
 pseudo getsym
@@ -2572,7 +2655,7 @@ locktype locked
 struct doortyp {
 bool open : 1
 uchar hp : 7
-locktype locked : 8
+locktype lock : 8
 
 struct locktype {
 bool locked : 1
@@ -2616,7 +2699,7 @@ bool unbreak : 1
 uchar uses : 8
 uchar metadata : 8
 
-eventidentyp {	//48bit identifyer based on storyline branch information.
+struct eventidentyp {	//48bit identifyer based on storyline branch information.
 uchar race : 5
 uchar role : 2
 uchar class : 3
@@ -2697,11 +2780,11 @@ canforceload : 1
 struct traptyp:
 (self) *prev
 (self) *next
-uchar color
+eventidentyp eventident
 char16_t unichar
 coord3 loc
 ushort duration
-magictyp
+magictyp element
 stattyp stat
 cursetyp curse
 diceodds odds
@@ -2718,18 +2801,33 @@ bool iceproof : 1
 bool tamperproof : 1
 bool stoneproof : 1
 bool warded : 1
+bool mode : 1
+aligntyp attacks : 8	//if mode is true, will only attack entitys that are of an alignment that is undefined or true; if mode is false, will not attack entitys with alignment that is undefined or false
 bool multiuse : 1
+bool magic : 1	//whether the trap is a mechanism or a rune
+uchar color : 6
+
+
+struct subwarptyp {
+eventidentyp eventident
+bool perm : 1
+bool blink : 1
+uchar color : 6
+coord3 loc
+setcoord3 *dest
+sshort duration	//negative are uses, positive are turns
+}
 
 struct warptyp:
-(self) *prev
-(self) *next
-uchar color
-char16_t unichar
+eventidentyp eventident
+bool perm : 1
+bool blink : 1
+uchar color : 6
 latlontyp glob_loc
 coord3 loc
 latlontyp glob_dest
-coord3 dest
-ushort duration
+setcoord3 *dest
+sshort duration
 
 char* gemcolors[8] = {"jet","sapphire","emerald","turquoise","ruby","amythest","heliodor","diamond"} //stoning has no effect
 /* cut varys by color:
@@ -2782,8 +2880,10 @@ TRAP_FLAG : contains traptyp
 EVENT_FLAG : contains eventtyp
 QGLOB_FLAG : contains qglobobj
 WARP_FLAG : contains warptyp
+SUBWARP_FLAG : contains subwarptyp
 CHEST_FLAG : contains chestyp
 DOOR_FLAG : contains doortyp
+LOCK_FLAG : contains locktyp (gates are this)
 MONEY_FLAG : contains moneytyp
 SPAWN_FLAG : contains spawntyp
 WAVE_FLAG : contains wavetyp
@@ -2811,15 +2911,16 @@ an UNDERLINE is a shadow
 ¿ are potions (fragile). ∫ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet. ^ is a crown.
 / is a wand. ♮ is a ladder. ⋎ is a fountain or gyser. ≏ is a bell. ⎋ is a clockface. ♠ ♣ ‡ are trees. ⋏ is fire. ♜ is a pedestal.
 ≃ is shallow liquid. ≈ is deep liquid's surface. ∬ is a waterfall. ~ is a liquid (as seen while submerged). ∿ is a wave.
-⌁ is electricity. * is ice. ⎈ spider web. ⌬ beehive. ↥ are spikes. ⌸ is a door. ⍯ is a locked door. ⎕ is an open door.
-? is invisible. ! is trouble. ⌑ is a light source. ⎙ ⍝ ⎍ ∎ ⎅ are tombstones or signs. ␥ is glass.
-• is a boulder. . is a rock. ◇ is a gemstone. ◊ is a giant magic crystal. ⑆ are footprints.
+⌁ is electricity. * is ice. ⎈ spider web. ⌬ beehive. ↥ are spikes. ⎙ ⍝ ⎍ ∎ ⎅ are tombstones or signs. ␥ is glass.
+? is invisible. ! is trouble. ⌑ is a light source. ⌸ is a door. ⍯ is a locked door. ⎕ is an open door. = is a gate. ≠ is a locked gate.
+• is a boulder. . is a rock. ⁂ is a rockslide. ◇ is a gemstone. ◊ is a giant magic crystal. ⑆ are footprints.
 ∪ is a sink. ⏍ is a chest. ↯ (cyan) is the thunderbolt. ∅ is a spacetime anomaly (do not touch). < > are level stairs. 
 ← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are cannons (the kind that goes boom).
 # █ ▓ ▒ ░ ▞ ▚ (etc) are thick walls or floor. ≋ is a cloud (no walking; keep your head out of them). ≣ is a staircase. 
 ˜ ␣ are holes. ' is a stalagtite or icicle. , is a plant. ; is a grain or sunflower (impassable).
 box drawings are low walls or columns. ⑉ ⋮ are iron bars. · is an ember or star. ` ´ ˇ are flower petals.
-✪ is a rune. ː ⍽ are traps. ⁂ ‽ is gas. " deliminates text. \ deliminates commands.
+✪ is a rune. ː ⍽ are traps. ¬ (blinking) is stale air (unbreathable). ≉ ∯ is stagnent water (unbreathable). ☣ ‽ is gas.
+" deliminates text. \ deliminates commands.
 ⍰ is a missingno.
 
 the symbol for gemstone and giant crystal has been the source of much headache,
@@ -2835,22 +2936,24 @@ box drawings:
  ╘╧╛     ╚╩╝
 
 
-BOLD symbols are petrified (statues).
-BLINK is something that is out of view.
-if something is not able to be seen, it is rendered INVISIBLE
-REVERSE video is a magic spell's area of effect
+A_BOLD symbols are petrified (statues).
+A_BLINK is a tile that is out of view
+if an object or entity is not able to be seen for any reason, it is rendered A_INVIS or not at all
+A_REVERSE video is a magic spell's area of effect
+A_UNDERLINE is the shadow of an entity
+A_ITALIC may be used in text
 
 rune symbols
 ◬ air, ⍫ earth, △ fire, ▽ water, ⍰ missingno
 ※ ice, ↯ (yellow) electricity, ♤ metal, π nature
-⁂ status effect, ‽ stoning, ∅ entropy
+☣ status effect, ‽ stoning, ∅ entropy
 ☼ light, ☽ dark, § polymorph, ↹ planer
 ♥ healing
 
 magic AOE symbols
 ≋ air, • earth, ⋏ fire, ≈ water
 * ice, ⌁ electricity, $ metal, ♠ nature
-⁂ status effect, ‽ stoning, ∅ entropy
+☣ status effect, ‽ stoning, ∅ entropy
 ⌑ light, ⎈ dark, § polymorph
 
 directional symbols:
@@ -2975,124 +3078,41 @@ PLAYER.pos.z += zmove
 }
 
 pseudosubroutine playervelocitycheck() velocitycheck(*entity)
-	- moves you by a vector defined by velocity,
-	  checking each space for friction. if friction
-	  is encountered, assume it is infinate.
+	/* if you have a nonzero velocity vector, when you try to move
+	 * you travel in a direction determined by the mean vector of
+	 * your move and your velocity. each turn, your velocity reduces
+	 * by 1+.5n on land, 1+.75n underwater, and is cancled compleatly
+	 * in a direction if you hit something.
+	 */
 
-pseudosubroutine xymovecheck(xmove,ymove)
-	- aborts if you're flying
-	- checks to make sure you're not walking off a cliff,
-	  asks for confirmation if you are.
-	- automatically steps if only 1 block of z difference
-	  to another solid block in direction of travel,
-	  moving by a distance of SQRT3 if on an XY diagonal,
-	  M_SQRT2 if on an XY orthogonal.
-	- updates your direction
-	- if you're on ice, adds your movement to your velocity.
-
-pseudosubroutine zmovecheck(zmove)
-	- checks if you can fly
-	  if you can't fly, adds -grav to your z velocity
-	- checks to make sure you are not flying through a solid block
-	- if ≥ floor 100 and at top of room, calls mapscrollz(0,1)
-	- if > floor 100 and at bottom of room, calls mapscrollz(1,1)
-	- if the above 2 don't apply, checks for holes. if none are present,
-	  keeps you from flying out of the room.
+pseudosubroutine movecheck(xmove,ymove,zmove)
+	/* if you are flying {
+	 *	checks your flying skill and restricts your movement accordingly
+	 *		if you have no flying skill, grav is added to your -Z velocity
+	 *	checks to make sure that you are not flying through a solid block
+	 *	checks to make sure you are not landing in water if you can't swim
+	 *		asks if you are sure
+	 *	}
+	 * if you are walking {	
+	 *	checks to make sure you are not walking off a cliff without wings
+	 *		asks if you are sure
+	 *	checks to make sure you are not walking into deep water if you can't swim
+	 *		asks if you are sure
+	 *	automatically climbs 1-high blocks that are not fences
+	 *	}
+	 * updates your direction 	
+	 * if you leave the room by any means, creates a mapscrolltyp of the apropriate value and calls mapscroll
+	 * subtracts the appropriate value from your remaining move
+	 * }
+	 */
 
 pseudosubroutine newtonlaw(xmove,ymove,zmove)
 	- checks if you're flying magically, on ice, or in a liquid
 	- if you are, adds {-xmove,-ymove,-zmove} to your velocity
 	  (half this value in liquids)
 
-pseudosubroutine mapscroll(latmove,lonmove)
-schar latmove
-schar lonmove
-{
-saveroom()
-WORLD.coord.lat += latmove
-if (WORLD.coord.lat > EQUATOR/4) {
-	WORLD.coord.lat = EQUATOR/2 - WORLD.coord.lat
-	WORLD.coord.lon += EQUATOR/2
-	if (WORLD.coord.lon > EQUATOR/2) {
-		WORLD.coord.lon += -EQUATOR
-		}
-	}
-else if (WORLD.coord.lat < -EQUATOR/4) {
-	WORLD.coord.lat = -EQUATOR/2 - WORLD.coord.lat
-	WORLD.coord.lon += EQUATOR/2
-	if (WORLD.coord.lon > EQUATOR/2) {
-		WORLD.coord.lon += -EQUATOR
-		}
-	}
-
-WORLD.coord.lon += lonmove
-if (WORLD.coord.lon ≥ EQUATOR/2) {
-	WORLD.coord.lon += -EQUATOR
-	}
-else if (WORLD.coord.lon < -EQUATOR/2) {
-	WORLD.coord.lon += EQUATOR
-	}
-
-loadroom()
-
-GLOBREG.NEW = true
-GLOBREG.FIRST = !(visited)
-ROOM.visited = true
-}
-
-pseudosubroutine mapscrollz(depmove,hole)
-bool depmove
-bool hole
-{
-saveroom()
-
-if (depmove && (WORLD.coord.dep = 0)) {
-	depmove = 1
-	WORLD.coord.lat = -WORLD.coord.lat
-	if (WORLD.coord.lon == -EQUATOR/2) {WORLD.coord.lon = 0}
-	else {WORLD.coord.lon = -WORLD.coord.lon}
-	}
-
-else if (!depmove && (WORLD.coord.dep = ROOF)) {
-	/* death message (one of the following):
-	 * flew too close to the sun
-	 * was smited for rising too high
-	 * grew too proud
-	 * passed out in space and burned up on reentry
-	 * froze to death in outer space
-	 * became lost...in...spaaace!
-	 */
-	}
-
-else if (!depmove) {
-	WORLD.coord.dep -= 1
-	}
-
-else if (depmove) {
-	WORLD.coord.dep += 1
-	}
-
-loadroom()
-
-if (depmove) {
-	if (!hole) {
-		PLAYER.pos.x = ROOM.upstair.x
-		PLAYER.pos.y = ROOM.upstair.y
-		}
-	PLAYER.pos.z = CEILING
-	}
-else {
-	if (!hole) {
-		PLAYER.pos.x = ROOM.downstair.x
-		PLAYER.pos.y = ROOM.downstair.y
-		}
-	PLAYER.pos.z = 0
-	}
-
-GLOBREG.NEW = true
-GLOBREG.FIRST = !(visited)
-ROOM.visited = true
-}
+#include "mapscroll.h"
+//don't look. just don't. it's terrible.
 
 pseudosubroutine mapwarp(lat_dest,lon_dest,dep_dest,tocoord)
 schar lat_dest
@@ -3142,30 +3162,82 @@ else {
 	}
 }
 
-pseudosubroutine saveroom()
-/* clears screen
- * prints "  LOADING..." on line 13
- * prints a hint on line 22.
- *   hints are stored in a struct
- * overwrites files in tmp
- * tar's the files and saves the archive in the savefile
- * frees any data that is no longer neccisary
- */
+/*func*/ loading()
+	/* clears screen
+	 * prints "  LOADING..." on line 13
+	 * prints a hint on line 22.
+	 *   hints are stored in a struct
+	 */
 
-pseudosubroutine loadroom()
-/* unarchives files to tmp
- * loads files into memory
- */
+/*func*/ saveroom(*roomtyp)
+	// saves a room
 
-pseudosubroutine saveworld()
-pseudosubroutine loadworld()
-/* same as saveroom/loadroom; except
- * manipulates files for planes
- */
+#define savefreeroom(N) saveroom(N); free(N)
 
-pseudosubroutine savestate()
-pseudosubroutine loadstate()
-//saves or loads globals
+roomtyp* loadroom(latoff,lonoff,depoff)
+schar latmove lonmove depmove
+{
+latlontyp arg = WORLD
+
+arg.lat += latmove
+if (arg.lat > EQUATOR/4) {
+	arg.lat = EQUATOR/2 - arg.lat
+	arg.lon += EQUATOR/2
+	if (arg.lon > EQUATOR/2) {
+		arg.lon += -EQUATOR
+		}
+	}
+else if (arg.lat < -EQUATOR/4) {
+	arg.lat = -EQUATOR/2 - arg.lat
+	arg.lon += EQUATOR/2
+	if (arg.lon > EQUATOR/2) {
+		arg.lon += -EQUATOR
+		}
+	}
+
+arg.lon += lonmove
+if (arg.lon ≥ EQUATOR/2) {
+	arg.lon += -EQUATOR
+	}
+else if (arg.lon < -EQUATOR/2) {
+	arg.lon += EQUATOR
+	}
+
+if ((depmove > 0) && (WORLD.coord.dep = 0)) {
+	depmove = 1
+	arg.lat = -arg.lat
+	switch arg.lon : {
+		case -EQUATOR/2 : {arg.lon = 0;break;}
+		case 0 : {arg.lon = -EQUATOR/2;break;}
+		default : {WORLD.coord.lon = -WORLD.coord.lon;break;}
+		}
+	}
+arg.dep += depmove
+if (depmove ≥ ROOF) {return NULL}
+
+return loadabsroom(arg)
+}
+
+/*func*/ roomtyp* loadabsroom(latlontyp)
+	//mallocs and loads a room indicated by latlontyp
+
+/*func*/ saveallrooms()
+	//save all current rooms
+
+/*func*/ freeallrooms()
+	//free() all current rooms
+
+/*func*/ loadallrooms()
+	//load 27 rooms based on the current value of WORLD
+
+/*func*/ loadabsallrooms(latlontyp)
+	//load 27 rooms based on latlontyp
+
+/*func*/ saveworld()
+/*func*/ loadworld()
+//sync and load the files for planes
+
+#define GETWORLDCOORD WORLD = ROOM→latlon;
 
 uchar pseudosubroutine castshadow(xpos,ypos,zpos)
 uchar xpos
@@ -3420,3 +3492,5 @@ enginehook() {
 	printf("\033c\033[2J\033[0HIt is pitch black...\a\a\a\a\a");
 	do_intro_movie();
 	turnloop();
+
+//todo: buffer 1 room in all 26 directions
