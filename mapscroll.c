@@ -1,3 +1,4 @@
+#error this code was based on a pre-prealpha version of the engine's core, and has several issues, including severe rot. until they are fixed, it has been salted.
 //another function with an entire header to itself? goshdangit!
 
 struct mapscrollargs {

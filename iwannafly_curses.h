@@ -1,3 +1,4 @@
+#error NOT READY FOR COMPILATION
 /* Hey, you. yeah, you. who do you think I'm talking to; the mouse?
  *
  * you found the seeecret extended documentation, aka the source code!
@@ -1008,8 +1009,8 @@ move(10,0); printw("  [Z] %s?",opt3)
 #define GRAV 3.2174	/*if you backtrack this to determine the size of a grid unit, you're trying to hard*/
 playertyp PLAYER
 coord3 PLAYERSHD	//position of player's shadow, for renderer
-latlontyp WORLD = ROOM→latlon
-roomtyp ROOM
+latlontyp WORLD
+roomtyp* ROOM
 roomgentyp MAPGENBYTES[ROOF][(EQUATOR/2)+1][EQUATOR]
 #define MAX_X 64	//
 #define MAX_Y 24	//MAX_X ≥ MAX_Y ≥ MAX_Z
@@ -1036,71 +1037,71 @@ FILE* LINEBUFFER = tmpfile()	//line buffered input
 FILE* CURSESSCRBUFFER = tmpfile()
 
 /* buffered room loading for future implementation:
- *
-roomtyp* ROOMARRAY[3][3][3]
-#define ROOM ROOMARRAY[1][1][1]
-#define ROOM_NORTH ROOMARRAY[1][0][1]
-#define ROOM_NE ROOMARRAY[1][0][2])
-#define ROOM_EAST ROOMARRAY[1][1][2]
-#define ROOM_SE ROOMARRAY[1][2][2]
-#define ROOM_SOUTH ROOMARRAY[1][2][1]
-#define ROOM_SW ROOMARRAY[1][2][0]
-#define ROOM_WEST ROOMARRAY[1][1][0]
-#define ROOM_NW ROOMARRAY[1][0][0]
-#define ROOM_UP ROOMARRAY[0][1][1]
-#define ROOM_UP_NORTH ROOMARRAY[0][0][1]
-#define ROOM_UP_NE ROOMARRAY[0][0][2]
-#define ROOM_UP_EAST ROOMARRAY[0][1][2]
-#define ROOM_UP_SE ROOMARRAY[0][2][2]
-#define ROOM_UP_SOUTH ROOMARRAY[0][2][1]
-#define ROOM_UP_SW ROOMARRAY[0][2][0]
-#define ROOM_UP_WEST ROOMARRAY[0][1][0]
-#define ROOM_UP_NW ROOMARRAY[0][0][0]
-#define ROOM_DOWN ROOMARRAY[2][1][1]
-#define ROOM_DOWN_NORTH ROOMARRAY[2][0][1]
-#define ROOM_DOWN_NE ROOMARRAY[2][0][2]
-#define ROOM_DOWN_EAST ROOMARRAY[2][1][2]
-#define ROOM_DOWN_SE ROOMARRAY[2][2][2]
-#define ROOM_DOWN_SOUTH ROOMARRAY[2][2][1]
-#define ROOM_DOWN_SW ROOMARRAY[2][2][0]
-#define ROOM_DOWN_WEST ROOMARRAY[2][1][0]
-#define ROOM_DOWN_NW ROOMARRAY[2][0][0]
-
-//masks to select rooms
-#define UP_ROOMS_MASK ((ulong) 0xFF400000)
-#define DOWN_ROOMS_MASK ((ulong) 0x000002FF)
-#define NORTH_ROOMS_MASK ((ulong) 0xC10C10C1)
-#define SOUTH_ROOMS_MASK ((ulong) 0x1C01C01C)
-#define EAST_ROOMS_MASK ((ulong) 0x70070070)
-#define WEST_ROOMS_MASK ((ulong) 0x07007007)
-#define ALL_ROOMS_MASK ((ulong) 0xFF4FF2FF)
-
-#define ROOM_NORTH_MASKBIT ((ulong) 0x00080000)
-#define ROOM_NE_MASKBIT ((ulong) 0x00040000)
-#define ROOM_EAST_MASKBIT ((ulong) 0x00020000)
-#define ROOM_SE_MASKBIT ((ulong) 0x00010000)
-#define ROOM_SOUTH_MASKBIT ((ulong) 0x00008000)
-#define ROOM_SW_MASKBIT ((ulong) 0x00004000)
-#define ROOM_WEST_MASKBIT ((ulong) 0x00002000)
-#define ROOM_NW_MASKBIT ((ulong) 0x00001000)
-#define ROOM_UP_MASKBIT ((ulong) 0x00400000)
-#define ROOM_UP_NORTH_MASKBIT ((ulong) 0x80000000)
-#define ROOM_UP_NE_MASKBIT ((ulong) 0x40000000)
-#define ROOM_UP_EAST_MASKBIT ((ulong) 0x20000000)
-#define ROOM_UP_SE_MASKBIT ((ulong) 0x10000000)
-#define ROOM_UP_SOUTH_MASKBIT ((ulong) 0x08000000)
-#define ROOM_UP_SW_MASKBIT ((ulong) 0x04000000)
-#define ROOM_UP_WEST_MASKBIT ((ulong) 0x02000000)
-#define ROOM_UP_NW_MASKBIT ((ulong) 0x01000000)
-#define ROOM_DOWN_MASKBIT ((ulong) 0x00000200)
-#define ROOM_DOWN_NORTH_MASKBIT ((ulong) 0x00000080)
-#define ROOM_DOWN_NE_MASKBIT ((ulong) 0x00000040)
-#define ROOM_DOWN_EAST_MASKBIT ((ulong) 0x00000020)
-#define ROOM_DOWN_SE_MASKBIT ((ulong) 0x00000010)
-#define ROOM_DOWN_SOUTH_MASKBIT ((ulong) 0x00000008)
-#define ROOM_DOWN_SW_MASKBIT ((ulong) 0x00000004)
-#define ROOM_DOWN_WEST_MASKBIT ((ulong) 0x00000002)
-#define ROOM_DOWN_NW_MASKBIT ((ulong) 0x00000001)
+ * roomtyp* ROOMARRAY[3][3][3]
+ * #define ROOM ROOMARRAY[1][1][1]
+ * #define ROOM_NORTH ROOMARRAY[1][0][1]
+ * #define ROOM_NE ROOMARRAY[1][0][2])
+ * #define ROOM_EAST ROOMARRAY[1][1][2]
+ * #define ROOM_SE ROOMARRAY[1][2][2]
+ * #define ROOM_SOUTH ROOMARRAY[1][2][1]
+ * #define ROOM_SW ROOMARRAY[1][2][0]
+ * #define ROOM_WEST ROOMARRAY[1][1][0]
+ * #define ROOM_NW ROOMARRAY[1][0][0]
+ * #define ROOM_UP ROOMARRAY[0][1][1]
+ * #define ROOM_UP_NORTH ROOMARRAY[0][0][1]
+ * #define ROOM_UP_NE ROOMARRAY[0][0][2]
+ * #define ROOM_UP_EAST ROOMARRAY[0][1][2]
+ * #define ROOM_UP_SE ROOMARRAY[0][2][2]
+ * #define ROOM_UP_SOUTH ROOMARRAY[0][2][1]
+ * #define ROOM_UP_SW ROOMARRAY[0][2][0]
+ * #define ROOM_UP_WEST ROOMARRAY[0][1][0]
+ * #define ROOM_UP_NW ROOMARRAY[0][0][0]
+ * #define ROOM_DOWN ROOMARRAY[2][1][1]
+ * #define ROOM_DOWN_NORTH ROOMARRAY[2][0][1]
+ * #define ROOM_DOWN_NE ROOMARRAY[2][0][2]
+ * #define ROOM_DOWN_EAST ROOMARRAY[2][1][2]
+ * #define ROOM_DOWN_SE ROOMARRAY[2][2][2]
+ * #define ROOM_DOWN_SOUTH ROOMARRAY[2][2][1]
+ * #define ROOM_DOWN_SW ROOMARRAY[2][2][0]
+ * #define ROOM_DOWN_WEST ROOMARRAY[2][1][0]
+ * #define ROOM_DOWN_NW ROOMARRAY[2][0][0]
+ * 
+ * masks to select rooms
+ * #define UP_ROOMS_MASK ((ulong) 0xFF400000)
+ * #define DOWN_ROOMS_MASK ((ulong) 0x000002FF)
+ * #define NORTH_ROOMS_MASK ((ulong) 0xC10C10C1)
+ * #define SOUTH_ROOMS_MASK ((ulong) 0x1C01C01C)
+ * #define EAST_ROOMS_MASK ((ulong) 0x70070070)
+ * #define WEST_ROOMS_MASK ((ulong) 0x07007007)
+ * #define ALL_ROOMS_MASK ((ulong) 0xFF4FF2FF)
+ * 
+ * #define ROOM_NORTH_MASKBIT ((ulong) 0x00080000)
+ * #define ROOM_NE_MASKBIT ((ulong) 0x00040000)
+ * #define ROOM_EAST_MASKBIT ((ulong) 0x00020000)
+ * #define ROOM_SE_MASKBIT ((ulong) 0x00010000)
+ * #define ROOM_SOUTH_MASKBIT ((ulong) 0x00008000)
+ * #define ROOM_SW_MASKBIT ((ulong) 0x00004000)
+ * #define ROOM_WEST_MASKBIT ((ulong) 0x00002000)
+ * #define ROOM_NW_MASKBIT ((ulong) 0x00001000)
+ * #define ROOM_UP_MASKBIT ((ulong) 0x00400000)
+ * #define ROOM_UP_NORTH_MASKBIT ((ulong) 0x80000000)
+ * #define ROOM_UP_NE_MASKBIT ((ulong) 0x40000000)
+ * #define ROOM_UP_EAST_MASKBIT ((ulong) 0x20000000)
+ * #define ROOM_UP_SE_MASKBIT ((ulong) 0x10000000)
+ * #define ROOM_UP_SOUTH_MASKBIT ((ulong) 0x08000000)
+ * #define ROOM_UP_SW_MASKBIT ((ulong) 0x04000000)
+ * #define ROOM_UP_WEST_MASKBIT ((ulong) 0x02000000)
+ * #define ROOM_UP_NW_MASKBIT ((ulong) 0x01000000)
+ * #define ROOM_DOWN_MASKBIT ((ulong) 0x00000200)
+ * #define ROOM_DOWN_NORTH_MASKBIT ((ulong) 0x00000080)
+ * #define ROOM_DOWN_NE_MASKBIT ((ulong) 0x00000040)
+ * #define ROOM_DOWN_EAST_MASKBIT ((ulong) 0x00000020)
+ * #define ROOM_DOWN_SE_MASKBIT ((ulong) 0x00000010)
+ * #define ROOM_DOWN_SOUTH_MASKBIT ((ulong) 0x00000008)
+ * #define ROOM_DOWN_SW_MASKBIT ((ulong) 0x00000004)
+ * #define ROOM_DOWN_WEST_MASKBIT ((ulong) 0x00000002)
+ * #define ROOM_DOWN_NW_MASKBIT ((ulong) 0x00000001)
+ */
 
 /*end GLOBALS*/
 
@@ -1171,7 +1172,7 @@ fin:
 return (ulong) strtoul(hexbuffer,NULL,16);
 }
 
-pseudosubroutine mapgenunderground
+/*pseudocode*/mapgenunderground
 rooms:
 for 0→50 do
 	roll <FOOdBAR> → index
@@ -1725,7 +1726,7 @@ legendtyp legendtable[20]
 
 char* psystabs[8] = {"detect alignment","charm","hold","sleep","mind blast","passify","unhinge","terrify"}
 
-pseudo psionic(id)
+/*pseudocode*/psionic(id)
 uchar id
 //switch case for each psionic ability
 
@@ -1930,12 +1931,12 @@ psudo update_player
  * this may be done automatically when you sleep.
  */
 
-pseudo inventsort
+/*pseudocode*/inventsort
 /* compresses stackable items into stacks, sorts items by objid and itemid.
  * more computationally expensive than update_player.
  */
 
-pseudo force_global
+/*pseudocode*/force_global
 /* forces some queued globals to be loaded. takes a very long time, but can
  * sometimes be necissary if the global buffer is bogged down.
 
@@ -2603,7 +2604,7 @@ char16_t unichar : 16
  * and liquids are always more dense than gases.
  */
 
-pseudo getsym
+/*pseudocode*/getsym
 	{
 	if (sym < 0)
 		{
@@ -2888,11 +2889,11 @@ MONEY_FLAG : contains moneytyp
 SPAWN_FLAG : contains spawntyp
 WAVE_FLAG : contains wavetyp
 
-pseudo radius
+/*pseudocode*/radius
 /* uses floats to define a circle,
- * terminating on the symbol that is
- * GE than the input. one function won't
- * cover all use cases.
+ * terminating when there is not enough
+ * value left to move another whole block.
+ * one function won't cover all use cases.
  */
 
 each layer is drawn translated +1y for each layer above the player and -1y for each layer below.
@@ -3048,7 +3049,7 @@ jelly* jam* preserves* peanutbutter
 icecube snow ember blacksoup
 broth* stew* ration mistake
 
-pseudosubroutine playermove(xmove,ymove,zmove)
+/*pseudocode*/playermove(xmove,ymove,zmove)
 schar xmove
 schar ymove
 schar zmove
@@ -3077,7 +3078,7 @@ else if (PLAYER.pos.y ≥ MAX_Y) {
 PLAYER.pos.z += zmove
 }
 
-pseudosubroutine playervelocitycheck() velocitycheck(*entity)
+/*pseudocode*/playervelocitycheck() velocitycheck(*entity)
 	/* if you have a nonzero velocity vector, when you try to move
 	 * you travel in a direction determined by the mean vector of
 	 * your move and your velocity. each turn, your velocity reduces
@@ -3085,7 +3086,7 @@ pseudosubroutine playervelocitycheck() velocitycheck(*entity)
 	 * in a direction if you hit something.
 	 */
 
-pseudosubroutine movecheck(xmove,ymove,zmove)
+/*pseudocode*/movecheck(xmove,ymove,zmove)
 	/* if you are flying {
 	 *	checks your flying skill and restricts your movement accordingly
 	 *		if you have no flying skill, grav is added to your -Z velocity
@@ -3106,47 +3107,21 @@ pseudosubroutine movecheck(xmove,ymove,zmove)
 	 * }
 	 */
 
-pseudosubroutine newtonlaw(xmove,ymove,zmove)
+/*pseudocode*/newtonlaw(xmove,ymove,zmove)
 	- checks if you're flying magically, on ice, or in a liquid
 	- if you are, adds {-xmove,-ymove,-zmove} to your velocity
 	  (half this value in liquids)
 
-#include "mapscroll.h"
-//don't look. just don't. it's terrible.
-
-pseudosubroutine mapwarp(lat_dest,lon_dest,dep_dest,tocoord)
-schar lat_dest
-schar lon_dest
-schar dep_dest
+/*pseudocode*/mapwarp(destination,tocoord)
+latlontyp destination
 coord3 tocoord
 {
 saveroom()
 
-WORLD.coord.dep = dep_dest
+WORLD = destination
 
-WORLD.coord.lat = lat_dest
-if (WORLD.coord.lat > EQUATOR/4) {
-	WORLD.coord.lat = EQUATOR/2 - WORLD.coord.lat
-	WORLD.coord.lon += EQUATOR/2
-	if (WORLD.coord.lon > EQUATOR/2) {
-		WORLD.coord.lon += -EQUATOR
-		}
-	}
-else if (WORLD.coord.lat < -EQUATOR/4) {
-	WORLD.coord.lat = -EQUATOR/2 - WORLD.coord.lat
-	WORLD.coord.lon += EQUATOR/2
-	if (WORLD.coord.lon > EQUATOR/2) {
-		WORLD.coord.lon += -EQUATOR
-		}
-	}
-
-WORLD.coord.lon = lon_dest
-if (WORLD.coord.lon ≥ EQUATOR/2) {
-	WORLD.coord.lon += -EQUATOR
-	}
-else if (WORLD.coord.lon < -EQUATOR/2) {
-	WORLD.coord.lon += EQUATOR
-	}
+mapscrollargs nullscroll = {0,0,0,false,false}
+mapscroll(nullscroll)
 
 loadroom()
 
@@ -3162,84 +3137,165 @@ else {
 	}
 }
 
-/*func*/ loading()
+/*pseudocode*/loading()
 	/* clears screen
 	 * prints "  LOADING..." on line 13
 	 * prints a hint on line 22.
 	 *   hints are stored in a struct
 	 */
 
-/*func*/ saveroom(*roomtyp)
-	// saves a room
-
-#define savefreeroom(N) saveroom(N); free(N)
-
-roomtyp* loadroom(latoff,lonoff,depoff)
-schar latmove lonmove depmove
-{
-latlontyp arg = WORLD
-
-arg.lat += latmove
-if (arg.lat > EQUATOR/4) {
-	arg.lat = EQUATOR/2 - arg.lat
-	arg.lon += EQUATOR/2
-	if (arg.lon > EQUATOR/2) {
-		arg.lon += -EQUATOR
-		}
-	}
-else if (arg.lat < -EQUATOR/4) {
-	arg.lat = -EQUATOR/2 - arg.lat
-	arg.lon += EQUATOR/2
-	if (arg.lon > EQUATOR/2) {
-		arg.lon += -EQUATOR
-		}
-	}
-
-arg.lon += lonmove
-if (arg.lon ≥ EQUATOR/2) {
-	arg.lon += -EQUATOR
-	}
-else if (arg.lon < -EQUATOR/2) {
-	arg.lon += EQUATOR
-	}
-
-if ((depmove > 0) && (WORLD.coord.dep = 0)) {
-	depmove = 1
-	arg.lat = -arg.lat
-	switch arg.lon : {
-		case -EQUATOR/2 : {arg.lon = 0;break;}
-		case 0 : {arg.lon = -EQUATOR/2;break;}
-		default : {WORLD.coord.lon = -WORLD.coord.lon;break;}
-		}
-	}
-arg.dep += depmove
-if (depmove ≥ ROOF) {return NULL}
-
-return loadabsroom(arg)
+struct mapscrollargs {
+schar latmove : 2
+schar lonmove : 2
+schar depmove : 2
+bool stair : 1
+bool home : 1
 }
 
-/*func*/ roomtyp* loadabsroom(latlontyp)
-	//mallocs and loads a room indicated by latlontyp
+/*implicit*/mapscroll(args)
+mapscrollargs args
+{
+saveroom()
+freeroom()
+WORLD.coord.lat += args.latmove
+if (WORLD.coord.lat > EQUATOR/4) {
+	WORLD.coord.lat = EQUATOR/2 - WORLD.coord.lat
+	WORLD.coord.lon += EQUATOR/2
+	if (WORLD.coord.lon > EQUATOR/2) {
+		WORLD.coord.lon += -EQUATOR
+		}
+	}
+else if (WORLD.coord.lat < -EQUATOR/4) {
+	WORLD.coord.lat = -EQUATOR/2 - WORLD.coord.lat
+	WORLD.coord.lon += EQUATOR/2
+	if (WORLD.coord.lon > EQUATOR/2) {
+		WORLD.coord.lon += -EQUATOR
+		}
+	}
 
-/*func*/ saveallrooms()
-	//save all current rooms
+WORLD.coord.lon += args.lonmove
+if (WORLD.coord.lon ≥ EQUATOR/2) {
+	WORLD.coord.lon += -EQUATOR
+	}
+else if (WORLD.coord.lon < -EQUATOR/2) {
+	WORLD.coord.lon += EQUATOR
+	}
 
-/*func*/ freeallrooms()
-	//free() all current rooms
+if ((args.depmove < 0) && (WORLD.coord.dep = 0)) {
+	depmove = 1
+	WORLD.coord.lat = -WORLD.coord.lat
+	if (WORLD.coord.lon == -EQUATOR/2) {WORLD.coord.lon = 0}
+	else {WORLD.coord.lon = -WORLD.coord.lon}
+}
+else if ((args.depmove > 0) && (WORLD.coord.dep = ROOF)) {
+	/* death message (one of the following):
+	 * flew too close to the sun
+	 * was smited for rising too high
+	 * grew too proud
+	 * passed out in space and burned up on reentry
+	 * froze to death in outer space
+	 * became lost...in...spaaace!
+	 */
+}
+WORLD.coord.dep += args.depmove
+if (depmove ≥ 0) : {
+	if (home) {
+		PLAYER.pos.x = ROOM.home.x
+		PLAYER.pos.y = ROOM.home.y
+	else if (stair) {
+		PLAYER.pos.x = ROOM.downstair.x
+		PLAYER.pos.y = ROOM.downstair.y
+		}
+	PLAYER.pos.z = 0
+	}
+else {
+	if (home) {
+		PLAYER.pos.x = ROOM.home.x
+		PLAYER.pos.y = ROOM.home.y
+	else if (stair) {
+		PLAYER.pos.x = ROOM.upstair.x
+		PLAYER.pos.y = ROOM.upstair.y
+		}
+	PLAYER.pos.z = CEILING
+	}
 
-/*func*/ loadallrooms()
-	//load 27 rooms based on the current value of WORLD
+ROOM = loadroom()
 
-/*func*/ loadabsallrooms(latlontyp)
-	//load 27 rooms based on latlontyp
+GLOBREG.NEW = true
+GLOBREG.FIRST = !(visited)
+ROOM.visited = true
+}
 
-/*func*/ saveworld()
-/*func*/ loadworld()
+/*pseudocode*/saveroom()
+//saves the current room
+
+/*implicit*/freeroom() {
+	{
+	encontyp* current = ROOM→encon_ptr→prev
+	encontyp* previous = ROOM→encon_ptr→prev→prev
+	ROOM→encon_ptr→prev→next = NULL
+	ROOM→encon_ptr→prev = NULL
+	while (previous != NULL) {
+		free(current)
+		current = previous
+		previous = previous→prev
+		}
+	}
+	{
+	patrolistyp* current = ROOM→encon_ptr→prev
+	patrolistyp* previous = ROOM→encon_ptr→prev→prev
+	ROOM→encon_ptr→prev→next = NULL
+	ROOM→encon_ptr→prev = NULL
+	while (previous != NULL) {
+		free(current)
+		current = previous
+		previous = previous→prev
+		}
+	}
+	{
+	enttyp* current = ROOM→encon_ptr→prev
+	enttyp* previous = ROOM→encon_ptr→prev→prev
+	ROOM→encon_ptr→prev→next = NULL
+	ROOM→encon_ptr→prev = NULL
+	while (previous != NULL) {
+		free(current)
+		current = previous
+		previous = previous→prev
+		}
+	}
+	{
+	mapobjtyp* current = ROOM→encon_ptr→prev
+	mapobjtyp* previous = ROOM→encon_ptr→prev→prev
+	ROOM→encon_ptr→prev→next = NULL
+	ROOM→encon_ptr→prev = NULL
+	while (previous != NULL) {
+		free(current)
+		current = previous
+		previous = previous→prev
+		}
+	}
+	{
+	lightyp* current = ROOM→encon_ptr→prev
+	lightyp* previous = ROOM→encon_ptr→prev→prev
+	ROOM→encon_ptr→prev→next = NULL
+	ROOM→encon_ptr→prev = NULL
+	while (previous != NULL) {
+		free(current)
+		current = previous
+		previous = previous→prev
+		}
+	}
+	return free(ROOM)
+}
+
+roomtyp* loadroom()
+//loads room indicated by WORLD
+
+/*pseudocode*/saveworld()
+/*pseudocode*/loadworld()
 //sync and load the files for planes
 
-#define GETWORLDCOORD WORLD = ROOM→latlon;
-
-uchar pseudosubroutine castshadow(xpos,ypos,zpos)
+/*pseudocode implicit*/castshadow(xpos,ypos,zpos)
 uchar xpos
 uchar ypos
 uchar zpos
@@ -3418,7 +3474,7 @@ ent_iter()	//iterate through local entities
 encounter(1D6,1d100)	//generate up to 1D6 of monster number 1d100
 }
 
-pseudo <follow|ent>_iter () {
+/*pseudocode*/ <follow|ent>_iter () {
 <ent|follow>typ* ptr = <head>
 while (ptr != NULL) {
 	<follow|ent>_act(&ptr) //&ptr's turn
@@ -3426,7 +3482,7 @@ while (ptr != NULL) {
 	}
 }
 
-pseudo encounter(count,tableid)
+/*pseudocode*/encounter(count,tableid)
 uchar count
 uchar tableid
 {
@@ -3443,7 +3499,7 @@ for (;count != 0;count--) {
 	}
 }
 
-pseudo render() {
+/*pseudocode*/render() {
 /* flush THESHADOWKNOWS and SHINEALIGHT
  * translate the view so that the player is on line 13
  * cast shadows and record the player's shadow

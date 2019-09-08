@@ -5,10 +5,6 @@ datakeeper→grid[COORDSUB(pointa.z,pointa.y,pointa.x + 1)].up = true
 datakeeper→grid[COORDSUB(pointa.z,pointa.y,pointa.x + 1)].fwd = true
 datakeeper→grid[COORDSUB(pointa.z,pointa.y,pointa.x + 1)].down = true
 
-datakeeper→grid[COORDSUB(pointb.z,pointb.y,pointb.x + 1)].up = true
-datakeeper→grid[COORDSUB(pointb.z,pointb.y,pointb.x + 1)].fwd = false
-datakeeper→grid[COORDSUB(pointb.z,pointb.y,pointb.x + 1)].down = true
-
 setpathobs(&datakeeper,fly,swim)
 
 setcoord3* current = datakeeper→hydra_ptr→next
@@ -640,8 +636,17 @@ forever {
 	current = datakeeper→hydra_ptr→next
 	nearest = datakeeper→hydra_ptr
 	for (;current != datakeeper→hydra_ptr;current = current→next) {
-		if (current.up && current.down) {goto(breakout)}
+		if ((current→x == pointb.x) && (current→y == pointb.y) && (current→z == pointb.z)) {goto(breakout)}
 		nearest→runningdist < current→runningdist ? noop() : nearest = current
 		}
 	}
 breakout:
+setcoord3* coordreturn_tail = malloc(sizeof(setcoord3))
+coordlistail→next = coordlistail
+coordlistail→prev = coordlistail
+coordlistail→x = current→x
+coordlistail→y = current→y
+coordlistail→z = current→z
+setcoord3* coordreturn_head
+
+while (! ((current.
