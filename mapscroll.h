@@ -85,6 +85,7 @@ switch args.latmove : {
 						ROOM_SE = ROOM_UP_SE
 
 						UPDATEWORLDCOORD
+						break
 						}
 					default : {
 						ROOM_UP_NW = ROOM_NW
@@ -108,6 +109,7 @@ switch args.latmove : {
 						ROOM_SE = ROOM_DOWN_SE
 
 						UPDATEWORLDCOORD
+						break
 						}
 					}
 				}
@@ -135,6 +137,7 @@ switch args.latmove : {
 						ROOM_DOWN_SW = ROOM_DOWN_SOUTH
 
 						UPDATEWORLDCOORD
+						break
 						}
 					case 1 : {
 						ROOM_DOWN_NW = ROOM_NORTH
@@ -152,6 +155,7 @@ switch args.latmove : {
 						ROOM_SOUTH = ROOM_UP_SE
 						
 						UPDATEWORLDCOORD
+						break
 						}
 					default : {
 						ROOM_UP_NW = ROOM_NORTH
@@ -169,6 +173,7 @@ switch args.latmove : {
 						ROOM_SOUTH = ROOM_DOWN_SE
 						
 						UPDATEWORLDCOORD
+						break
 						}
 					}
 				}
@@ -196,6 +201,7 @@ switch args.latmove : {
 						ROOM_DOWN_SE = ROOM_DOWN_SOUTH
 
 						UPDATEWORLDCOORD
+						break
 						}
 					case 1 : {
 						ROOM_DOWN_NE = ROOM_NORTH
@@ -213,6 +219,7 @@ switch args.latmove : {
 						ROOM_SOUTH = ROOM_UP_SW
 						
 						UPDATEWORLDCOORD
+						break
 						}
 					default : {
 						ROOM_UP_NE = ROOM_NORTH
@@ -230,6 +237,7 @@ switch args.latmove : {
 						ROOM_SOUTH = ROOM_DOWN_SW
 						
 						UPDATEWORLDCOORD
+						break
 						}
 					}
 				}
@@ -261,6 +269,7 @@ switch args.latmove : {
 						ROON_DOWN_EAST = ROOM_DOWN_NE
 
 						UPDATEWORLDCOORD
+						break
 						}
 					case 1 : {
 						ROOM_DOWN_WEST = ROOM_NW
@@ -278,6 +287,7 @@ switch args.latmove : {
 						ROOM_SE = ROOM_UP_EAST
 
 						UPDATEWORLDCOORD
+						break
 						}
 					default : {
 						ROOM_UP_WEST = ROOM_NW
@@ -295,6 +305,7 @@ switch args.latmove : {
 						ROOM_SE = ROOM_DOWN_EAST
 
 						UPDATEWORLDCOORD
+						break
 						}
 					}
 				}
@@ -317,6 +328,7 @@ switch args.latmove : {
 						ROOM_DOWN = ROOM_DOWN_NE
 
 						UPDATEWORLDCOORD
+						break
 						}
 					case 1 : {
 						ROOM_WEST = ROOM_UP_NORTH
@@ -330,6 +342,7 @@ switch args.latmove : {
 						ROOM = ROOM_UP_NE
 
 						UPDATEWORLDCOORD
+						break
 						}
 					default : {
 						ROOM_WEST = ROOM_DOWN_NORTH
@@ -343,6 +356,7 @@ switch args.latmove : {
 						ROOM = ROOM_DOWN_NE
 
 						UPDATEWORLDCOORD
+						break
 						}
 					}
 				}
@@ -364,6 +378,7 @@ switch args.latmove : {
 						ROOM_DOWN = ROOM_DOWN_NW
 
 						UPDATEWORLDCOORD
+						break
 						}
 					case 1 : {
 						ROOM_EAST = ROOM_UP_NORTH
@@ -377,6 +392,7 @@ switch args.latmove : {
 						ROOM = ROOM_UP_NW
 
 						UPDATEWORLDCOORD
+						break
 						}
 					default : {
 						ROOM_EAST = ROOM_DOWN_NORTH
@@ -390,6 +406,7 @@ switch args.latmove : {
 						ROOM = ROOM_DOWN_NW
 
 						UPDATEWORLDCOORD
+						break
 						}
 					}
 				}
@@ -421,6 +438,7 @@ switch args.latmove : {
 						ROON_DOWN_EAST = ROOM_DOWN_SE
 
 						UPDATEWORLDCOORD
+						break
 						}
 					case 1 : {
 						ROOM_DOWN_WEST = ROOM_SW
@@ -438,6 +456,7 @@ switch args.latmove : {
 						ROOM_NE = ROOM_UP_EAST
 
 						UPDATEWORLDCOORD
+						break
 						}
 					default : {
 						ROOM_UP_WEST = ROOM_SW
@@ -455,6 +474,7 @@ switch args.latmove : {
 						ROOM_NE = ROOM_DOWN_EAST
 
 						UPDATEWORLDCOORD
+						break
 						}
 					}
 				}
@@ -476,6 +496,7 @@ switch args.latmove : {
 						ROOM_DOWN = ROOM_DOWN_SE
 
 						UPDATEWORLDCOORD
+						break
 						}
 					case 1 : {
 						ROOM_WEST = ROOM_UP_SOUTH
@@ -489,6 +510,7 @@ switch args.latmove : {
 						ROOM = ROOM_UP_SE
 
 						UPDATEWORLDCOORD
+						break
 						}
 					default : {
 						ROOM_WEST = ROOM_DOWN_SOUTH
@@ -502,6 +524,7 @@ switch args.latmove : {
 						ROOM = ROOM_DOWN_SE
 
 						UPDATEWORLDCOORD
+						break
 						}
 					}
 				}
@@ -523,6 +546,7 @@ switch args.latmove : {
 						ROOM_DOWN = ROOM_DOWN_SW
 
 						UPDATEWORLDCOORD
+						break
 						}
 					case 1 : {
 						ROOM_EAST = ROOM_UP_SOUTH
@@ -536,6 +560,7 @@ switch args.latmove : {
 						ROOM = ROOM_UP_SW
 
 						UPDATEWORLDCOORD
+						break
 						}
 					default : {
 						ROOM_EAST = ROOM_DOWN_SOUTH
@@ -549,6 +574,7 @@ switch args.latmove : {
 						ROOM = ROOM_DOWN_SW
 
 						UPDATEWORLDCOORD
+						break
 						}
 					}
 				}
@@ -599,6 +625,8 @@ switch depmove : {
 			PLAYER.pos.y = ROOM.downstair.y
 			}
 		PLAYER.pos.z = 0
+		break
+		}
 	default : {
 		if (home) {
 			PLAYER.pos.x = ROOM.home.x
@@ -608,6 +636,9 @@ switch depmove : {
 			PLAYER.pos.y = ROOM.upstair.y
 			}
 		PLAYER.pos.z = CEILING
+		break
+		}
+	}
 
 GLOBREG.NEW = true
 GLOBREG.FIRST = !(ROOM→visited)
