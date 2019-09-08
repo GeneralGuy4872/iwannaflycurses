@@ -1,3 +1,5 @@
+This branch exists as a reference for future implementation of the room buffer. It mostly consists of pseudocode or natural language, and does not compile.
+
 **prealpha stats:**
 - ➤ *outline*
 - ➤ *implementation*
