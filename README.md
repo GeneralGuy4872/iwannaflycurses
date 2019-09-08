@@ -29,11 +29,11 @@ Obfuscated C
 
 To save my poor eyes, I'm using the following macros for C builtins:
 
-<CODE>≥</CODE> means <CODE>\>=</CODE>
-<CODE>≤</CODE> means <CODE>\<=</CODE>
-<CODE>→</CODE> means <CODE>-\></CODE>
-<CODE>←</CODE> means <CODE>|=</CODE>
-<CODE>forever</CODE> means <CODE>for (;;)</CODE>
+- <CODE>≥</CODE> means <CODE>\>=</CODE>
+- <CODE>≤</CODE> means <CODE>\<=</CODE>
+- <CODE>→</CODE> means <CODE>-\></CODE>
+- <CODE>←</CODE> means <CODE>|=</CODE>
+- <CODE>forever</CODE> means <CODE>for (;;)</CODE>
 
 I am given to understand that using macros for functions like this
 is called "obfuscated C"
