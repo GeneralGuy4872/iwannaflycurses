@@ -741,6 +741,7 @@ skip:
 				}
 			}
 		}
+	RESETNEIGHBORHOOD
 	if (current == NULL) {
 		current = datakeeper.hydra_ptr
 		ptrnext = datakeeper.hydra_ptr→next
