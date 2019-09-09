@@ -1,4 +1,12 @@
 #error NOT READY FOR COMPILATION
+/* functions will vacate from this file eventually,
+ * but since it is mostly typedef and struct declarations,
+ * it will probably become main.h, but might become
+ * main.c or another signifigant file.
+ * I can't simply delete my scratchpad (this file)
+ * since that would wreak havok on the git history.
+ */
+
 /* Hey, you. yeah, you. who do you think I'm talking to; the mouse?
  *
  * you found the seeecret extended documentation, aka the source code!
@@ -1210,7 +1218,8 @@ the following algorithems can be combined to generate terrain:
  */
 
 float test_dijkstra(bool ortho,schar mode,uchar runningnorm,coord3 pointa,coord3 pointb,bool fly,bool swim)	//replace && taxicab && ortho would equal norm1 exactly
-dijkstra(bool ortho,schar mode,uchar runningnorm,schar tile,coord3 pointa,coord3 pointb,bool fly,bool swim)
+#include "dijkstra.c"
+/*setcoord3* dijkstra(bool ortho,schar mode,uchar runningnorm,schar tile,coord3 pointa,coord3 pointb,bool fly,bool swim)*/
 	//nearest path head first, no information about room or relative location.
 
 float test_astar(bool ortho,astarparamtyp params,coord3 pointa,coord3 pointb,bool fly,bool swim)	//replace && !(taxicab || ortho) would approximate to norm2, replace && taxicab && ortho would equal norm1 exactly
@@ -1505,8 +1514,8 @@ float weight
 uchar meta
 
 struct setpathnode {
-bool obs : 1	//obstructed
-bool win : 1	//selected path
+bool obs : 1	//obstruction
+bool ex : 1	//exclude
 unsigned char az : 3	//trajectory
 bool up : 1
 bool fwd : 1
@@ -1515,7 +1524,7 @@ float runningdist	//calculated running shortest-path distance from point a.
 float goaldist	//norm distance from point b
 
 struct pathfinderdata {
-ushort best
+float best
 setpathnode* grid	//note: scaler pointer, so can't be multi-subscripted. use COORDSUB
 setcoord3* hydra_ptr
 }
@@ -1542,12 +1551,13 @@ urhydra→x = xcoord
 urhydra→y = ycoord
 urhydra→z = zcoord
 
-output.morepoints = NULL
 output.grid = pathgrid
 output.hydra_ptr = urhydra
+
+return output
 }
 
-setpathobs(pathfinderdata* pathgrid,bool fly,bool swim)
+setpathobs(pathfinderdata* pathgrid,schar mode,bool fly,bool swim)
 
 //some specific use cases require spheres. these are simply numeric types.
 
@@ -1650,9 +1660,13 @@ uchar down : 4
   * monster aggro ranges are a cylinder
   */
 
-struct moneytyp:
-ushort gp : 17 //max 100,000
-uchar cp : 7 //1 gp = 100 cp
+struct moneytyp {
+ushort gp : 17
+uchar cp : 7
+}
+
+#define GOLDMAX = 130999
+#define COPPERMAX = 99
 
 /* crossbar logic operations are used for alignment masks.
  * these are union or intersection on special case subsets of a gridlike set of elements.
@@ -2479,15 +2493,16 @@ lightyp *lamp_ptr
  *     .tsv : UTF-8 text record deliminated with tabs and line breaks
  *     .dat : UTF-8 text record deliminated with non-printable C0 control characters
  *     .txt : UTF-8 text document. usually stored in the program's static files, which is CAT-ed to provide dialouge; also used in dumps of primatives
+ *     .raw : UTF-8 text document containing SGR sequences.
  *     .ini : key-value pairs. used in dumps of non-nested structs that do not contain pointers.
  *    .json : originally from javascript. used in data dumps of nested structs not containing pointers.
- *     .xml : used in data dumps for pointer-containing structs. will have an href= in the tag for the pointer, linked to the dump of the pointer's deref; /dev/null if null pointer.
- *  .tar.gz : each room is saved as a tar.gz file
+ *     .xml : used in data dumps for pointer-containing structs. will have an href= in the tag for the pointer, linked to the dump of the pointer's deref; or /dev/null if it is the null pointer.
+ *  .tar.gz : each room is saved as a tar.gz file, as are linked lists and the player
  * .tar.bz2 : each plane is saved as a tar.bz2 file. the save file itself is also a tar.bz2 file.
  *   .man.# : a manpage
  *    .html : extended documentation
  *      .md : extended documentation
- *   .ptr.d : non-null pointers are converted to directorys
+ *          : non-null pointers are converted to subdirectorys in saves. the tail element in a linked list has no subdirectory named "next", and "prev" pointers are implicitly stored as "/..".
  */
 
 struct mapgen_bordertyp {
@@ -3240,6 +3255,8 @@ ROOM.visited = true
 		current = previous
 		previous = previous→prev
 		}
+	free(current)
+	current = NULL
 	}
 	{
 	patrolistyp* current = ROOM→encon_ptr→prev
@@ -3251,6 +3268,8 @@ ROOM.visited = true
 		current = previous
 		previous = previous→prev
 		}
+	free(current)
+	current = NULL
 	}
 	{
 	enttyp* current = ROOM→encon_ptr→prev
@@ -3262,6 +3281,8 @@ ROOM.visited = true
 		current = previous
 		previous = previous→prev
 		}
+	free(current)
+	current = NULL
 	}
 	{
 	mapobjtyp* current = ROOM→encon_ptr→prev
@@ -3273,6 +3294,8 @@ ROOM.visited = true
 		current = previous
 		previous = previous→prev
 		}
+	free(current)
+	current = NULL
 	}
 	{
 	lightyp* current = ROOM→encon_ptr→prev
@@ -3284,6 +3307,8 @@ ROOM.visited = true
 		current = previous
 		previous = previous→prev
 		}
+	free(current)
+	current = NULL
 	}
 	return free(ROOM)
 }
