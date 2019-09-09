@@ -1,6 +1,11 @@
 core.autocrlf=false
 *.c = linguist-language=C
 *.h = linguist-language=C
+*.cc = linguist-language=C++
+*.hh = linguist-language=C++
+*.pas = linguist-language=Pascal
+*.p = linguist-language=Pascal
+*.a68 = linguist-language=Algol linguist-vendored=false diff
 *.awk = linguist-language=Awk
 *.pl = linguist-language=Perl
 *.cl = linguist-language=Lisp
@@ -9,8 +14,10 @@ core.autocrlf=false
 *.bas = linguist-language=BASIC linguist-vendored=false diff
 *.apl = linguist-language=APL linguist-vendored=false diff
 *.fth = linguist-language=forth  linguist-vendored=false diff
+*.asm = linguist-language=assembly
 *.lua = linguist-language=lua
 *.py = linguist-language=python
+*.js = linguist-language=javascript
 *.sh = linguist-language=Shell
 make = linguist-language=makefile
 *.ini = linguist-language=INI linguist-vendored=false diff
@@ -23,7 +30,7 @@ make = linguist-language=makefile
 *.messy = linguist-language=text linguist-documentation=false linguist-vendored=false
 *.man.* = linguist-documentation=true
 *.html = linguist-documentation=true
-*.txt = linguist-language=text linguist-documentation=false linguist-vendored=false diff
+*.txt = linguist-documentation=true linguist-vendored=false diff
 *.md = linguist-documentation=true
 notes/* = linguist-documentation=true
 *.hex = binary diff linguist-vendored=false
@@ -35,3 +42,4 @@ notes/* = linguist-documentation=true
 *.tar = binary diff linguist-vendored=false
 *.tar.* = binary diff linguist-vendored=false
 *.midi = binary diff linguist-vendored=false
+*.nfo = binary diff linguist-documentation=true linguist-vendored=false

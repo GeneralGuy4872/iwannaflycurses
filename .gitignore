@@ -1,14 +1,11 @@
 #exclude files generated when compiling
 **/*.o
+**/*.so
+**/*.xso
 **/*.out
-**/*.obj
-**/*.elf
 **/*.bin
-conf.ini
-old_conf.ini
-date
 #exclude files generated while testing
-**/*.save
+**/*.sav
 **/*.log
 #exclude temporary files
 **/*.tmp

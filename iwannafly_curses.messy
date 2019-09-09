@@ -165,7 +165,7 @@ addnwstr(&wch,1);
 #define GM_VERSION "0.0"
 #define DEVEL_STATE "Prealpha"
 #define SAVE_FORMAT "raw dump"
-#define COMPR_VERS "libtar, zlib, libbz2
+#define COMPRESSION "libtar, zlib, libbz2
 #define REV_RULES "0.0"
 #define REV_EVENTS "0.0"
 #define REV_FILES "0.0"
@@ -183,7 +183,7 @@ char16_t TILDEWIDE = setwidetilde()
 #define INTERVAL(A,N,B) MIN(MAX(N,A),B)
 #define COORDSUB(Z,Y,X) ((MAX_Y * Z) + (MAX_X * Y) + X)
 #define BREAKCURSES scr_dump(CURSESSCRBUFFER);clear();refresh();move(0,0);
-#define FIXCURSES printf("\033c\033[2J\033[0H");scr_restore(CURSESSCRBUFFER);
+#define FIXCURSES printf("\033c\033[0H");clear();scr_restore(CURSESSCRBUFFER);
 #define forever for (;;)
 
 //prettify the tokens my eyes don't parse
@@ -320,9 +320,14 @@ struct hintyp {
 eventidentyp eventident
 char* text
 }
-//initially loaded from a C0-deliminated .dat file; manipulated by events.
+//initially loaded from a C0-deleminated value record; manipulated by events.
 
-struct 
+struct epitaphtyp {
+(self) *prev
+(self) *next
+char* text
+}
+//used to store death messages
 
 /* typedef struct Rune {
  * ulong sym : 24;
@@ -1217,13 +1222,13 @@ the following algorithems can be combined to generate terrain:
  * loosing the war regarding memory usage, another will likely be the save file format.
  */
 
-float test_dijkstra(bool ortho,schar mode,uchar runningnorm,coord3 pointa,coord3 pointb,bool fly,bool swim)	//replace && taxicab && ortho would equal norm1 exactly
+float test_dijkstra(bool ortho,schar mode,uchar runningnorm,coord3 pointa,coord3 pointb,bool fly,bool swim,roomtyp* activeroom)	//replace && taxicab && ortho would equal norm1 exactly
 #include "dijkstra.c"
-/*setcoord3* dijkstra(bool ortho,schar mode,uchar runningnorm,schar tile,coord3 pointa,coord3 pointb,bool fly,bool swim)*/
+/*setcoord3* dijkstra(bool ortho,schar mode,uchar runningnorm,schar tile,coord3 pointa,coord3 pointb,bool fly,bool swim,roomtyp* activeroom)*/
 	//nearest path head first, no information about room or relative location.
 
-float test_astar(bool ortho,astarparamtyp params,coord3 pointa,coord3 pointb,bool fly,bool swim)	//replace && !(taxicab || ortho) would approximate to norm2, replace && taxicab && ortho would equal norm1 exactly
-astar(bool ortho,astarparamtyp params,schar tile,coord3 pointa,coord3 pointb,bool fly,bool swim)
+float test_astar(bool ortho,astarparamtyp params,coord3 pointa,coord3 pointb,bool fly,bool swim,roomtyp* activeroom)	//replace && !(taxicab || ortho) would approximate to norm2, replace && taxicab && ortho would equal norm1 exactly
+astar(bool ortho,astarparamtyp params,schar tile,coord3 pointa,coord3 pointb,bool fly,bool swim,roomtyp* activeroom)
 	/* - operates with knowlage of the norm distance to the destination
 	 * 	path heads try to move closer first, whenever possible.
 	 * 	should generalize an unobstructed path to a raster line if norm distance is calculated in norm2
@@ -1248,12 +1253,12 @@ setedge* norm_completegraph(uchar norm,setcoord3 *coordlist)	//errors on invalid
 setedge* pathfinder_completegraph(bool ortho,astarparamtyp params,setcoord3 *coordlist,bool fly,bool swim)
 setedge* random_completegraph(setcoord3 *coordlist)
 
-prim(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist)
+prim(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist,roomtyp* activeroom)
 	/* shortest connected edge first
 	 * edges are moved from a complete graph to a final graph
 	 */
 
-kruskal(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist)
+kruskal(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist,roomtyp* activeroom)
 	/* disjoint sets use the meta field of the setedge type
 	 *
 	 * before a new disjoint set is created, the existing list is checked
@@ -1264,14 +1269,14 @@ kruskal(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *co
 	 * edges are moved from a complete graph to a final graph
 	 */
 
-revdelete(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist)
+revdelete(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist,roomtyp* activeroom)
 	/* something compleatly different
 	 * longest edge is removed from a complete graph and held
 	 * graph is then tested to ensure that all points are connected (using dijkstra's)
 	 * if so, edge is removed. if not, edge is put back and ignored permenantly.
 	 */
 
-sollin(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist)
+sollin(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist,roomtyp* activeroom)
 	/* disjoint sets use the meta field of the setedge type
 	 *
 	 * before a new disjoint set is created, the existing list is checked
@@ -1286,12 +1291,12 @@ cubeshell(bool replace,schar tile,coord3 pointa,coord3 pointb)
 normfill(bool replace,schar tile,normenum norm,coord3 center,float radius)
 normshell(bool replace,schar tile,normenum norm,coord3 center,float radius)
 
-setcoord3* makemaze(uchar ceilheight,bool do_upstair,bool do_downstair,uchar gridspacing,mazealignparamtyp maze)	//sets basic aspects of the room, generates a grid of points, puts upstair, downstair, and home on that grid.
+setcoord3* makemaze(uchar ceilheight,bool do_upstair,bool do_downstair,uchar gridspacing,mazealignparamtyp maze,roomtyp* activeroom)	//sets basic aspects of the room, generates a grid of points, puts upstair, downstair, and home on that grid.
 
-addwalls(schar tile,coord3 pointa,coord3 pointb)	//outlines all currently generated tiles inside pointa and pointb
-replacetiles(schar foo,schar bar)
+addwalls(schar tile,coord3 pointa,coord3 pointb,roomtyp* activeroom)	//outlines all currently generated tiles inside pointa and pointb
+subtiles(schar foo,schar bar,roomtyp* activeroom)
 
-attractor(bool replace,schar tile,setcoord *coordlist,uchar iterations,bool invert)
+attractor(bool replace,schar tile,setcoord *coordlist,uchar iterations,bool invert,roomtyp* activeroom)
 	/* uchar xcoord = roll 1dMAX_X
 	 * uchar ycoord = roll 1dMAX_Y
 	 * uchar zcoord = roll 1dCEILING
@@ -1313,14 +1318,14 @@ attractor(bool replace,schar tile,setcoord *coordlist,uchar iterations,bool inve
 	 *	}
 	 */
 
-spikenoise(replace,tile,floor or ceiling)
+spikenoise(replace,tile,floor or ceiling,roomtyp* activeroom)
 	/* generate a (MAX_X/4) by (MAX_Y/4) array of random vector2's. 
 	 * make an 8*8 gradient from a vector.
 	 * sum it onto a MAX_X*MAX_Y array of values, spaced every 4 lines, each quadrent overlapping.
 	 * values of less than zero are flat, values greater are spikes.
 	 */
 
-hailofdice(replace,tile,number)
+hailofdice(replace,tile,number,roomtyp* activeroom)
 	//while number { roll(1dMAX_X,1dMAX_Y,1dCEILING); put tile; number--; }
 
 /* generate a room at coordinates foo:
@@ -2488,17 +2493,21 @@ lightyp *lamp_ptr
 
 /*      .r8 : binary data that is organized into 8 bit segments
  *     .r16 : binary data that is organized into 16 bit segments
+ *     .r24 : binary data that is...you get the picture, right?
+ *     .r32 : 
  *     .hex : binary data that is unorganized
  *     .csv : UTF-8 text record deliminated with commas and line breaks
  *     .tsv : UTF-8 text record deliminated with tabs and line breaks
- *     .dat : UTF-8 text record deliminated with non-printable C0 control characters
+ *     .tab : identical to tsv, don't mix them.
+ *     .dat : UTF-8 text record deliminated with non-printable C0 control characters $1C through $1F. fields can contain newlines, commas, tabs, and escape sequences.
  *     .txt : UTF-8 text document. usually stored in the program's static files, which is CAT-ed to provide dialouge; also used in dumps of primatives
- *     .raw : UTF-8 text document containing SGR sequences.
+ *     .nfo : UTF-8 text document (not CP437) containing SGR sequences. otherwise identical to txt.
  *     .ini : key-value pairs. used in dumps of non-nested structs that do not contain pointers.
  *    .json : originally from javascript. used in data dumps of nested structs not containing pointers.
  *     .xml : used in data dumps for pointer-containing structs. will have an href= in the tag for the pointer, linked to the dump of the pointer's deref; or /dev/null if it is the null pointer.
  *  .tar.gz : each room is saved as a tar.gz file, as are linked lists and the player
- * .tar.bz2 : each plane is saved as a tar.bz2 file. the save file itself is also a tar.bz2 file.
+ * .tar.bz2 : each plane is saved as a tar.bz2 file.
+ *     .sav : a save file. formatted as a .tar.bz2 file tree
  *   .man.# : a manpage
  *    .html : extended documentation
  *      .md : extended documentation
@@ -2951,13 +2960,15 @@ box drawings:
  ╞╪╡flat ╠╬╣upright
  ╘╧╛     ╚╩╝
 
-
-A_BOLD symbols are petrified (statues).
+A_BOLD has no special meaning, since this is the only way to get 16 colors
+A_ITALIC symbols are petrified (statues).
 A_BLINK is a tile that is out of view
 if an object or entity is not able to be seen for any reason, it is rendered A_INVIS or not at all
 A_REVERSE video is a magic spell's area of effect
 A_UNDERLINE is the shadow of an entity
-A_ITALIC may be used in text
+
+text that is catted from an nfo file, or otherwise printed using stdio, will not be restricted to ncurses formatting,
+and will use the full range of ANSI+AIX SGR escape codes
 
 rune symbols
 ◬ air, ⍫ earth, △ fire, ▽ water, ⍰ missingno
@@ -2986,7 +2997,8 @@ monospaced raster fonts presented light-on-dark can be unappealing to the uninit
 other nonstandard punctuation that is not used to disambiguate meaning (♪, ♥, ♩♯, ↯, ☠) helps to paint the medium, making the dialouge come alive;
 for the same reason, dialouge should be colored and styled as appropriate whenever possible.
 
-/* if digging causes a ≈ or ∬ to become uncontained, it will immediately spawn a ∿
+/* rotten?
+ * if digging causes a ≈ or ∬ to become uncontained, it will immediately spawn a ∿
  * which leaves ≃ or ∬ behind it when it moves. it's behavior differs depending on
  * the liquid's viscosity:
  * 	highly viscus (lava): deflected only by solid objects,
@@ -3064,7 +3076,7 @@ jelly* jam* preserves* peanutbutter
 icecube snow ember blacksoup
 broth* stew* ration mistake
 
-/*pseudocode*/playermove(xmove,ymove,zmove)
+/*rotten pseudocode*/playermove(xmove,ymove,zmove)
 schar xmove
 schar ymove
 schar zmove
@@ -3127,7 +3139,7 @@ PLAYER.pos.z += zmove
 	- if you are, adds {-xmove,-ymove,-zmove} to your velocity
 	  (half this value in liquids)
 
-/*pseudocode*/mapwarp(destination,tocoord)
+/*rotten pseudocode*/mapwarp(destination,tocoord)
 latlontyp destination
 coord3 tocoord
 {
@@ -3138,7 +3150,7 @@ WORLD = destination
 mapscrollargs nullscroll = {0,0,0,false,false}
 mapscroll(nullscroll)
 
-loadroom()
+loadroom(WORLD)
 
 if ((tocoord.x ≥ MAX_X) || (tocoord.y ≥ MAX_Y) || (tocoord.z ≥ CEILING)) {
 	PLAYER.pos.x = ROOM.home.x
@@ -3170,8 +3182,8 @@ bool home : 1
 /*implicit*/mapscroll(args)
 mapscrollargs args
 {
-saveroom()
-freeroom()
+saveroom(NULL)
+freeroom(NULL)
 WORLD.coord.lat += args.latmove
 if (WORLD.coord.lat > EQUATOR/4) {
 	WORLD.coord.lat = EQUATOR/2 - WORLD.coord.lat
@@ -3201,7 +3213,7 @@ if ((args.depmove < 0) && (WORLD.coord.dep = 0)) {
 	WORLD.coord.lat = -WORLD.coord.lat
 	if (WORLD.coord.lon == -EQUATOR/2) {WORLD.coord.lon = 0}
 	else {WORLD.coord.lon = -WORLD.coord.lon}
-}
+	}
 else if ((args.depmove > 0) && (WORLD.coord.dep = ROOF)) {
 	/* death message (one of the following):
 	 * flew too close to the sun
@@ -3211,7 +3223,7 @@ else if ((args.depmove > 0) && (WORLD.coord.dep = ROOF)) {
 	 * froze to death in outer space
 	 * became lost...in...spaaace!
 	 */
-}
+	}
 WORLD.coord.dep += args.depmove
 if (depmove ≥ 0) : {
 	if (home) {
@@ -3234,22 +3246,25 @@ else {
 	PLAYER.pos.z = CEILING
 	}
 
-ROOM = loadroom()
+ROOM = loadroom(WORLD)
 
 GLOBREG.NEW = true
 GLOBREG.FIRST = !(visited)
 ROOM.visited = true
 }
 
-/*pseudocode*/saveroom()
-//saves the current room
+/*pseudocode*/saveroom(roomtyp*)
+//saves the room pointed to, or the current room if NULL
 
-/*implicit*/freeroom() {
+/*implicit*/freeroom(roomptr)
+roomtyp* roomptr
+{
+if (roomptr == NULL) {roomptr = ROOM}
 	{
-	encontyp* current = ROOM→encon_ptr→prev
-	encontyp* previous = ROOM→encon_ptr→prev→prev
-	ROOM→encon_ptr→prev→next = NULL
-	ROOM→encon_ptr→prev = NULL
+	encontyp* current = roomptr→encon_ptr→prev
+	encontyp* previous = roomptr→encon_ptr→prev→prev
+	roomptr→encon_ptr→prev→next = NULL
+	roomptr→encon_ptr→prev = NULL
 	while (previous != NULL) {
 		free(current)
 		current = previous
@@ -3259,10 +3274,10 @@ ROOM.visited = true
 	current = NULL
 	}
 	{
-	patrolistyp* current = ROOM→encon_ptr→prev
-	patrolistyp* previous = ROOM→encon_ptr→prev→prev
-	ROOM→encon_ptr→prev→next = NULL
-	ROOM→encon_ptr→prev = NULL
+	patrolistyp* current = roomptr→encon_ptr→prev
+	patrolistyp* previous = roomptr→encon_ptr→prev→prev
+	roomptr→encon_ptr→prev→next = NULL
+	roomptr→encon_ptr→prev = NULL
 	while (previous != NULL) {
 		free(current)
 		current = previous
@@ -3272,10 +3287,10 @@ ROOM.visited = true
 	current = NULL
 	}
 	{
-	enttyp* current = ROOM→encon_ptr→prev
-	enttyp* previous = ROOM→encon_ptr→prev→prev
-	ROOM→encon_ptr→prev→next = NULL
-	ROOM→encon_ptr→prev = NULL
+	enttyp* current = roomptr→encon_ptr→prev
+	enttyp* previous = roomptr→encon_ptr→prev→prev
+	roomptr→encon_ptr→prev→next = NULL
+	roomptr→encon_ptr→prev = NULL
 	while (previous != NULL) {
 		free(current)
 		current = previous
@@ -3285,10 +3300,10 @@ ROOM.visited = true
 	current = NULL
 	}
 	{
-	mapobjtyp* current = ROOM→encon_ptr→prev
-	mapobjtyp* previous = ROOM→encon_ptr→prev→prev
-	ROOM→encon_ptr→prev→next = NULL
-	ROOM→encon_ptr→prev = NULL
+	mapobjtyp* current = roomptr→encon_ptr→prev
+	mapobjtyp* previous = roomptr→encon_ptr→prev→prev
+	roomptr→encon_ptr→prev→next = NULL
+	roomptr→encon_ptr→prev = NULL
 	while (previous != NULL) {
 		free(current)
 		current = previous
@@ -3298,10 +3313,10 @@ ROOM.visited = true
 	current = NULL
 	}
 	{
-	lightyp* current = ROOM→encon_ptr→prev
-	lightyp* previous = ROOM→encon_ptr→prev→prev
-	ROOM→encon_ptr→prev→next = NULL
-	ROOM→encon_ptr→prev = NULL
+	lightyp* current = roomptr→encon_ptr→prev
+	lightyp* previous = roomptr→encon_ptr→prev→prev
+	roomptr→encon_ptr→prev→next = NULL
+	roomptr→encon_ptr→prev = NULL
 	while (previous != NULL) {
 		free(current)
 		current = previous
@@ -3310,15 +3325,19 @@ ROOM.visited = true
 	free(current)
 	current = NULL
 	}
-	return free(ROOM)
+	return free(roomptr)
 }
 
-roomtyp* loadroom()
+roomtyp* loadroom(latlontyp)
 //loads room indicated by WORLD
 
 /*pseudocode*/saveworld()
 /*pseudocode*/loadworld()
 //sync and load the files for planes
+
+/*pseudocode*/loadgame()
+/*pseudocode*/savegame()
+//loading and saving of the entire file
 
 /*pseudocode implicit*/castshadow(xpos,ypos,zpos)
 uchar xpos
@@ -3394,7 +3413,7 @@ uchar zcoord
 {
 if (zcoord ≥ 100) {return MAX_Z - 1;}
 div_t tmp = div(zcoord,2)
-if (tmp.quot > 50) {ERROR_GRAPHIC("math: heisenbug",'u',(tmp.quot * 2) + tmp.rem,'u',MAX(zcoord,99),false); return false}
+if (tmp.quot > 50) {ERROR_GRAPHIC("math: impossible (heisenbug)",'u',(tmp.quot * 2) + tmp.rem,'u',MAX(zcoord,99),true); return false}
 switch (tmp.rem) : {
 	case 0 : return MAPGENHIGHTS[tmp.quot].lo;
 	case 1 : return MAPGENHIGHTS[tmp.quot].hi;
@@ -3407,7 +3426,7 @@ uchar id
 {
 if (id > 31) {ERROR_GRAPHIC("math: out of bounds",'u',id,'u',31,false); return false}
 div_t tmp = div(id,8)
-if (tmp.quot > 3) {ERROR_GRAPHIC("math: heisenbug",'u',(tmp.quot * 8) + tmp.rem,'u',MAX(id,31),false); return false}
+if (tmp.quot > 3) {ERROR_GRAPHIC("math: impossible (heisenbug)",'u',(tmp.quot * 8) + tmp.rem,'u',MAX(id,31),true); return false}
 switch (tmp.rem) : {
 	case 0 : return conlangx[tmp.quot].a;
 	case 1 : return conlangx[tmp.quot].b;
@@ -3550,28 +3569,47 @@ bool downstair : 1
 }
 
 enginehook() {
-	printf("\033c\033[2J\033[0H\n\n \033[1;95m~~ Iwannafly Roguelike Engine : %s ~~\033[m\n\033[97m  gamemaster version: %s\n       savefile type: %s\n    compression type: %s\n     sound interface: %s\n\n \033[96m - %s -\033[m\n\033[97m      RPG rules revision: %s\nstory event API revision: %s\n   file handler revision: %s\n\n\033[37mCompiled on %s\n\033m\a",GAMENAME,GM_VERSION,SAVE_FORMAT,COMPRESSION,"deferred",DEVEL_STATE,REV_RULES,REV_EVENTS,REV_FILES,__DATE__);
+	printf("\033c\033[0H\n\n \033[1;95m~~ Iwannafly Roguelike Engine : %s ~~\033[m\n\033[97m  gamemaster version: %s\n       savefile type: %s\n    compression type: %s\n     sound interface: %s\n\n \033[96m - %s -\033[m\n\033[97m      RPG rules revision: %s\nstory event API revision: %s\n   file handler revision: %s\n\n\033[37mCompiled on %s\n\033m\a",GAMENAME,GM_VERSION,SAVE_FORMAT,COMPRESSION,"deferred",DEVEL_STATE,REV_RULES,REV_EVENTS,REV_FILES,__DATE__);
+	fflush(stdout);
 	sleep(10);
-	printf("\033c\033[2J\033[0H\033[1;32m\tCopyright (C) 2019 "GeneralGuy4872"\n\n\tThis program is free software; you can redistribute it and/or\n\tmodify it under the terms of the GNU General Public License\n\tas published by the Free Software Foundation; either version 2\n\tof the License, or (at your option) any later version.\n\n\tThis program is distributed in the hope that it will be useful,\n\tbut WITHOUT ANY WARRANTY; without even the implied warranty of\n\tMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n\tGNU General Public License for more details.\n\n\tYou should have received a copy of the GNU General Public License\n\talong with this program.  If not, see \033[4,94mhttps://www.gnu.org/licenses/\033[1;32m.\a");
+	printf("\033c\033[0H\033[1;32m\tCopyright (C) 2019 \"GeneralGuy4872\"\n\n\tThis program is free software; you can redistribute it and/or\n\tmodify it under the terms of the GNU General Public License\n\tas published by the Free Software Foundation; either version 2\n\tof the License, or (at your option) any later version.\n\n\tThis program is distributed in the hope that it will be useful,\n\tbut WITHOUT ANY WARRANTY; without even the implied warranty of\n\tMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n\tGNU General Public License for more details.\n\n\tYou should have received a copy of the GNU General Public License\n\talong with this program.  If not, see \033[4,94mhttps://www.gnu.org/licenses/\033[1;32m.\a");
+	fflush(stdout);
 	sleep(9);
-	printf("\033c\033[2J\033[0H\033[92mLibraries linked:\nncurses by Zeyd M Ben-Halim, Eric S. Raymond, Thomas E Dickey and the Free Software Foundation\nlibtar by Mark D. Roth\nzlib by Jean-loup Gaully and Mark Adler\nlibbzip2 by Julian Steward");
+	printf("\033c\033[0H\033[92mLibraries linked:\nNCurses by Zeyd M Ben-Halim,\n           Eric S. Raymond,\n           Thomas E Dickey\n           and the Free Software Foundation\nLibTar by Mark D. Roth\nZlib by Jean-loup Gaully and Mark Adler\nLibBZip2 by Julian Steward");
+	fflush(stdout);
 	sleep(8);
-	printf("\033c\033[2J\033[0H\033[92mAlgorithems Implemented:\nDijkstra's Algorithem\nPrim's Algorithem\nKruskal's Algorithem and Kruskal's Reverse Algorithem\nBorůvka's Algorithm\nRolling Dice\nSierpiński Attractor\nPerlin Noise\a");
+	printf("\033c\033[0H\033[92mAlgorithems Implemented:\nDijkstra's Algorithem\nPrim's Algorithem\nKruskal's Algorithem and Kruskal's Reverse Algorithem\nBorůvka's Algorithm\nRolling Dice\nSierpiński Attractor\nPerlin Noise\a");
+	fflush(stdout);
 	sleep(7);
-	printf("\033c\033[2J\033[0H\033[95mContains compositions by Beethoven, Bach, and Vivaldi\a");
+	printf("\033c\033[0H\033[95mContains compositions by Beethoven, Bach, and Vivaldi\a");
+	fflush(stdout);
 	sleep(6);
-	printf("\033c\033[2J\033[0H\a");
+	printf("\033c\033[0H\a");
+	fflush(stdout);
 	sleep(5);
-	printf("\033[1;3,96mIn a WORLD...\a");	//scene
+	printf("\033c\033[0H\033[1;3,96mIn a WORLD...\a");	//scene
+	fflush(stdout);
 	sleep(4);
-	printf("\033[93m >>>TEXT HERE<<< \a");	//scene
+	printf("\033c\033[0H\033[93m >>>TEXT HERE<<< \a");	//scene
+	fflush(stdout);
 	sleep(3);
-	printf("\033[93m >>>TEXT HERE<<< \a");	//scene
+	printf("\033c\033[0H\033[93m >>>TEXT HERE<<< \a");	//scene
+	fflush(stdout);
 	sleep(2);
-	printf("\033c\033[2J\033[0H\033[5m_\a");
+	printf("\033c\033[0H\033c\033[2J\033[0H\033[5m_\a");
+	fflush(stdout);
 	sleep(1);
-	printf("\033c\033[2J\033[0HIt is pitch black...\a\a\a\a\a");
+	printf("\033c\033[0HSo it begins...\a");
+	fflush(stdout);
 	do_intro_movie();
-	turnloop();
+	loadfile();
 
-//todo: buffer 1 room in all 26 directions
+/*pseudocode*/exitengine()
+//atexit
+
+void death(path/to/epitaphs)
+/* kills player with epitaph from list
+ * records high score
+ * saves
+ * calls exit stuff
+ */
