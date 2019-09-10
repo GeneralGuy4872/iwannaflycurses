@@ -13,13 +13,21 @@
  * the sorce code, and witty comments, are intended to supplement the
  * manpages, as well as give a deeper understanding of the program.
  *
- * If dynamic linking is used, a game linked against this library must
- * itself be an EXECUTABLE SHARED OBJECT LIBRARY, so that the savefile
- * utility programs can link to it. note that the game will live in
- * $PATH, not LD_LIBRARY_PATH, and linking should be done accordingly.
- *
- * (If the game is dynamicly linked to a library containing the engine,
- * that library will likely be unexeptional.)
+ * the engine should be compiled as a shared object and placed in LD_LOAD_PATH.
+ * a game compiled for the engine should obey the following conventions:
+ * - it should provide the bulk of it's functions in a shared library in a private
+ * 	application directory
+ * - it should provide special use functions, such as events, as seperate shared objects,
+ * 	which are lazy loaded
+ * - it should provide special use constants likewise, with the dat extension.
+ * 	blocks of text, however, should be regular nfo or txt
+ * - it should store any dynamic constants in the savefile, as .r#, hex, tsv, txt, or nfo
+ * - it should provide at least the following applications (in $PATH) :
+ * 	- the game itself
+ * 	- a seperate program for generating a new savefile
+ * 	- a savefile editor
+ * the savefile editor may be independent, or linked to the game and generator,
+ * in which case those should be executable shared libraries.
  *
  * enviromental requirements:
  * - UTF-8 terminal of at least 25*80 characters
@@ -27,8 +35,7 @@
  * 		it is a raster font; monospaced raster fonts are more uniform in width than the majority of vector so-called "monospaced" fonts;
  * 		it is unicode, having a wide range of characters; and
  * 		it is extreamly common, being the default font for the linux console, xterm, and urxvt)
- * - 8 colors
- * - Bold, Italic, Underline, Reverse, Blink, Invisible text effects
+ * - Color, Dim, Bold, Italic, Underline, Reverse, Blink, Invisible text effects
  * 	(ncurses will take care of this)
  * - Full Keyboard, Mouse
  * 	(most keyboard layouts with all ASCII characters *should*
@@ -92,7 +99,13 @@
  * 	a thing, and the actual way that a library or driver expects it to be
  * 	formatted. So far, the only use of this layer will be in MIDI.
  *
+ * an extension language interpreter will be provided for the API
+ * this will be implemented using flex&byacc, and will provide a
+ * c-like syntax. this language will be single-pourpose, and will
+ * provide callbacks to the running game.
  *
+ * an runcontrol-file interpreter will be writen this way as well,
+ * to be used by the new savefile generator.
  *
  * GPLv2 or later, All Wrongs Reserved
  */
@@ -112,12 +125,14 @@
 #include <string.h>
 #include <ctype.h>
 #include <uchar.h>
+#include <dlfcn.h>
 
 /**system libraries**/
 #include <unistd.h>
 #include <signal.h>
 #include <locale.h>
 //#include <regex.h>
+//#include <dirent.h>
 //#include <sys/types.h>
 //#include <sys/ioctl.h>
 //#include <fcntl.h>
@@ -151,9 +166,10 @@ addnwstr(&wch,1);
  * using narrow characters with printw or addch
  * using wide characters with these functions
  * setting attributes with attrset, attron, attroff, and chgat
- * 	uses A_BOLD, A_ITALIC, A_UNDERLINE, A_REVERSE, A_BLINK, A_INVIS, and 64 color pairs made from 8 colors
- * using the above custom functions to put wide characters on the screen
- * using addstr, addnstr, addwstr, addnwstr to print strings
+ * 	uses A_DIM, A_BOLD, A_ITALIC, A_UNDERLINE, A_REVERSE, A_BLINK, A_INVIS,
+ * 	and 64 color pairs made from 8 colors
+ * using the above custom functions to put wide characters on
+ * the screen using addstr, addnstr, addwstr, addnwstr to print strings
  * pausing curses and dumping an entire file with printf
  */
 
@@ -253,11 +269,11 @@ switch (got) : {
  * decoded radix-50 name. once only one match remains, it will be shown
  * on-screen in reverse video mode, and can be inserted with tab.
  * autocomplete is not implemented for item or entity names; an exact
- * match must be found in the stabs. underscores in the entry are
- * replaced by spaces.
+ * match must be found by the parser, in a stabs table
  *
  * once the enter key is pressed, the temp file is rewound.
- * fscanf is used to process tokens.
+ * a LALR (flex/byacc) parser is used to process the tokens
+ *
  * interpretation mode will change depending on the syntax.
  * invalid commands may produce the response
  * "Don't know how to <command>", amoungst others.
@@ -943,7 +959,7 @@ return accum;
 
 #define MISSING_FILE(F) fprintf(stderr,"File \"%s\" not found",F); move(22,2); attrset(COLOR_PAIR((BACKGROUND*COLOR_RED)+COLOR_WHITE); printw("File Error : \"%s\"",F); attroff(COLOR_PAIR((BACKGROUND*COLOR_RED)+COLOR_WHITE);
 
-file_cat (path)
+/*implicit*/file_cat (path)
 const char *path;
 {
 FILE *openfile = fopen(path,"r");
@@ -1127,21 +1143,24 @@ forever {
 	ch = getch();
 	if ((ch > UCHAR_MAX) || (ch < 0)) {
 		switch ch : {
-			case KEY_ENTER : move(y,x); rewind(LINEBUFFER); return 0;
-			case KEY_BACKSPACE : move(y,x); rewind(LINEBUFFER); return -1;
+			case KEY_ENTER : move(y,x); fputc('\n',LINEBUFFER); rewind(LINEBUFFER); return 0;
+			case KEY_BACKSPACE : move(y,x); rewind(LINEBUFFER); return 4;
 			case KEY_HOME : move(y,x); rewind(LINEBUFFER); break;
 			case KEY_LEFT : move(y,x); rewind(LINEBUFFER); break;
 			case KEY_SLEFT : move(y,x); rewind(LINEBUFFER); break;
 			default : break;
 			} break;
 		}
-	else {
+	else if (ch < ' ') {
 		switch ch : {
-			case 0x17 : move(y,x); rewind(LINEBUFFER); return -1;
-			case '\n' : move(y,x); rewind(LINEBUFFER); return 0;
-			case '\b' : move(y,x); rewind(LINEBUFFER); return -1;
-			default: fputc(ch,LINEBUFFER); break;
+			case 0x17 : move(y,x); rewind(LINEBUFFER); return 4;
+			case '\n' : move(y,x); fputc('\n',LINEBUFFER); rewind(LINEBUFFER); return 0;
+			case '\b' : move(y,x); rewind(LINEBUFFER); return 4;
+			default: break;
 			}
+		}
+	else {
+		fputc(ch,LINEBUFFER);
 		printw(ch);
 		}
 	}
@@ -1184,171 +1203,6 @@ forever {
 fin:
 return (ulong) strtoul(hexbuffer,NULL,16);
 }
-
-/*pseudocode*/mapgenunderground
-rooms:
-for 0→50 do
-	roll <FOOdBAR> → index
-	rotateby 1d4
-	roll 1d(MAX_Y-subrooms[index].dim.y) → posY
-	roll 1d(MAX_X-subrooms[index].dim.x) → posX
-	roll 1d(8-subrooms[index].dim.z) → posZ
-	try put subrooms[index] at (posX,posY,posZ)
-	if !overlapping
-		draw room
-		block (room)
-		register (room's doors)
-
-struct astarparamtyp {
-schar mode : 2	//+>0=replace, 0=no replace no avoid, -<0=avoid nonzero or different
-schar pathtype : 2	//1=indecisive astar, 0=normal astar, -1=dijkstra-recursive astar, -2=dijkstra
-uchar weightnorm : 2	//norm used with the distance grid
-uchar runningnorm : 2	//norm used to keep running distance
-}
-
-struct mazealignparamtyp {
-bool xalign : 1	//align to !north or +south
-uchar xoff : 7
-bool yalign : 1	//align to !left or +right
-uchar yoff : 7
-}
-
-the following algorithems can be combined to generate terrain:
-/* ortho: disallow diagonal steps.
- * internal calculations might be done as intergers if there is no reason to expect floats
- * all other factors being equal, lower azimuth && lower elevation paths will be selected first
- *
- * note that the pathfinding is one of the most egregious examples of winning the battle and
- * loosing the war regarding memory usage, another will likely be the save file format.
- */
-
-float test_dijkstra(bool ortho,schar mode,uchar runningnorm,coord3 pointa,coord3 pointb,bool fly,bool swim,roomtyp* activeroom)	//replace && taxicab && ortho would equal norm1 exactly
-#include "dijkstra.c"
-/*setcoord3* dijkstra(bool ortho,schar mode,uchar runningnorm,schar tile,coord3 pointa,coord3 pointb,bool fly,bool swim,roomtyp* activeroom)*/
-	//nearest path head first, no information about room or relative location.
-
-float test_astar(bool ortho,astarparamtyp params,coord3 pointa,coord3 pointb,bool fly,bool swim,roomtyp* activeroom)	//replace && !(taxicab || ortho) would approximate to norm2, replace && taxicab && ortho would equal norm1 exactly
-astar(bool ortho,astarparamtyp params,schar tile,coord3 pointa,coord3 pointb,bool fly,bool swim,roomtyp* activeroom)
-	/* - operates with knowlage of the norm distance to the destination
-	 * 	path heads try to move closer first, whenever possible.
-	 * 	should generalize an unobstructed path to a raster line if norm distance is calculated in norm2
-	 * - does not switch to a different path head until one is exausted
-	 * 	(exausted: no more avalible moves, finds target, or reaches the length of the previously selected best path)
-	 * 	other heads are selected longest-first; when a winning path has been found, all longer heads are dropped
-	 * - when 2 equally weighted options are avalible, the head's execution continues on the path that has the most similar trajectory
-	 *
-	 * indecisive mode:
-	 * 	- does not abort until all other active heads have reached the length of the chosen path
-	 * 		node's parent is only replaced when it would result in a lower distance
-	 * 		these distances are propagated by re-placing a sethydra path head entry
-	 * 		at the point of update
-	 *
-	 * recursive mode:
-	 * 	- populates the grid using dijkstra from point b instead of norm distance from b.
-	 *
-	 * if mode is given as -2, gives soft warning (called wrong pathfinder function, n1=most negative number, n2=ortho) and then calls dijkstra()
-	 */
-
-setedge* norm_completegraph(uchar norm,setcoord3 *coordlist)	//errors on invalid norm
-setedge* pathfinder_completegraph(bool ortho,astarparamtyp params,setcoord3 *coordlist,bool fly,bool swim)
-setedge* random_completegraph(setcoord3 *coordlist)
-
-prim(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist,roomtyp* activeroom)
-	/* shortest connected edge first
-	 * edges are moved from a complete graph to a final graph
-	 */
-
-kruskal(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist,roomtyp* activeroom)
-	/* disjoint sets use the meta field of the setedge type
-	 *
-	 * before a new disjoint set is created, the existing list is checked
-	 * for an edge with non-zero membership that has a pointa or pointb
-	 * which matches either the pointa or pointb of the current edge
-	 *
-	 * overall shortest first
-	 * edges are moved from a complete graph to a final graph
-	 */
-
-revdelete(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist,roomtyp* activeroom)
-	/* something compleatly different
-	 * longest edge is removed from a complete graph and held
-	 * graph is then tested to ensure that all points are connected (using dijkstra's)
-	 * if so, edge is removed. if not, edge is put back and ignored permenantly.
-	 */
-
-sollin(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist,roomtyp* activeroom)
-	/* disjoint sets use the meta field of the setedge type
-	 *
-	 * before a new disjoint set is created, the existing list is checked
-	 * for an edge with non-zero membership that has a pointa or pointb
-	 * which matches either the pointa or pointb of the current edge
-	 *
-	 * node iteration→tree iteration ; shortest first
-	 */
-
-cubefill(bool replace,schar tile,coord3 pointa,coord3 pointb)
-cubeshell(bool replace,schar tile,coord3 pointa,coord3 pointb)
-normfill(bool replace,schar tile,normenum norm,coord3 center,float radius)
-normshell(bool replace,schar tile,normenum norm,coord3 center,float radius)
-
-setcoord3* makemaze(uchar ceilheight,bool do_upstair,bool do_downstair,uchar gridspacing,mazealignparamtyp maze,roomtyp* activeroom)	//sets basic aspects of the room, generates a grid of points, puts upstair, downstair, and home on that grid.
-
-addwalls(schar tile,coord3 pointa,coord3 pointb,roomtyp* activeroom)	//outlines all currently generated tiles inside pointa and pointb
-subtiles(schar foo,schar bar,roomtyp* activeroom)
-
-attractor(bool replace,schar tile,setcoord *coordlist,uchar iterations,bool invert,roomtyp* activeroom)
-	/* uchar xcoord = roll 1dMAX_X
-	 * uchar ycoord = roll 1dMAX_Y
-	 * uchar zcoord = roll 1dCEILING
-	 *
-	 * uint rotate = random()
-	 * for (;rotate;rotate--) {coordlist = coordlist→next}
-	 * xcoord = (xcoord + list→x) / 2
-	 * ycoord = (ycoord + list→y) / 2
-	 * zcoord = (zcoord + list→z) / 2
-	 * if ( (!tile(xcoord,ycoord,zcoord) || (replace) ) {put tile (xcoord,ycoord,zcoord)}
-	 *
-	 * for (;iterations;iterations--) {
-	 * 	uint rotate = random()
-	 * 	for (;rotate;rotate--) {coordlist = coordlist→next}
-	 * 	xcoord = (xcoord + list→x) / 2
-	 * 	ycoord = (ycoord + list→y) / 2
-	 * 	zcoord = (zcoord + list→z) / 2
-	 * 	if ( (!tile(xcoord,ycoord,zcoord) || (replace) ) {put tile(xcoord,ycoord,zcoord)}
-	 *	}
-	 */
-
-spikenoise(replace,tile,floor or ceiling,roomtyp* activeroom)
-	/* generate a (MAX_X/4) by (MAX_Y/4) array of random vector2's. 
-	 * make an 8*8 gradient from a vector.
-	 * sum it onto a MAX_X*MAX_Y array of values, spaced every 4 lines, each quadrent overlapping.
-	 * values of less than zero are flat, values greater are spikes.
-	 */
-
-hailofdice(replace,tile,number,roomtyp* activeroom)
-	//while number { roll(1dMAX_X,1dMAX_Y,1dCEILING); put tile; number--; }
-
-/* generate a room at coordinates foo:
- * If no room exists at foo, check ║2║∞ radius of foo for existing rooms,
- * generate any rooms in a ║1║∞ radius of these rooms && a ║2║∞ radius
- * of foo, with borderes synced. THEN check a ║1║∞ radius of foo for
- * existing rooms, and generate the room with borders synched.
- * While this is being done, show "Generating map..." at line 13, col 5.
- * Since it involves not just file operations, but also tar, this will
- * be painfully slow, but otherwise could cause players to end up inside
- * a wall or outside the map when rooms are panned.
- *
- * ("synched" borders prevent this by making edge obstructions unbreakable,
- * and making the sides of the room match. all room generation functions should
- * do this)
- *
- * floor heights are also uniform accross spherical shells when possible.
- */
-
-/* ai can use modifyed versions of dijkstra or any of the astar varients
- * particularly, they must be able to handle multiple destinations for the aggro ais
- * or the ability to cycle through a list of checkpoints for passive ais
- */
 
 struct turntyp:
 uchar sec : 6
@@ -1450,11 +1304,6 @@ float z
  * accumulates and persists until the ground is encountered.
  */
 
-struct pvector {
-unsigned char az : 4
-unsigned char r : 12
-}
-
 struct polar {
 uchar az : 3	//azimuth
 schar el : 2	//elevation
@@ -1495,6 +1344,21 @@ clock_t delay
  * next packet. set to 0 to send immidiately.
  */
 
+blittyp {
+(self) next
+uchar x : 7
+uchar y : 5
+uchar fg : 3
+uchar bg : 3
+bool dim
+bool bold
+bool italic
+bool under
+bool reverse
+bool blink
+clock_t delay
+}
+
 struct setcoord3:
 (self) *prev
 (self) *next
@@ -1502,99 +1366,12 @@ uchar x
 uchar y
 uchar z
 
-typedef setcoord3 setcoordneighborortho[8]
-typedef setcoord3 setcoordneighborhood[26]
-
 struct patrolistyp {
 (self) *prev
 (self) *next
 setcoord3* start
 
-struct setedge:
-(self) *prev
-(self) *next
-setcoord3* pointa
-setcoord3* pointb
-float weight
-uchar meta
-
-struct setpathnode {
-bool obs : 1	//obstruction
-bool ex : 1	//exclude
-unsigned char az : 3	//trajectory
-bool up : 1
-bool fwd : 1
-bool down : 1
-float runningdist	//calculated running shortest-path distance from point a.
-float goaldist	//norm distance from point b
-
-struct pathfinderdata {
-float best
-setpathnode* grid	//note: scaler pointer, so can't be multi-subscripted. use COORDSUB
-setcoord3* hydra_ptr
-}
-
-pathfinderdata makepathgrid(xcoord,ycoord,zcoord)
-uchar xcoord ycoord zcoord
-{
-pathfinderdata output
-setpathnode* pathgrid = calloc(CEILING * MAX_Y * MAX_X,sizeof(pathfinderdata))
-for (uchar z;z < CEILING;z++) {
-	for (uchar y;y < MAX_Y;y++) {
-		for (uchar x;x < MAX_X;x++) {
-			pathgrid[COORDSUB(z,y,x)].runningdist = -HUGE_VAL
-			pathgrid[COORDSUB(z,y,x)].goaldist = -HUGE_VAL
-			}
-		}
-	}
-
-setcoord3* urhydra = malloc(sizeof(setcoord3))
-
-urhydra→prev = urhydra
-urhydra→next = urhydra
-urhydra→x = xcoord
-urhydra→y = ycoord
-urhydra→z = zcoord
-
-output.grid = pathgrid
-output.hydra_ptr = urhydra
-
-return output
-}
-
-setpathobs(pathfinderdata* pathgrid,schar mode,bool fly,bool swim)
-
 //some specific use cases require spheres. these are simply numeric types.
-
-float norm2(pointa,pointb)
-coord3 pointa
-coord3 pointb
-{
-sshort xrel = pointb.x - pointa.x;
-sshort yrel = pointb.y - pointa.y;
-sshort zrel = pointb.z - pointa.z;
-return root( ((float) xrel * xrel) + ((float) yrel * yrel) + ((float) zrel * zrel) );
-}
-
-ushort norm1(pointa,pointb)
-coord3 pointa
-coord3 pointb
-{
-sshort xrel = pointb.x - pointa.x;
-sshort yrel = pointb.y - pointa.y;
-sshort zrel = pointb.z - pointa.z;
-return (ushort) (abs(xrel) + abs(yrel) + abs(zrel));
-}
-
-ushort normINF(pointa,pointb)
-coord3 pointa
-coord3 pointb
-{
-sshort xrel = pointb.x - pointa.x;
-sshort yrel = pointb.y - pointa.y;
-sshort zrel = pointb.z - pointa.z;
-return MAX(MAX(abs(xrel),abs(yrel)),abs(zrel));
-}
 
 struct diceodds:
 uchar num : 3
@@ -2496,10 +2273,9 @@ lightyp *lamp_ptr
  *     .r24 : binary data that is...you get the picture, right?
  *     .r32 : 
  *     .hex : binary data that is unorganized
- *     .csv : UTF-8 text record deliminated with commas and line breaks
  *     .tsv : UTF-8 text record deliminated with tabs and line breaks
- *     .tab : identical to tsv, don't mix them.
- *     .dat : UTF-8 text record deliminated with non-printable C0 control characters $1C through $1F. fields can contain newlines, commas, tabs, and escape sequences.
+ *      .so : a shared object. a game may use as many of these as it wants, and may put them wherever it wants. Placing single-use functions in LD_LOAD_PATH is DISCOURAGED; they should be placed in the game's private files.
+ *     .dat : a shared object containing only constants
  *     .txt : UTF-8 text document. usually stored in the program's static files, which is CAT-ed to provide dialouge; also used in dumps of primatives
  *     .nfo : UTF-8 text document (not CP437) containing SGR sequences. otherwise identical to txt.
  *     .ini : key-value pairs. used in dumps of non-nested structs that do not contain pointers.
@@ -2509,9 +2285,12 @@ lightyp *lamp_ptr
  * .tar.bz2 : each plane is saved as a tar.bz2 file.
  *     .sav : a save file. formatted as a .tar.bz2 file tree
  *   .man.# : a manpage
+ *          : documentation
  *    .html : extended documentation
  *      .md : extended documentation
- *          : non-null pointers are converted to subdirectorys in saves. the tail element in a linked list has no subdirectory named "next", and "prev" pointers are implicitly stored as "/..".
+ *       .d : non-null pointers are converted to subdirectorys in saves. the tail element in a linked list has no subdirectory named "next", and "prev" pointers are implicitly stored as "/..".
+ *     .ext : an extension language script
+ *     .*rc : a configuration file, parsed with the runcommander
  */
 
 struct mapgen_bordertyp {
@@ -2695,6 +2474,10 @@ trapflag flags : 8
  * tumblers. in addition to making the correct
  * guess, one must make a skill check:
  * 1 in 2^(lock.level - (skill/2)) chance
+ *
+ * lockpicking will play an ascending chromatic
+ * scale on a loop, starting on C3 and ending
+ * at G3, on synthbass (triangle wave)
  */
 
 struct encontyp {
@@ -2886,7 +2669,7 @@ uchar keepsfor
 uchar hp
 uchar nutri
 
-always (ushort,ushort,ushort,ushort) {return 1}
+bool always(ushort,ushort,ushort,ushort){return true}
 
 enum objid:
 WEAPON_FLAG : contains subobjtyp calling baseweaptyp
@@ -2960,9 +2743,10 @@ box drawings:
  ╞╪╡flat ╠╬╣upright
  ╘╧╛     ╚╩╝
 
-A_BOLD has no special meaning, since this is the only way to get 16 colors
-A_ITALIC symbols are petrified (statues).
+A_DIM is used to provide 16 colors
+A_BOLD symbols are petrified (statues).
 A_BLINK is a tile that is out of view
+A_ITALIC is something that is only visable through magical means
 if an object or entity is not able to be seen for any reason, it is rendered A_INVIS or not at all
 A_REVERSE video is a magic spell's area of effect
 A_UNDERLINE is the shadow of an entity
@@ -3382,11 +3166,11 @@ switch (tmp.rem) : {
 	case 5 : return mask[tmp.quot][ycoord][xcoord].x;
 	case 6 : return mask[tmp.quot][ycoord][xcoord].y;
 	case 7 : return mask[tmp.quot][ycoord][xcoord].z;
-	default : return 0;
+	default : ERROR_GRAPHIC("math: impossible (cosmic rays)",'X',tmp.rem,'X',0x07,true); raise(SIGSEGV);
 	}
 }
 
-maskwrite(zcoord,ycoord,xcoord,mask,value)
+/*implicit*/maskwrite(zcoord,ycoord,xcoord,mask,value)
 uchar zcoord;
 uchar ycoord;
 uchar xcoord;
@@ -3403,9 +3187,9 @@ switch (tmp.rem) : {
 	case 5 : mask[tmp.quot][ycoord][xcoord].x = value; break;
 	case 6 : mask[tmp.quot][ycoord][xcoord].y = value; break;
 	case 7 : mask[tmp.quot][ycoord][xcoord].z = value; break;
-	default : return 1;
+	default : ERROR_GRAPHIC("math: impossible (cosmic rays)",'X',tmp.rem,'X',0x07,true); raise(SIGSEGV);
 	}
-return 0;
+return -1;
 }
 
 uchar defaulthightget(zcoord)
@@ -3413,11 +3197,11 @@ uchar zcoord
 {
 if (zcoord ≥ 100) {return MAX_Z - 1;}
 div_t tmp = div(zcoord,2)
-if (tmp.quot > 50) {ERROR_GRAPHIC("math: impossible (heisenbug)",'u',(tmp.quot * 2) + tmp.rem,'u',MAX(zcoord,99),true); return false}
+if (tmp.quot > 50) {ERROR_GRAPHIC("math: impossible (cosmic rays)",'u',(tmp.quot * 2) + tmp.rem,'u',MAX(zcoord,99),true); raise(SIGSEGV)}
 switch (tmp.rem) : {
 	case 0 : return MAPGENHIGHTS[tmp.quot].lo;
 	case 1 : return MAPGENHIGHTS[tmp.quot].hi;
-	default : ERROR_GRAPHIC("math: invalid remainder",'u',temp.rem,'u',2,true); return 0;
+	default : ERROR_GRAPHIC("math: invalid remainder",'u',temp.rem,'u',2,true); raise(SIGSEGV);
 	}
 }
 
@@ -3426,7 +3210,7 @@ uchar id
 {
 if (id > 31) {ERROR_GRAPHIC("math: out of bounds",'u',id,'u',31,false); return false}
 div_t tmp = div(id,8)
-if (tmp.quot > 3) {ERROR_GRAPHIC("math: impossible (heisenbug)",'u',(tmp.quot * 8) + tmp.rem,'u',MAX(id,31),true); return false}
+if (tmp.quot > 3) {ERROR_GRAPHIC("math: impossible (cosmic rays)",'u',(tmp.quot * 8) + tmp.rem,'u',MAX(id,31),true); raise(SIGSEGV)}
 switch (tmp.rem) : {
 	case 0 : return conlangx[tmp.quot].a;
 	case 1 : return conlangx[tmp.quot].b;
@@ -3436,73 +3220,8 @@ switch (tmp.rem) : {
 	case 5 : return conlangx[tmp.quot].x;
 	case 6 : return conlangx[tmp.quot].y;
 	case 7 : return conlangx[tmp.quot].z;
-	default : ERROR_GRAPHIC("math: invalid remainder",'u',temp.rem,'u',8,true); return 0;
+	default : ERROR_GRAPHIC("math: invalid remainder",'u',temp.rem,'u',8,true); raise(SIGSEGV);
 	}
-}
-
-plugin and conf interface {
-
-KEY=value is a key-value pair
-COMMAND: is a command
-
-bool is a true flag
-!bool is a false flag
--bool is a negative flag
-
-"string" is a string
-'/foo/bar/baz' is a path
-
-1234 is a decimal interger
--1234 is a negative decimal interger
-12.34 is a float
--12.34 is a negative float
-$1234 is a hex interger
-0x1234 is also a hex interger
-@1234 is an octal interger
-0o1234 is also an octal interger
-%1010 is a binary interger 
-0b1010 is also a binary interger
-\n is an escape
-`æ is a UCS-2 value
-
-leading zeros can cause a slight decrease in performance
-only decimal numbers may be negative.
-
-@foo is a raw internal variable. can include pointer, deref, array, or structure operators.
-
-# is a preprocessor directive
-
-simple code can also be included:
-	+ - * ** / % ++ --
-	> < ≥ ≤ != ==
-	&& || ! !&& !|| <> 
-	& | ~ ~& ~| ^ ~^
-	log() lb() ln() sqrt() fact()
-	floor() ceil() sgn() nPr nCr
-	M_E M_PI M_2_PI M_PI_2 M_PI_4 M_SQRT2 M_SQRT1_2 INFINITY NAN
-	USHORT_MAX SHORT_MAX SHORT_MIN UCHAR_MAX CHAR_MAX CHAR_MIN
-	ULONG_MAX LONG_MAX LONG_MIN NULL	//some C macro constants
-	PI TAU SQRT3 SQRT2 SQRT1_2 GRATIO SRATIO TRUE FALSE	//some more macro constants
-	MAX_X MAX_Y MAX_Z BUFFERMAX ROOF EQUATOR GRAV ...	//some enviromental constants
-	CEILING	GLOBREG WORLD TIMER TURN ROOMTURN KILLS ALARM DATE ...	//some parameters (nonfixed values)
-	break noop
-	() ? (;)
-	if () {}
-	else {}
-	for (;;) {}
-	forever {}	//forever {...} expands to for (;;) {...}
-	while () {}
-	until () {}	//until (foo) {...} expands to while (!(foo)) {...}
-	switch () {}
-	case foo : {}
-	return ()
-	goto()
-	¶label
-
-comments may take one of the forms:
-//foo
-§foo
-/*foo*/
 }
 
 main () {
@@ -3575,7 +3294,7 @@ enginehook() {
 	printf("\033c\033[0H\033[1;32m\tCopyright (C) 2019 \"GeneralGuy4872\"\n\n\tThis program is free software; you can redistribute it and/or\n\tmodify it under the terms of the GNU General Public License\n\tas published by the Free Software Foundation; either version 2\n\tof the License, or (at your option) any later version.\n\n\tThis program is distributed in the hope that it will be useful,\n\tbut WITHOUT ANY WARRANTY; without even the implied warranty of\n\tMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n\tGNU General Public License for more details.\n\n\tYou should have received a copy of the GNU General Public License\n\talong with this program.  If not, see \033[4,94mhttps://www.gnu.org/licenses/\033[1;32m.\a");
 	fflush(stdout);
 	sleep(9);
-	printf("\033c\033[0H\033[92mLibraries linked:\nNCurses by Zeyd M Ben-Halim,\n           Eric S. Raymond,\n           Thomas E Dickey\n           and the Free Software Foundation\nLibTar by Mark D. Roth\nZlib by Jean-loup Gaully and Mark Adler\nLibBZip2 by Julian Steward");
+	printf("\033c\033[0H\033[92mLibraries linked:\nNCurses by Zeyd M Ben-Halim,\n           Eric S. Raymond,\n           Thomas E Dickey\n           and the Free Software Foundation\nLibTar by Mark D. Roth\nZlib by Jean-loup Gaully and Mark Adler\nLibBZip2 by Julian Steward\n");
 	fflush(stdout);
 	sleep(8);
 	printf("\033c\033[0H\033[92mAlgorithems Implemented:\nDijkstra's Algorithem\nPrim's Algorithem\nKruskal's Algorithem and Kruskal's Reverse Algorithem\nBorůvka's Algorithm\nRolling Dice\nSierpiński Attractor\nPerlin Noise\a");

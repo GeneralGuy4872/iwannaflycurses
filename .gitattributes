@@ -6,6 +6,8 @@ core.autocrlf=false
 *.pas = linguist-language=Pascal
 *.p = linguist-language=Pascal
 *.a68 = linguist-language=Algol linguist-vendored=false diff
+*.icn = linguist-language=icon linguist-vendored=false diff
+*.u = linguist-language=unicon linguist-vendored=false diff
 *.awk = linguist-language=Awk
 *.pl = linguist-language=Perl
 *.cl = linguist-language=Lisp

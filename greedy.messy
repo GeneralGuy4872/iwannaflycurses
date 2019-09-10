@@ -1,0 +1,370 @@
+struct setedge:
+(self) *prev
+(self) *next
+setcoord3* pointa
+setcoord3* pointb
+float weight
+uchar meta
+
+struct setpathnode {
+bool obs : 1	//obstruction
+bool ex : 1	//exclude
+schar xup : 2
+schar yup : 2
+schar zup : 2
+float runningdist	//calculated running shortest-path distance from point a.
+float goaldist	//norm distance from point b
+
+struct setpathnodesingle {
+bool obs : 1
+bool ex : 1
+schar xup : 2
+schar yup : 2
+schar zup : 2
+float runningdist
+
+struct pathfinderdata {
+setpathnode* grid	//note: scaler pointer, so can't be multi-subscripted. use COORDSUB
+setcoord3* hydra_ptr
+}
+
+pathfinderdata makepathgrid(xcoord,ycoord,zcoord)
+uchar xcoord ycoord zcoord
+{
+pathfinderdata output
+setpathnode* pathgrid = calloc(CEILING * MAX_Y * MAX_X,sizeof(pathfinderdata))
+for (uchar z;z < CEILING;z++) {
+	for (uchar y;y < MAX_Y;y++) {
+		for (uchar x;x < MAX_X;x++) {
+			pathgrid[COORDSUB(z,y,x)].runningdist = -1
+			pathgrid[COORDSUB(z,y,x)].goaldist = -1
+			}
+		}
+	}
+setcoord3* urhydra = malloc(sizeof(setcoord3))
+urhydra→prev = urhydra
+urhydra→next = urhydra
+urhydra→x = xcoord
+urhydra→y = ycoord
+urhydra→z = zcoord
+output.grid = pathgrid
+output.hydra_ptr = urhydra
+return output
+}
+
+pathfinderdata makeflatpathgrid(xcoord,ycoord)
+uchar xcoord ycoord
+{
+pathfinderdata output
+setpathnode* pathgrid = calloc(MAX_Y * MAX_X,sizeof(pathfinderdata))
+for (uchar y;y < MAX_Y;y++) {
+	for (uchar x;x < MAX_X;x++) {
+		pathgrid[COORDSUB(0,y,x)].runningdist = -1
+		pathgrid[COORDSUB(0,y,x)].goaldist = -1
+		}
+	}
+setcoord3* urhydra = malloc(sizeof(setcoord3))
+urhydra→prev = urhydra
+urhydra→next = urhydra
+urhydra→x = xcoord
+urhydra→y = ycoord
+urhydra→z = 0
+output.grid = pathgrid
+output.hydra_ptr = urhydra
+return output
+}
+
+struct dijkstradata {
+setpathnode* grid	//note: scaler pointer, so can't be multi-subscripted. use COORDSUB
+setcoord3* hydra_ptr
+}
+
+dijkstradata makepathgridsingle(xcoord,ycoord,zcoord)
+uchar xcoord ycoord zcoord
+{
+dijkstradata output
+setpathnode* pathgrid = calloc(CEILING * MAX_Y * MAX_X,sizeof(dijkstradata))
+for (uchar z;z < CEILING;z++) {
+	for (uchar y;y < MAX_Y;y++) {
+		for (uchar x;x < MAX_X;x++) {
+			pathgrid[COORDSUB(z,y,x)].runningdist = -1
+			}
+		}
+	}
+setcoord3* urhydra = malloc(sizeof(setcoord3))
+urhydra→prev = urhydra
+urhydra→next = urhydra
+urhydra→x = xcoord
+urhydra→y = ycoord
+urhydra→z = zcoord
+output.grid = pathgrid
+output.hydra_ptr = urhydra
+return output
+}
+
+dijkstradata makeflatpathgridsingle(xcoord,ycoord)
+uchar xcoord ycoord
+{
+dijkstradata output
+setpathnode* pathgrid = calloc(MAX_Y * MAX_X,sizeof(dijkstradata))
+for (uchar y;y < MAX_Y;y++) {
+	for (uchar x;x < MAX_X;x++) {
+		pathgrid[COORDSUB(0,y,x)].runningdist = -1
+		}
+	}
+setcoord3* urhydra = malloc(sizeof(setcoord3))
+urhydra→prev = urhydra
+urhydra→next = urhydra
+urhydra→x = xcoord
+urhydra→y = ycoord
+urhydra→z = 0
+output.grid = pathgrid
+output.hydra_ptr = urhydra
+return output
+}
+
+setpathobs(pathfinderdata* pathgrid,pathfindargstyp args)
+setdpathobs(dijkstradata* pathgrid,pathfindargstyp args)
+
+ushort normINF(pointa,pointb)
+coord3 pointa
+coord3 pointb
+{
+sshort xrel = pointb.x - pointa.x;
+sshort yrel = pointb.y - pointa.y;
+sshort zrel = pointb.z - pointa.z;
+return MAX(MAX(abs(xrel),abs(yrel)),abs(zrel));
+}
+
+float norm2(pointa,pointb)
+coord3 pointa
+coord3 pointb
+{
+sshort xrel = pointb.x - pointa.x;
+sshort yrel = pointb.y - pointa.y;
+sshort zrel = pointb.z - pointa.z;
+return root( ((float) xrel * xrel) + ((float) yrel * yrel) + ((float) zrel * zrel) );
+}
+
+ushort norm1(pointa,pointb)
+coord3 pointa
+coord3 pointb
+{
+sshort xrel = pointb.x - pointa.x;
+sshort yrel = pointb.y - pointa.y;
+sshort zrel = pointb.z - pointa.z;
+return (ushort) (abs(xrel) + abs(yrel) + abs(zrel));
+}
+
+/*pseudocode*/mapgenunderground
+rooms:
+for 0→50 do
+	roll <FOOdBAR> → index
+	rotateby 1d4
+	roll 1d(MAX_Y-subrooms[index].dim.y) → posY
+	roll 1d(MAX_X-subrooms[index].dim.x) → posX
+	roll 1d(8-subrooms[index].dim.z) → posZ
+	try put subrooms[index] at (posX,posY,posZ)
+	if !overlapping
+		draw room
+		block (room)
+		register (room's doors)
+
+struct pathfindermovetyp {
+ushort water[16]
+uchar fly
+float swim
+
+struct pathfindereplace {
+ushort keep[16]
+schar tile
+
+
+struct pathfindargstyp {
+ushort avoid[16]
+bool indecisive : 1
+bool slowbacktrace : 1
+bool flat : 1
+bool ortho : 1
+uchar weightnorm : 2	//norm used with the distance grid. 3 to use dijkstra's algorithem instead of astar.
+uchar runningnorm : 2	//norm used to keep running distance. 3 is invalid.
+}
+
+bool checktilemask(tile,mask)
+schar tile
+ushort mask[16]
+{
+uchar row = (tile | 0xF0) >> 4
+ushort column
+switch (tile|0x0F) : {
+	case 0x00 : column = 0x8000; break;
+	case 0x01 : column = 0x4000; break;
+	case 0x02 : column = 0x2000; break;
+	case 0x03 : column = 0x1000; break;
+	case 0x04 : column = 0x0800; break;
+	case 0x05 : column = 0x0400; break;
+	case 0x06 : column = 0x0200; break;
+	case 0x07 : column = 0x0100; break;
+	case 0x08 : column = 0x0080; break;
+	case 0x09 : column = 0x0040; break;
+	case 0x0A : column = 0x0020; break;
+	case 0x0B : column = 0x0010; break;
+	case 0x0C : column = 0x0008; break;
+	case 0x0D : column = 0x0004; break;
+	case 0x0E : column = 0x0002; break;
+	case 0x0F : column = 0x0001; break;
+	default : column = 0; break;
+	}
+return (bool) (mask[row] & column)
+}
+
+struct mazealignparamtyp {
+bool xalign : 1	//align to !north or +south
+uchar xoff : 7
+bool yalign : 1	//align to !left or +right
+uchar yoff : 7
+}
+
+the following algorithems can be combined to generate terrain:
+/* ortho: disallow diagonal steps.
+ * internal calculations might be done as intergers if there is no reason to expect floats
+ * all other factors being equal, lower azimuth && lower elevation paths will be selected first
+ *
+ * note that the pathfinding is one of the most egregious examples of winning the battle and
+ * loosing the war regarding memory usage, another will likely be the save file format.
+ */
+
+#include "dijkstra.c"
+float test_dijkstra(bool ortho,schar mode,uchar runningnorm,coord3 pointa,coord3 pointb,bool fly,bool swim,roomtyp* activeroom)	//replace && taxicab && ortho would equal norm1 exactly
+//dijkstra(bool ortho,schar mode,uchar runningnorm,schar tile,coord3 pointa,coord3 pointb,bool fly,bool swim,roomtyp* activeroom)
+aimlessdijkstra
+	//nearest path head first, no information about room or relative location.
+
+float test_astar(bool ortho,astarparamtyp params,coord3 pointa,coord3 pointb,bool fly,bool swim,roomtyp* activeroom)	//replace && !(taxicab || ortho) would approximate to norm2, replace && taxicab && ortho would equal norm1 exactly
+astar(bool ortho,astarparamtyp params,schar tile,coord3 pointa,coord3 pointb,bool fly,bool swim,roomtyp* activeroom)
+	/* - operates with knowlage of the norm distance to the destination
+	 * 	path heads try to move closer first, whenever possible.
+	 * 	should generalize an unobstructed path to a raster line if norm distance is calculated in norm2
+	 * - does not switch to a different path head until one is exausted
+	 * 	(exausted: no more avalible moves, finds target, or reaches the length of the previously selected best path)
+	 * 	other heads are selected longest-first; when a winning path has been found, all longer heads are dropped
+	 * - when 2 equally weighted options are avalible, the head's execution continues on the path that has the most similar trajectory
+	 *
+	 * indecisive mode:
+	 * 	- does not abort until all other active heads have reached the length of the chosen path
+	 * 		node's parent is only replaced when it would result in a lower distance
+	 * 		these distances are propagated by re-placing a sethydra path head entry
+	 * 		at the point of update
+	 *
+	 * recursive mode:
+	 * 	- populates the grid using dijkstra from point b instead of norm distance from b.
+	 */
+
+setedge* norm_completegraph(uchar norm,setcoord3 *coordlist)	//errors on invalid norm
+setedge* pathfinder_completegraph(bool ortho,astarparamtyp params,setcoord3 *coordlist,bool fly,bool swim)
+setedge* random_completegraph(setcoord3 *coordlist)
+
+prim(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist,roomtyp* activeroom)
+	/* shortest connected edge first
+	 * edges are moved from a complete graph to a final graph
+	 */
+
+kruskal(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist,roomtyp* activeroom)
+	/* disjoint sets use the meta field of the setedge type
+	 *
+	 * before a new disjoint set is created, the existing list is checked
+	 * for an edge with non-zero membership that has a pointa or pointb
+	 * which matches either the pointa or pointb of the current edge
+	 *
+	 * overall shortest first
+	 * edges are moved from a complete graph to a final graph
+	 */
+
+revdelete(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist,roomtyp* activeroom)
+	/* something compleatly different
+	 * longest edge is removed from a complete graph and held
+	 * graph is then tested to ensure that all points are connected (using dijkstra's)
+	 * if so, edge is removed. if not, edge is put back and ignored permenantly.
+	 */
+
+sollin(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist,roomtyp* activeroom)
+	/* disjoint sets use the meta field of the setedge type
+	 *
+	 * before a new disjoint set is created, the existing list is checked
+	 * for an edge with non-zero membership that has a pointa or pointb
+	 * which matches either the pointa or pointb of the current edge
+	 *
+	 * node iteration→tree iteration ; shortest first
+	 */
+
+tiles_cubefill(bool overwrite,schar tile,coord3 pointa,coord3 pointb,roomtyp* activeroom)
+tiles_cubeshell(bool overwrite,bool blank,schar tile,coord3 pointa,coord3 pointb,roomtyp* activeroom)
+tiles_cubesub(schar foo,schar bar,coord3 pointa,coord3 pointb,roomtyp* activeroom)
+tiles_normfill(bool overwrite,schar tile,normenum norm,coord3 center,float radius,roomtyp* activeroom)
+tiles_normshell(bool overwrite,bool blank,schar tile,normenum norm,coord3 center,float radius,roomtyp* activeroom)
+tiles_normsub(schar foo,schar bar,normenum norm,coord3 center,float radius,roomtyp* activeroom)
+tiles_globsub(schar foo,schar bar,roomtyp* activeroom)
+
+setcoord3* makemaze(uchar ceilheight,bool do_upstair,bool do_downstair,uchar gridspacing,mazealignparamtyp maze,roomtyp* activeroom)	//sets basic aspects of the room, generates a grid of points, puts upstair, downstair, and home on that grid.
+
+addwalls(schar tile,coord3 pointa,coord3 pointb,roomtyp* activeroom)	//outlines all currently generated tiles inside pointa and pointb
+
+
+attractor(bool replace,schar tile,setcoord *coordlist,uchar iterations,bool invert,roomtyp* activeroom)
+	/* uchar xcoord = roll 1dMAX_X
+	 * uchar ycoord = roll 1dMAX_Y
+	 * uchar zcoord = roll 1dCEILING
+	 *
+	 * uint rotate = random()
+	 * for (;rotate;rotate--) {coordlist = coordlist→next}
+	 * xcoord = (xcoord + list→x) / 2
+	 * ycoord = (ycoord + list→y) / 2
+	 * zcoord = (zcoord + list→z) / 2
+	 * if ( (!tile(xcoord,ycoord,zcoord) || (replace) ) {put tile (xcoord,ycoord,zcoord)}
+	 *
+	 * for (;iterations;iterations--) {
+	 * 	uint rotate = random()
+	 * 	for (;rotate;rotate--) {coordlist = coordlist→next}
+	 * 	xcoord = (xcoord + list→x) / 2
+	 * 	ycoord = (ycoord + list→y) / 2
+	 * 	zcoord = (zcoord + list→z) / 2
+	 * 	if ( (!tile(xcoord,ycoord,zcoord) || (replace) ) {put tile(xcoord,ycoord,zcoord)}
+	 *	}
+	 */
+
+spikenoise(replace,tile,floor or ceiling,roomtyp* activeroom)
+	/* generate a (MAX_X/4) by (MAX_Y/4) array of random vector2's. 
+	 * make an 8*8 gradient from a vector.
+	 * sum it onto a MAX_X*MAX_Y array of values, spaced every 4 lines, each quadrent overlapping.
+	 * values of less than zero are flat, values greater are spikes.
+	 */
+
+hailofdice(replace,tile,number,roomtyp* activeroom)
+	//while number { roll(1dMAX_X,1dMAX_Y,1dCEILING); put tile; number--; }
+
+/* mapgen functions may be optimized or added to, but like all API functions,
+ * will never be depracated once alpha has been reached,
+ * barring unresolvable hindenbugs. 
+ */
+
+/* generate a room at coordinates foo:
+ * If no room exists at foo, check ║2║∞ radius of foo for existing rooms,
+ * generate any rooms in a ║1║∞ radius of these rooms && a ║2║∞ radius
+ * of foo, with borderes synced. THEN check a ║1║∞ radius of foo for
+ * existing rooms, and generate the room with borders synched.
+ * While this is being done, show "Generating map..." at line 13, col 5.
+ * Since it involves not just file operations, but also tar, this will
+ * be painfully slow, but otherwise could cause players to end up inside
+ * a wall or outside the map when rooms are panned.
+ *
+ * ("synched" borders prevent this by making edge obstructions unbreakable,
+ * and making the sides of the room match. all room generation functions should
+ * do this)
+ *
+ * floor heights are also uniform accross spherical shells when possible.
+ */
+
+/* ai can use modifyed versions of dijkstra or any of the astar varients
+ * particularly, they must be able to handle multiple destinations for the aggro ais
+ * or the ability to cycle through a list of checkpoints for passive ais
+ */
