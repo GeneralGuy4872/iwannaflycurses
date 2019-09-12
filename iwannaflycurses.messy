@@ -1,33 +1,48 @@
 #error NOT READY FOR COMPILATION
-/* functions will vacate from this file eventually,
- * but since it is mostly typedef and struct declarations,
- * it will probably become main.h, but might become
- * main.c or another signifigant file.
- * I can't simply delete my scratchpad (this file)
- * since that would wreak havok on the git history.
+/* to preserve the file history,
+ * this file will eventually become main.h or main.c.
+ *
+ * the bulk of it's contents, however, will be moved.
  */
+
+/******************************
+ * IWANNAFLY (working title)  *
+ * Top-down 3D Rogue-like     *
+ * Game engine with C API &   *
+ * Custom Extension Language, *
+ * using NCurses and MIDI     *
+ ******************************/
 
 /* Hey, you. yeah, you. who do you think I'm talking to; the mouse?
  *
- * you found the seeecret extended documentation, aka the source code!
- * the sorce code, and witty comments, are intended to supplement the
- * manpages, as well as give a deeper understanding of the program.
+ * you found the seeecret extended documentation, aka the commentated
+ * source code! the sorce code's witty comments are intended to supplement
+ * other documentation, as well as give a deeper understanding of the
+ * program because, ya'know, source code.
+ *
+ * note to imaginary future packagers: if packaged in binary form, a dummy header might
+ * still be required to support the obfuscated C syntax that is recommended for use
+ * with this library. if you don't know what "obfuscated" C is, look at the original
+ * unix v7 source of ye old bourne shell for the definative example.
  *
  * the engine should be compiled as a shared object and placed in LD_LOAD_PATH.
  * a game compiled for the engine should obey the following conventions:
  * - it should provide the bulk of it's functions in a shared library in a private
  * 	application directory
  * - it should provide special use functions, such as events, as seperate shared objects,
- * 	which are lazy loaded
- * - it should provide special use constants likewise, with the dat extension.
+ * 	to be dynamically loaded at runtime.
+ * - it should provide special use constants likewise, with the dat extension
  * 	blocks of text, however, should be regular nfo or txt
- * - it should store any dynamic constants in the savefile, as .r#, hex, tsv, txt, or nfo
+ * - it should store any dynamic constants in the savefile, as r<wordsize>, hex, tsv, csv, ini, txt, nfo
  * - it should provide at least the following applications (in $PATH) :
  * 	- the game itself
  * 	- a seperate program for generating a new savefile
  * 	- a savefile editor
- * the savefile editor may be independent, or linked to the game and generator,
- * in which case those should be executable shared libraries.
+ * the savefile editor may be independent, or linked to the game and new savefile generator,
+ * in which case those should be executable shared libraries
+ * (the default game invents the xso file extension to denote an eXecutable Shared Object).
+ * the effect is that short sessions should have small memory footprints, because they only load
+ * a few of the modular libraries, but long marathon-like sessions could would be huge.
  *
  * enviromental requirements:
  * - UTF-8 terminal of at least 25*80 characters
@@ -37,7 +52,7 @@
  * 		it is extreamly common, being the default font for the linux console, xterm, and urxvt)
  * - Color, Dim, Bold, Italic, Underline, Reverse, Blink, Invisible text effects
  * 	(ncurses will take care of this)
- * - Full Keyboard, Mouse
+ * - Full Keyboard
  * 	(most keyboard layouts with all ASCII characters *should*
  * 	work, but only QWERTY (US-ANSI) was used in design because
  * 	I don't have access to any others, so at best controls may
@@ -47,6 +62,18 @@
  * 	and Dvorak, by request and/or the ability to remap keys
  * 	by dotfiles.)
  *
+ * 	Localization based on entire languages having their own files
+ * 	would be easier, albeit more tedious, than trying to use macros.
+ * 	as a mono-linguistic dodo, I would only be able to provide
+ *	localization for variations of english. however, once I have
+ * 	completed a beta, I would endever to include the following:
+ * 	en, en-US, en-GB, en-053, and sco
+ * 	I also want to learn Swedish, Latin, and Japanese;
+ * 	my brain is not cooperating. localization contributions
+ * 	will be welcome at any time, but pre-beta contributors
+ * 	should be aware of fast-paced development.
+ * - Mouse (once pseudo-raycasting is implemented for looking afar)
+ * 
  * Controls:
  * - number keys or arrow keys move in xy
  * - page up and page down move in z
@@ -65,11 +92,6 @@
  * will focus on fixing them as soon as possible.
  *
  * most variables can change at runtime, especially linked lists.
- *
- * currently, the following OS calls are used to expidite a proof-of-concept.
- * ideally, these will all be internalized later (...okay, MUCH later):
- *
- * tar, both bz2 and gz in different cases
  *
  * fair warning: the way unicode is handled is likely going to be beyond the relm of
  * "interesting" and into the territory of just plain "wierd". Also note that Radix-50
@@ -175,13 +197,14 @@ addnwstr(&wch,1);
 
 /*ENVIROMENTALS*/
 #define BUFFER_MAX 512
+#define FLOPPYDISK 1474560
 #define BGCOLORS 8
 #define FGCOLORS 8
 #define GAMENAME "Default Game"
 #define GM_VERSION "0.0"
 #define DEVEL_STATE "Prealpha"
 #define SAVE_FORMAT "raw dump"
-#define COMPRESSION "libtar, zlib, libbz2
+#define COMPRESSION "libtar, zlib, libbz2"
 #define REV_RULES "0.0"
 #define REV_EVENTS "0.0"
 #define REV_FILES "0.0"
@@ -198,8 +221,10 @@ char16_t TILDEWIDE = setwidetilde()
 #define MIN(A,B) (A < B ? A : B)
 #define INTERVAL(A,N,B) MIN(MAX(N,A),B)
 #define COORDSUB(Z,Y,X) ((MAX_Y * Z) + (MAX_X * Y) + X)
-#define BREAKCURSES scr_dump(CURSESSCRBUFFER);clear();refresh();move(0,0);
-#define FIXCURSES printf("\033c\033[0H");clear();scr_restore(CURSESSCRBUFFER);
+#define RESET "\033c\033[2J\033[0H"
+#define DROPCURSES endwin();printf("\033c\033[24;1H");fflush(stdout);
+#define BREAKCURSES clear();refresh();endwin();printf(RESET);fflush(stdout);
+#define FIXCURSES printf(RESET);fflush(stdout);initialize();while (fgetc(stdin) != '\n');refresh;
 #define forever for (;;)
 
 //prettify the tokens my eyes don't parse
@@ -207,7 +232,10 @@ char16_t TILDEWIDE = setwidetilde()
 #define ≤ <=
 #define → ->
 #define ← |=
-//ɛ̩̍ will be used for "and" the conjunction in comments where logical && would give a totally different yet possibly valid meaning.
+/* ɛ̩̍ will be used for "and" the conjunction in comments where logical && would give a meaning that
+ * could be validly, but incompatibly, interpreted as different from what is intended.
+ * if confusion arises from or, similar mesures will be implemented for it, too.
+ */
 
 /*TYPES*/
 //ensure size names work on all systems
@@ -228,15 +256,30 @@ char16_t TILDEWIDE = setwidetilde()
  * but is now becoming closer to the general library concept,
  * similar to a RPG ruleset that allows creation of
  * your own setting and plot (you know the one).
- * a default one will be provided, however, based on the 3d game's story,
- * but extended well beyond the projected capabilities of that engine.
+ * a default one will be provided, however.
  */
 
+//anonomous pointers
+void cachedrum = malloc(1024 * sizeof(char))
+uchar cachenext = 0
+
+ushort cachealloc (amount)
+uchar amount
+{
+ushort private = (((amount + cachesubscr) % 128) < cachesubscr) ? 0 : cachesubscr
+cachesubscr = private + amount
+return private
+}
+
 setlocale(LC_ALL, "");
-cbreak();
-noecho();
-keypad(stdscr, true);
-initscr();
+
+initialize() {
+	initscr();
+	cbreak();
+	noecho();
+	start_color();
+	keypad(stdscr, true);
+	}
 
 for (uchar bg = 0; bg < BGCOLORS; bg++) {
 	for (uchar fg = 0; fg < FGCOLORS; fg++) {
@@ -245,34 +288,34 @@ for (uchar bg = 0; bg < BGCOLORS; bg++) {
 	}
 
 char16_t setwidetilde() {
-move(12,4); printw("is this tilde between the lines? (y,n)")
-
-mvaddch(14,14,"-")
-mvaddch(14,15,"-")
-mvaddch(14,16,"~")
-mvaddch(14,17,"-")
-mvaddch(14,18,"-")
-
-char got = getch()
-
-switch (got) : {
-	case 'y' : return '~';
-	case 'n' : return = 0x223C;
+forever {
+	move(12,4); printw("is this tilde between the lines? (y,n)")
+	
+	mvaddch(14,14,"-")
+	mvaddch(14,15,"-")
+	mvaddch(14,16,"~")
+	mvaddch(14,17,"-")
+	mvaddch(14,18,"-")
+	
+	char got = getch()
+	
+	switch (got) : {
+		case 'y' : return '~';
+		case 'n' : return = 0x223C;
+		default : printf("\a"); fflush(stdout); break;
+		}
 	}
 }
 
-
 /* backslash enters console mode. characters are fetched and printed
  * with ncurses, as well as stored in a temporary file.
- * autocomplete will be implemented, using a gradually diminishing
- * linked list of matches between your toupper-ed input and the command's
- * decoded radix-50 name. once only one match remains, it will be shown
- * on-screen in reverse video mode, and can be inserted with tab.
- * autocomplete is not implemented for item or entity names; an exact
- * match must be found by the parser, in a stabs table
+ * autocomplete may be implemented, using a gradually diminishing
+ * linked list of matches between your entry and the command list.
+ * autocomplete is only implemented for command names; string args are
+ * matched against a stabs table.
  *
  * once the enter key is pressed, the temp file is rewound.
- * a LALR (flex/byacc) parser is used to process the tokens
+ * a LALR (flex/byacc type) parser is used to process the tokens
  *
  * interpretation mode will change depending on the syntax.
  * invalid commands may produce the response
@@ -283,6 +326,13 @@ switch (got) : {
  * value in the correct encoding. using this comand to get
  * out-of-character information is cheating, but no penalty
  * can be implemented, as it would effect it's functionality.
+ *
+ * The internal debugger may produce intentional segfaults,
+ * which indicate a garbage pointer was dereferenced
+ * these should be called "dead canaries" in bugreports.
+ * these are useful in tracking down the most illusive of
+ * heisenbugs, as even if they cannot be directly observed,
+ * their modus operandi can be determined.
  *
  * only a number of expected variables may be dumped this way;
  * true debugging should use GDB.
@@ -302,16 +352,8 @@ enum cli_argstypes
 typedef cli_func *int(*void)
 
 enum commandenum
-char16_t commandstabs[256][4] //radix50
 cli_func commandtable[256]
 cli_argstypes commandargs[256]
-
-struct cli_matches {
-(self) *prev
-(self) *next
-char text[12]
-symtabref id
-}
 
 struct argstyp_wish {
 uchar stack
@@ -330,20 +372,23 @@ equipenum slot
 heldobjtyp* item
 }
 
-struct hintyp {
+struct stringlistyp {
 (self) *prev
 (self) *next
-eventidentyp eventident
 char* text
 }
-//initially loaded from a C0-deleminated value record; manipulated by events.
+/* used to store a list of strings
+ * may be from a data object, or
+ * stored in a tsv
+ */
 
-struct epitaphtyp {
+struct eventstringtyp {
 (self) *prev
 (self) *next
+eventdata eventident
 char* text
 }
-//used to store death messages
+// like stringlistyp, but also has a field for eventident
 
 /* typedef struct Rune {
  * ulong sym : 24;
@@ -358,566 +403,6 @@ char* text
  * } Rune; //not needed
  */
 
-char16_t squoze(string)
-char string[3]
-{
-uchar char1
-uchar char2
-uchar char3
-switch (string[0]) {
-	case '_' : noop()
-	case ' ' :
-		char1=0;
-		break;
-	case 'A' : noop();
-	case '@' : noop();
-	case 'a' :
-		char1=01;
-		break;
-	case 'B' : noop();
-	case 'b' :
-		char1=02;
-		break;
-	case 'C' : noop();
-	case 'c' :
-		char1=03;
-		break;
-	case 'D' : noop();
-	case 'd' :
-		char1=04;
-		break;
-	case 'E' : noop();
-	case 'e' :
-		char1=05;
-		break;
-	case 'F' : noop();
-	case 'f' :
-		char1=06;
-		break;
-	case 'G' : noop();
-	case 'g' :
-		char1=07;
-		break;
-	case 'H' : noop();
-	case 'h' :
-		char1=010;
-		break;
-	case 'I' : noop();
-	case 'i' :
-		char1=011;
-		break;
-	case 'J' : noop();
-	case 'j' :
-		char1=012;
-		break;
-	case 'K' : noop();
-	case 'k' :
-		char1=013;
-		break;
-	case 'L' : noop();
-	case 'l' :
-		char1=014;
-		break;
-	case 'M' : noop();
-	case 'm' :
-		char1=015;
-		break;
-	case 'N' : noop();
-	case 'n' :
-		char1=016;
-		break;
-	case 'O' : noop();
-	case 'o' :
-		char1=017;
-		break;
-	case 'P' : noop();
-	case 'p' :
-		char1=020;
-		break;
-	case 'Q' : noop();
-	case 'q' :
-		char1=021;
-		break;
-	case 'R' : noop();
-	case 'r' :
-		char1=022;
-		break;
-	case 'S' : noop();
-	case 's' :
-		char1=023;
-		break;
-	case 'T' : noop();
-	case 't' :
-		char1=024;
-		break;
-	case 'U' : noop();
-	case 'u' :
-		char1=025;
-		break;
-	case 'V' : noop();
-	case 'v' :
-		char1=026;
-		break;
-	case 'W' : noop();
-	case 'w' :
-		char1=027;
-		break;
-	case 'X' : noop();
-	case 'x' :
-		char1=030;
-		break;
-	case 'Y' : noop();
-	case 'y' :
-		char1=031;
-		break;
-	case 'Z' : noop();
-	case 'z' :
-		char1=032;
-		break;
-	case '&' : noop();
-	case '?' : noop();
-	case '$' :
-		char1=033;
-		break;
-	case '"' : noop();
-	case '\'' : noop();
-	case ';' : noop();
-	case ':' : noop();
-	case ',' : noop();
-	case '.' :
-		char1=034;
-		break;
-	case '#' : noop();
-	case '/' : noop();
-	case '%' :
-		char1=035;
-		break;
-	case '0' :
-		char1=036;
-		break;
-	case '1' :
-		char1=037;
-		break;
-	case '2' :
-		char1=040;
-		break;
-	case '3' :
-		char1=041;
-		break;
-	case '4' :
-		char1=042;
-		break;
-	case '5' :
-		char1=043;
-		break;
-	case '6' :
-		char1=044;
-		break;
-	case '7' :
-		char1=045;
-		break;
-	case '8' :
-		char1=046;
-		break;
-	case '9' :
-		char1=047;
-		break;
-	default :
-		char1=0;
-		break;
-	}
-switch (string[1]) {
-	case '_' : noop();
-	case ' ' :
-		char2=0;
-		break;
-	case 'A' : noop();
-	case '@' : noop();
-	case 'a' :
-		char2=01;
-		break;
-	case 'B' : noop();
-	case 'b' :
-		char2=02;
-		break;
-	case 'C' : noop();
-	case 'c' :
-		char2=03;
-		break;
-	case 'D' : noop();
-	case 'd' :
-		char2=04;
-		break;
-	case 'E' : noop();
-	case 'e' :
-		char2=05;
-		break;
-	case 'F' : noop();
-	case 'f' :
-		char2=06;
-		break;
-	case 'G' : noop();
-	case 'g' :
-		char2=07;
-		break;
-	case 'H' : noop();
-	case 'h' :
-		char2=010;
-		break;
-	case 'I' : noop();
-	case 'i' :
-		char2=011;
-		break;
-	case 'J' : noop();
-	case 'j' :
-		char2=012;
-		break;
-	case 'K' : noop();
-	case 'k' :
-		char2=013;
-		break;
-	case 'L' : noop();
-	case 'l' :
-		char2=014;
-		break;
-	case 'M' : noop();
-	case 'm' :
-		char2=015;
-		break;
-	case 'N' : noop();
-	case 'n' :
-		char2=016;
-		break;
-	case 'O' : noop();
-	case 'o' :
-		char2=017;
-		break;
-	case 'P' : noop();
-	case 'p' :
-		char2=020;
-		break;
-	case 'Q' : noop();
-	case 'q' :
-		char2=021;
-		break;
-	case 'R' : noop();
-	case 'r' :
-		char2=022;
-		break;
-	case 'S' : noop();
-	case 's' :
-		char2=023;
-		break;
-	case 'T' : noop();
-	case 't' :
-		char2=024;
-		break;
-	case 'U' : noop();
-	case 'u' :
-		char2=025;
-		break;
-	case 'V' : noop();
-	case 'v' :
-		char2=026;
-		break;
-	case 'W' : noop();
-	case 'w' :
-		char2=027;
-		break;
-	case 'X' : noop();
-	case 'x' :
-		char2=030;
-		break;
-	case 'Y' : noop();
-	case 'y' :
-		char2=031;
-		break;
-	case 'Z' : noop();
-	case 'z' :
-		char2=032;
-		break;
-	case '&' : noop();
-	case '?' : noop();
-	case '$' :
-		char2=033;
-		break;
-
-	case '"' : noop();
-	case '\'' : noop();
-	case ';' : noop();
-	case ':' : noop();
-	case ',' : noop();
-	case '.' :
-		char2=034;
-		break;
-	case '#' : noop();
-	case '/' : noop();
-	case '%' :
-		char2=035;
-		break;
-	case '0' :
-		char2=036;
-		break;
-	case '1' :
-		char2=037;
-		break;
-	case '2' :
-		char2=040;
-		break;
-	case '3' :
-		char2=041;
-		break;
-	case '4' :
-		char2=042;
-		break;
-	case '5' :
-		char2=043;
-		break;
-	case '6' :
-		char2=044;
-		break;
-	case '7' :
-		char2=045;
-		break;
-	case '8' :
-		char2=046;
-		break;
-	case '9' :
-		char2=047;
-		break;
-	default :
-		char2=0;
-		break;
-	}
-switch (string[3]) {
-	case '_' : noop();
-	case ' ' :
-		char3=0;
-		break;
-	case 'A' : noop();
-	case '@' : noop();
-	case 'a' :
-		char3=01;
-		break;
-	case 'B' : noop();
-	case 'b' :
-		char3=02;
-		break;
-	case 'C' : noop();
-	case 'c' :
-		char3=03;
-		break;
-	case 'D' : noop();
-	case 'd' :
-		char3=04;
-		break;
-	case 'E' : noop();
-	case 'e' :
-		char3=05;
-		break;
-	case 'F' : noop();
-	case 'f' :
-		char3=06;
-		break;
-	case 'G' : noop();
-	case 'g' :
-		char3=07;
-		break;
-	case 'H' : noop();
-	case 'h' :
-		char3=010;
-		break;
-	case 'I' : noop();
-	case 'i' :
-		char3=011;
-		break;
-	case 'J' : noop();
-	case 'j' :
-		char3=012;
-		break;
-	case 'K' : noop();
-	case 'k' :
-		char3=013;
-		break;
-	case 'L' : noop();
-	case 'l' :
-		char3=014;
-		break;
-	case 'M' : noop();
-	case 'm' :
-		char3=015;
-		break;
-	case 'N' : noop();
-	case 'n' :
-		char3=016;
-		break;
-	case 'O' : noop();
-	case 'o' :
-		char3=017;
-		break;
-	case 'P' : noop();
-	case 'p' :
-		char3=020;
-		break;
-	case 'Q' : noop();
-	case 'q' :
-		char3=021;
-		break;
-	case 'R' : noop();
-	case 'r' :
-		char3=022;
-		break;
-	case 'S' : noop();
-	case 's' :
-		char3=023;
-		break;
-	case 'T' : noop();
-	case 't' :
-		char3=024;
-		break;
-	case 'U' : noop();
-	case 'u' :
-		char3=025;
-		break;
-	case 'V' : noop();
-	case 'v' :
-		char3=026;
-		break;
-	case 'W' : noop();
-	case 'w' :
-		char3=027;
-		break;
-	case 'X' : noop();
-	case 'x' :
-		char3=030;
-		break;
-	case 'Y' : noop();
-	case 'y' :
-		char3=031;
-		break;
-	case 'Z' : noop();
-	case 'z' :
-		char3=032;
-		break;
-	case '&' : noop();
-	case '?' : noop();
-	case '$' :
-		char3=033;
-		break;
-	case '"' : noop();
-	case '\'' : noop();
-	case ';' : noop();
-	case ':' : noop();
-	case ',' : noop();
-	case '.' :
-		char3=034;
-		break;
-	case '#' : noop();
-	case '/' : noop();
-	case '%' :
-		char3=035;
-		break;
-	case '0' :
-		char3=036;
-		break;
-	case '1' :
-		char3=037;
-		break;
-	case '2' :
-		char3=040;
-		break;
-	case '3' :
-		char3=041;
-		break;
-	case '4' :
-		char3=042;
-		break;
-	case '5' :
-		char3=043;
-		break;
-	case '6' :
-		char3=044;
-		break;
-	case '7' :
-		char3=045;
-		break;
-	case '8' :
-		char3=046;
-		break;
-	case '9' :
-		char3=047;
-		break;
-	default :
-		char3=0;
-		break;
-	}
-}
-return (char1*1600)+(char2*40)+char3
-}
-/**|7|7|7|**/
-char radixtoascii(radix50,symbol1,symbol2,symbol3)
-uchar radix50 symbol1 symbol2 symbol3
-{
-switch (radix50) {
-	case 0 : return ' ';
-	case 01 : return 'A';
-	case 02 : return 'B';
-	case 03 : return 'C';
-	case 04 : return 'D';
-	case 05 : return 'E';
-	case 06 : return 'F';
-	case 07 : return 'G';
-	case 010 : return 'H';
-	case 011 : return 'I';
-	case 012 : return 'J';
-	case 013 : return 'K';
-	case 014 : return 'L';
-	case 015 : return 'M';
-	case 016 : return 'N';
-	case 017 : return 'O';
-	case 020 : return 'P';
-	case 021 : return 'Q';
-	case 022 : return 'R';
-	case 023 : return 'S';
-	case 024 : return 'T';
-	case 025 : return 'U';
-	case 026 : return 'V';
-	case 027 : return 'W';
-	case 030 : return 'X';
-	case 031 : return 'Y';
-	case 032 : return 'Z';
-	case 033 : return symbol1;
-	case 034 : return symbol2;
-	case 035 : return symbol3;
-	case 036 : return '0';
-	case 037 : return '1';
-	case 040 : return '2';
-	case 041 : return '3';
-	case 042 : return '4';
-	case 043 : return '5';
-	case 044 : return '6';
-	case 045 : return '7';
-	case 046 : return '8';
-	case 047 : return '9';
-	default : return ' ';
-	}
-}
-
-char* unsquoze(squozed,symbol1,symbol2,symbol3)
-char16_t squozed
-char symbol1 symbol2 symbol3
-{
-static char* output = "   "
-if (squozed > 63999) {ERROR_GRAPHIC("tried to unsquoze invalid RADIX-50 hash",'u',squozed,1,63999,false}
-tmp = div(squozed,1600)
-uchar char1 = tmp.quot
-tmp = div(div.rem,40)
-uchar char2 = tmp.quot
-uchar char3 = tmp.rem
-output[0] = radixtoascii(char1,symbol1,symbol2,symbol3)
-output[1] = radixtoascii(char2,symbol1,symbol2,symbol3)
-output[2] = radixtoascii(char3,symbol1,symbol2,symbol3)
-}
 
 /* the game's internal representation uses 6 different character sets:
  * - UTF-8 for all input ɛ̩̍ output, as well as external text storage
@@ -1041,9 +526,9 @@ coord3 PLAYERSHD	//position of player's shadow, for renderer
 latlontyp WORLD
 roomtyp* ROOM
 roomgentyp MAPGENBYTES[ROOF][(EQUATOR/2)+1][EQUATOR]
-#define MAX_X 64	//
+#define MAX_X 64
 #define MAX_Y 24	//MAX_X ≥ MAX_Y ≥ MAX_Z
-#define MAX_Z 16	//
+#define MAX_Z 16
 #define CEILING ROOM→upstair.z
 #define ROOF 201	//it is decreed: mortals shall fly no higher. (this means you!)
 #define EQUATOR 360	//the number of rooms in the circumfrence of the sphere
@@ -1059,11 +544,10 @@ char* SAVEPATH
 followtype *FOLLOW_ptr	//pursuers, i.e. paid assasins, ninjas, the reaper...
 eventtyp *EVNT_ptr	//FOO_ptr refers to the doubly linked list's head. the tail is FOO_ptr→prev
 placetyp *PLACE_ptr
-placetyp *PLACE_ptr
-hintyp *hint_ptr
+stringlistyp *HINT_ptr
+eventstringtyp *HEYLISTEN_ptr
+eventdatobj* EVENTDATA_ptr
 globalbools GLOBREG	//set to true whenever you enter a room and every day at 6am
-FILE* LINEBUFFER = tmpfile()	//line buffered input
-FILE* CURSESSCRBUFFER = tmpfile()
 
 /* buffered room loading for future implementation:
  * roomtyp* ROOMARRAY[3][3][3]
@@ -1137,6 +621,7 @@ FILE* CURSESSCRBUFFER = tmpfile()
 getlinebuffer (y,x)
 uchar y x
 {
+char* LINEBUFFER = calloc(BUFFER_MAX,sizeof(char))
 move(y,x)
 int ch
 forever {
@@ -1164,6 +649,7 @@ forever {
 		printw(ch);
 		}
 	}
+free(LINEBUFFER)
 }
 
 ulong getsixteen (y,x)
@@ -1280,7 +766,7 @@ ushort a
 ushort b
 ushort c
 ushort d
-eventidentyp eventident
+eventdata eventident
 }
 
 struct nibbles {
@@ -1418,7 +904,8 @@ schar el : 2
 struct placetyp {
 (self) *prev
 (self) *next
-ulong id
+eventdata eventident	//7FFF is removeable
+ulong name
 latlontyp latlon
 coord3 pos
 }
@@ -1453,10 +940,10 @@ uchar cp : 7
 /* crossbar logic operations are used for alignment masks.
  * these are union or intersection on special case subsets of a gridlike set of elements.
  * each operation takes subsets that are rows or columns in the grid.
- * crossbar "OR", symbol ↔∪↕, selects the entire row of elements and entire column of elements
- * crossbar "AND", symbol ↔∩↕, selects only elements that are at intersections, usu. a single element.
+ * crossbar "OR", symbol ✥, selects the entire row of elements and entire column of elements
+ * crossbar "AND", symbol ⌖, selects only elements that are at intersections, usu. a single element.
  * by defining a NOT operator, all other binary operators (NAND,NOR,XOR,XNOR/IFF) could be constructed.
- * since the set is cartesian, fuzzy matching of ↔∩↕ could also be used by specifying a norm and a distance.
+ * since the set is cartesian, fuzzy matching of ⌖ could also be used by specifying a norm and a distance.
  */
 struct aligntyp:
 good : b1
@@ -1468,8 +955,8 @@ noevil : b1
 nolaw : b1
 nochaos : b1
 /* used as a mask.
- * starting alignment must be one of the high nibble (crossbar "OR" ↔∪↕ if one or more than 2 are selected, crossbar AND ↔∩↕ ║2║1 if exactly 2 are selected, true neutral ║1║1 if none are selected).
- * alignment may NEVER enter any of the low nibble, marked "no" (crossbar "OR" ↔∪↕ always, overrides whitelist).
+ * starting alignment must be one of the high nibble (crossbar "OR" ✥ if one or more than 2 are selected, crossbar AND ⌖ ║2║1 if exactly 2 are selected, true neutral ║1║1 if none are selected).
+ * alignment may NEVER enter any of the low nibble, marked "no" (crossbar "OR" ✥ always, overrides whitelist).
  *
  * there are other ways that alignment masks may be specified,
  * all of which have finer grained control.
@@ -1537,18 +1024,18 @@ magictyp element
 
 typedef classtyp {
 unchar role : 2
-bool override : 1 //0=blacklist overrides, 1=whitelist overrides
-bool wl_mode : 1 //whitelist mode: 0=crossbar "or", 1=crossbar "and"
 unchar class : 3
-bool trueneutral : 1
+bool lawfulgood : 1
 bool good : 1
-bool evil : 1
-bool law : 1
+bool chaosgood : 1
+bool lawful : 1
+bool neutral : 1
 bool chaos : 1
-bool nogood : 1
-bool noevil : 1
-bool nolaw : 1
-bool nochaos : 1
+bool lawfulevil : 1
+bool evil : 1
+bool chaosevil : 1
+bool charismatic : 1
+bool scorned : 1
 
 char* roguestabs[8] = {"changeling","rogue","thief","pirate","ninja","assasin","tourist","ronan"}
 char* fighterstabs[8] = {"fighter","knight","paladin","valkyrie","viking","samuri","ranger","monk"}
@@ -1854,7 +1341,7 @@ subobjtyp wristl
 subobjtyp wristr
 
 struct followtyp:
-eventidentyp eventident
+eventdata eventident
 classobjtyp class
 aggrotyp aggro
 symtabref baserace
@@ -2270,17 +1757,16 @@ lightyp *lamp_ptr
 
 /*      .r8 : binary data that is organized into 8 bit segments
  *     .r16 : binary data that is organized into 16 bit segments
- *     .r24 : binary data that is...you get the picture, right?
- *     .r32 : 
+ *     .r32 : binary data that is...you get the picture, right?
  *     .hex : binary data that is unorganized
+ *     .csv : UTF-8 text record deliminated with commas and line breaks
  *     .tsv : UTF-8 text record deliminated with tabs and line breaks
+ *     .ini : UTF-8 text record of key=value pairs deliminated with line breaks
  *      .so : a shared object. a game may use as many of these as it wants, and may put them wherever it wants. Placing single-use functions in LD_LOAD_PATH is DISCOURAGED; they should be placed in the game's private files.
- *     .dat : a shared object containing only constants
+ *     .dat : a shared object containing constants.
  *     .txt : UTF-8 text document. usually stored in the program's static files, which is CAT-ed to provide dialouge; also used in dumps of primatives
  *     .nfo : UTF-8 text document (not CP437) containing SGR sequences. otherwise identical to txt.
- *     .ini : key-value pairs. used in dumps of non-nested structs that do not contain pointers.
- *    .json : originally from javascript. used in data dumps of nested structs not containing pointers.
- *     .xml : used in data dumps for pointer-containing structs. will have an href= in the tag for the pointer, linked to the dump of the pointer's deref; or /dev/null if it is the null pointer.
+ *    .json : non-standard json file, used in data dumps.
  *  .tar.gz : each room is saved as a tar.gz file, as are linked lists and the player
  * .tar.bz2 : each plane is saved as a tar.bz2 file.
  *     .sav : a save file. formatted as a .tar.bz2 file tree
@@ -2292,6 +1778,8 @@ lightyp *lamp_ptr
  *     .ext : an extension language script
  *     .*rc : a configuration file, parsed with the runcommander
  */
+
+/* data format for storing event-driven reminders
 
 struct mapgen_bordertyp {
 tileset *hightiles_n
@@ -2423,8 +1911,8 @@ mapobjflags:
 hidden : 1
 moves : 1
 class : 2
-wl_fuzz : 2 //taxicab radius of whitelist, around square(s) indicated by crossbar "and" (↔∩↕)
-bl_mode : 1 //0 = crossbar "or" (↔∪↕), 1 = crossbar "and" (↔∩↕)
+wl_fuzz : 2 //taxicab radius of whitelist, around square(s) indicated by ⌖
+bl_mode : 1 //0 = ✥, 1 = ⌖
 
 bool neutral : 1
 bool law : 1
@@ -2483,7 +1971,7 @@ trapflag flags : 8
 struct encontyp {
 (self) *prev
 (self) *next
-eventidentyp eventident
+eventdata eventident
 uchar tobeat	//of 10D20
 spawntyp spawn
 
@@ -2507,17 +1995,23 @@ bool unbreak : 1
 uchar uses : 8
 uchar metadata : 8
 
-struct eventidentyp {	//48bit identifyer based on storyline branch information.
+struct eventdata {	//48-bit persistant event data
+uchar identnumber : 15
+bool uses_race : 1
+bool uses_role : 1
+bool uses_class : 1
 uchar race : 5
 uchar role : 2
 uchar class : 3
-bool and : 1
-bool fuzzy : 1
-bool law : 1
+bool lawfulgood : 1
 bool good : 1
+bool chaosgood : 1
+bool lawful : 1
 bool neutral : 1
-bool evil : 1
 bool chaos : 1
+bool lawfulevil : 1
+bool evil : 1
+bool chaosevil : 1
 bool water : 1
 bool ice : 1
 bool air : 1
@@ -2529,13 +2023,52 @@ bool trees : 1
 bool light : 1
 bool darkness : 1
 bool entropy : 1
-ushort identnumber : 16
+}
+
+struct eventdatobj {	//list of events
+(self)* prev
+(self)* next
+eventdata data
+}
+
+/* file format for storeing event-based data in hex files:
+ *	[SOH]<48 bits event data>
+ *		[STX]string data[ETX][Seperator]
+ *		[XON]<length of field>[DLE]…[XOFF][Seperator]
+ *		[NAK][Seperator]	//false
+ *		[ACK][Seperator]	//true
+ *	[ETB]
+ *	[SOH]...
+ *	[EM]
+ * where different seperators organise the data:
+ * US = …},{…
+ * RS = …}},{{…
+ * GS = …}}},{{{…
+ * FS = …}}}},{{{{…
+ *
+ * here are the values of the control characters used
+ *  SOH (^A) = $01
+ *  STX (^B) = $02
+ *  ETX (^C) = $03
+ *  ACK (^F) = $06
+ *  DLE (^P) = $10
+ *  XON (^Q) = $11
+ * XOFF (^S) = $13
+ *  NAK (^U) = $15
+ *  ETB (^W) = $17
+ *   EM (^Y) = $19
+ *   FS (^\) = $1C
+ *   GS (^]) = $1D
+ *   RS (^^) = $1E
+ *   US (^_) = $1F
+ */
 
 struct eventtyp:
 (self) *prev
 (self) *next
 char16_t unichar
-eventidentyp eventident
+eventdata eventdatavals
+const char* requires	//path to a shared object, or NULL
 triggertyp whenthis
 triggerfunc ifthis()
 eventfunc dothis(paramtyp)
@@ -2561,7 +2094,7 @@ uchar value : 4
 struct qglobobj: //queued global object
 (self) *prev
 (self) *next
-eventidentyp eventident
+eventdata eventident
 qglobflags flags
 latlontyp latlon
 coord3 pos
@@ -2588,7 +2121,7 @@ canforceload : 1
 struct traptyp:
 (self) *prev
 (self) *next
-eventidentyp eventident
+eventdata eventident
 char16_t unichar
 coord3 loc
 ushort duration
@@ -2617,7 +2150,7 @@ uchar color : 6
 
 
 struct subwarptyp {
-eventidentyp eventident
+eventdata eventident
 bool perm : 1
 bool blink : 1
 uchar color : 6
@@ -2627,7 +2160,7 @@ sshort duration	//negative are uses, positive are turns
 }
 
 struct warptyp:
-eventidentyp eventident
+eventdata eventident
 bool perm : 1
 bool blink : 1
 uchar color : 6
@@ -3324,11 +2857,25 @@ enginehook() {
 	loadfile();
 
 /*pseudocode*/exitengine()
-//atexit
+/* at exit:
+ * 	prompt save, y: saveworld
+ * 	free files
+ * 	exit curses
+ * register atexit, catch SIGINT and route to safe quit
+ */
 
 void death(path/to/epitaphs)
 /* kills player with epitaph from list
  * records high score
  * saves
- * calls exit stuff
+ * exit with atexit
  */
+
+stringlistyp* loadstringlist(path)
+const char* path
+{
+stringlistyp* 
+
+FILE* list = fopen(path)
+int retval = 0
+while (retval != EOF) {

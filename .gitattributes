@@ -3,8 +3,12 @@ core.autocrlf=false
 *.h = linguist-language=C
 *.cc = linguist-language=C++
 *.hh = linguist-language=C++
+*.m = linguist-language=Objective-C
+*.mm = linguist-language=Objective-C++
+*.m4 = linguist-language=M4
 *.pas = linguist-language=Pascal
 *.p = linguist-language=Pascal
+*.pp = linguist-language=Pascal
 *.a68 = linguist-language=Algol linguist-vendored=false diff
 *.icn = linguist-language=icon linguist-vendored=false diff
 *.u = linguist-language=unicon linguist-vendored=false diff
@@ -21,7 +25,11 @@ core.autocrlf=false
 *.py = linguist-language=python
 *.js = linguist-language=javascript
 *.sh = linguist-language=Shell
+*.lex = linguist-language=Lex
+*.y = linguist-language=Yacc
 make = linguist-language=makefile
+*.cmake = linguist-language=CMake
+CMakeLists.txt = linguist-language=CMake
 *.ini = linguist-language=INI linguist-vendored=false diff
 *.tab = linguist-language=tsv linguist-vendored=false diff
 *.tsv = linguist-language=tsv linguist-vendored=false diff
@@ -32,6 +40,7 @@ make = linguist-language=makefile
 *.messy = linguist-language=text linguist-documentation=false linguist-vendored=false
 *.man.* = linguist-documentation=true
 *.html = linguist-documentation=true
+*.css = linguist-language=CSS linguist-documentation=true
 *.txt = linguist-documentation=true linguist-vendored=false diff
 *.md = linguist-documentation=true
 notes/* = linguist-documentation=true
