@@ -1,3 +1,4 @@
+#Don't remember the exact regex syntax, using generic unix metalanguage for groups until I get here
 NAME [A-Za-z][A-Za-z01-9]*
 STRING	\"(\\.|[^\"])*\"
 NUMBER [01-9]+

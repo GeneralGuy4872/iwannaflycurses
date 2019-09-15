@@ -133,7 +133,7 @@ coord3 pointb
 sshort xrel = pointb.x - pointa.x;
 sshort yrel = pointb.y - pointa.y;
 sshort zrel = pointb.z - pointa.z;
-return MAX(MAX(abs(xrel),abs(yrel)),abs(zrel));
+return MAX(MAX(abs(xrel),abs(yrel)),abs(zrel));	//only a sith...
 }
 
 float norm2(pointa,pointb)

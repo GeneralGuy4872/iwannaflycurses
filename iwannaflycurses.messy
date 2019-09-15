@@ -42,7 +42,7 @@
  * in which case those should be executable shared libraries
  * (the default game invents the xso file extension to denote an eXecutable Shared Object).
  * the effect is that short sessions should have small memory footprints, because they only load
- * a few of the modular libraries, but long marathon-like sessions could would be huge.
+ * a few of the modular libraries, but long marathon-like sessions could be huge.
  *
  * enviromental requirements:
  * - UTF-8 terminal of at least 25*80 characters
@@ -61,17 +61,6 @@
  * 	not just for other QWERTY layouts, but also for QWERTZ, AZERTY,
  * 	and Dvorak, by request and/or the ability to remap keys
  * 	by dotfiles.)
- *
- * 	Localization based on entire languages having their own files
- * 	would be easier, albeit more tedious, than trying to use macros.
- * 	as a mono-linguistic dodo, I would only be able to provide
- *	localization for variations of english. however, once I have
- * 	completed a beta, I would endever to include the following:
- * 	en, en-US, en-GB, en-053, and sco
- * 	I also want to learn Swedish, Latin, and Japanese;
- * 	my brain is not cooperating. localization contributions
- * 	will be welcome at any time, but pre-beta contributors
- * 	should be aware of fast-paced development.
  * - Mouse (once pseudo-raycasting is implemented for looking afar)
  * 
  * Controls:
@@ -90,12 +79,6 @@
  * or to use a dedicated memory stick for the save files for the same reason.
  * if such requirements arise, they will be considered a severe flaw and work
  * will focus on fixing them as soon as possible.
- *
- * most variables can change at runtime, especially linked lists.
- *
- * fair warning: the way unicode is handled is likely going to be beyond the relm of
- * "interesting" and into the territory of just plain "wierd". Also note that Radix-50
- * is being used to compress internal text (lossy,75%) in as many places as possible.
  *
  * This program is divided into 3 layers:
  *
@@ -121,13 +104,23 @@
  * 	a thing, and the actual way that a library or driver expects it to be
  * 	formatted. So far, the only use of this layer will be in MIDI.
  *
- * an extension language interpreter will be provided for the API
- * this will be implemented using flex&byacc, and will provide a
- * c-like syntax. this language will be single-pourpose, and will
- * provide callbacks to the running game.
+ * an s-expression extension language interpreter will be provided
+ * for the API, implemented using custom gets-strtok-regex-switch calls;
+ * - a line is got
+ * - it is tokenized
+ * - recursive regex tests identify the specie of token
+ * - if the token is a literal string, a b-tree of expected strings
+ *	in that context is summoned and comparisons identify it
+ * there are better ways to do this, but I can understand this one
+ * right now, and will worry about changing it later.
  *
  * an runcontrol-file interpreter will be writen this way as well,
- * to be used by the new savefile generator.
+ * to be used by the new savefile generator. it will have syntax
+ * inspired by .nethackrc
+ *
+ * lastly, a nonstructured language will be provided for defining midi streams
+ * in a human readable format. this language will only be provided as a flex/byacc
+ * parser, which emits a rawmidi file.
  *
  * GPLv2 or later, All Wrongs Reserved
  */
@@ -219,7 +212,7 @@ char16_t TILDEWIDE = setwidetilde()
 
 #define MAX(A,B) (A > B ? A : B)
 #define MIN(A,B) (A < B ? A : B)
-#define INTERVAL(A,N,B) MIN(MAX(N,A),B)
+#define INTERVAL(A,N,B) MIN(MAX(A,N),B)
 #define COORDSUB(Z,Y,X) ((MAX_Y * Z) + (MAX_X * Y) + X)
 #define RESET "\033c\033[2J\033[0H"
 #define DROPCURSES endwin();printf("\033c\033[24;1H");fflush(stdout);
@@ -250,6 +243,18 @@ char16_t TILDEWIDE = setwidetilde()
 #define ulonglong uint64_t
 #define slonglong int64_t
 
+/*debugger types*/
+enum datatypenum = {
+type_bool,type_char,type_uchar,type_schar,type_string,
+type_short,type_sshort,type_ushort,type_utf16,type_radix50,
+type_implicit,type_int,type_uint,type_sint,
+type_intptr_t,type_pointer,
+type_ulong,type_slong,
+type_float,type_double,
+type_div_t,type_time_t,type_clock_t,type_size_t,
+type_struct_bitfield,type_struct_coord2,type_struct_coord3,
+...
+
 /* the 3D version of Iwannafly started off as a general RT-RPG library that
  * then became narrowed to a specific game. this version was originally
  * supposed to be the same game reworked for ncurses,
@@ -259,7 +264,7 @@ char16_t TILDEWIDE = setwidetilde()
  * a default one will be provided, however.
  */
 
-//anonomous pointers
+//anonomous pointers, could be anything. they're anonomous.
 void cachedrum = malloc(1024 * sizeof(char))
 uchar cachenext = 0
 
@@ -309,19 +314,15 @@ forever {
 
 /* backslash enters console mode. characters are fetched and printed
  * with ncurses, as well as stored in a temporary file.
- * autocomplete may be implemented, using a gradually diminishing
- * linked list of matches between your entry and the command list.
- * autocomplete is only implemented for command names; string args are
- * matched against a stabs table.
  *
  * once the enter key is pressed, the temp file is rewound.
- * a LALR (flex/byacc type) parser is used to process the tokens
+ * a gets-strtok-regex-switch parser is used to process the tokens.
  *
  * interpretation mode will change depending on the syntax.
  * invalid commands may produce the response
  * "Don't know how to <command>", amoungst others.
  *
- * a command will be provided to dump objects as ini, json, or xml.
+ * a command will be provided to dump objects.
  * text fields will show both their raw value and their text
  * value in the correct encoding. using this comand to get
  * out-of-character information is cheating, but no penalty
@@ -402,7 +403,6 @@ char* text
  * bool invis : 1;
  * } Rune; //not needed
  */
-
 
 /* the game's internal representation uses 6 different character sets:
  * - UTF-8 for all input ɛ̩̍ output, as well as external text storage
@@ -525,7 +525,10 @@ playertyp PLAYER
 coord3 PLAYERSHD	//position of player's shadow, for renderer
 latlontyp WORLD
 roomtyp* ROOM
-roomgentyp MAPGENBYTES[ROOF][(EQUATOR/2)+1][EQUATOR]
+int(void)* MAPGENFUNC[ROOF][(EQUATOR/2)+1][EQUATOR]
+/* pointers to commands to generate rooms. these may be pure C,
+ * or they may open a plugin and parse it.
+ */
 #define MAX_X 64
 #define MAX_Y 24	//MAX_X ≥ MAX_Y ≥ MAX_Z
 #define MAX_Z 16
@@ -547,7 +550,17 @@ placetyp *PLACE_ptr
 stringlistyp *HINT_ptr
 eventstringtyp *HEYLISTEN_ptr
 eventdatobj* EVENTDATA_ptr
-globalbools GLOBREG	//set to true whenever you enter a room and every day at 6am
+bitfield globools
+#define NEW globools.a
+#define FIRST globools.b
+#define DAY globools.c
+#define NIGHT globools.d
+#define MORN globools.w
+#define NOON globools.x
+#define EVE globools.y
+#define MIDNIT globools.z
+
+
 
 /* buffered room loading for future implementation:
  * roomtyp* ROOMARRAY[3][3][3]
@@ -727,12 +740,12 @@ if (DATE.sec ≥ 60) {
 		}
 	}
 
-GLOBREG.MIDNIT = ((DATE.hour == 0) && !(DATE.min))
-GLOBREG.MORN = ((DATE.hour == 6) && !(DATE.min))
-GLOBREG.NOON = ((DATE.hour == 12) && !(DATE.min))
-GLOBREG.EVE = ((DATE.hour == 18) && !(DATE.min))
-GLOBREG.DAY = ((6 ≤ DATE.hour) && (DATE.hour < 18))
-GLOBREG.NIGHT = ((DATE.hour < 6) || (18 ≤ DATE.hour))
+MIDNIT = ((DATE.hour == 0) && !(DATE.min))
+MORN = ((DATE.hour == 6) && !(DATE.min))
+NOON = ((DATE.hour == 12) && !(DATE.min))
+EVE = ((DATE.hour == 18) && !(DATE.min))
+DAY = ((6 ≤ DATE.hour) && (DATE.hour < 18))
+NIGHT = ((DATE.hour < 6) || (18 ≤ DATE.hour))
 }
 
 //cartesian projection, →x ↓y ↑z (+y=-z)
@@ -852,11 +865,6 @@ uchar x
 uchar y
 uchar z
 
-struct patrolistyp {
-(self) *prev
-(self) *next
-setcoord3* start
-
 //some specific use cases require spheres. these are simply numeric types.
 
 struct diceodds:
@@ -920,9 +928,12 @@ coord3 pos
  */
 
 struct cylinder:
-uchar r : 8
-uchar up : 4
-uchar down : 4
+uchar r : 7
+uchar norm : 2
+uchar h : 4
+bool up : 1
+bool down : 1
+bool show : 1
  /* cylinders, (the shape, not this datatype) are used extensively.
   * players move in cylindrical coordinate space.
   * event areas are specified as cylinders
@@ -937,13 +948,14 @@ uchar cp : 7
 #define GOLDMAX = 130999
 #define COPPERMAX = 99
 
-/* crossbar logic operations are used for alignment masks.
- * these are union or intersection on special case subsets of a gridlike set of elements.
- * each operation takes subsets that are rows or columns in the grid.
- * crossbar "OR", symbol ✥, selects the entire row of elements and entire column of elements
- * crossbar "AND", symbol ⌖, selects only elements that are at intersections, usu. a single element.
- * by defining a NOT operator, all other binary operators (NAND,NOR,XOR,XNOR/IFF) could be constructed.
- * since the set is cartesian, fuzzy matching of ⌖ could also be used by specifying a norm and a distance.
+/* Alignment uses set operations on 2 perpindicular discreet lines.
+ * I will assign unique symbols for clarity and brevity:
+ * ✥ is union (used as arrows)
+ * ⌖ is intersection
+ *	a norm1 distance might be given with ⌖ to denote a radius around the point
+ *	it designates; more than 2 arguments to ⌖ would always be ∅ according to this
+ *	definition, but I provide the following contengency for the usage here:
+ * 	X > 2 selections are processed as the ∪ of (X nCr 2) seperate ⌖.
  */
 struct aligntyp:
 good : b1
@@ -955,8 +967,8 @@ noevil : b1
 nolaw : b1
 nochaos : b1
 /* used as a mask.
- * starting alignment must be one of the high nibble (crossbar "OR" ✥ if one or more than 2 are selected, crossbar AND ⌖ ║2║1 if exactly 2 are selected, true neutral ║1║1 if none are selected).
- * alignment may NEVER enter any of the low nibble, marked "no" (crossbar "OR" ✥ always, overrides whitelist).
+ * starting alignment must be one of the high nibble (✥ if one or more than 2 are selected, ⌖ ║2║1 if exactly 2 are selected, true neutral ║1║1 if none are selected).
+ * alignment may NEVER enter any of the low nibble, marked "no" (✥ always, overrides whitelist).
  *
  * there are other ways that alignment masks may be specified,
  * all of which have finer grained control.
@@ -971,16 +983,6 @@ w : 1
 x : 1
 y : 1
 z : 1
-
-struct globalbools {
-NEW
-FIRST
-DAY
-NIGHT
-MORN
-NOON
-EVE
-MIDNIT
 
 typedef char* stabs[256] //symbol table strings
 typedef uchar symtabref //beware of missingno glitches!
@@ -1045,10 +1047,10 @@ char* healerstabs[8] = {"healer","cleric","priest","druid","alchemist","scholar"
 paffect	classtable[4][8]
 
 enum mon1_enum
-stabs mon1stabs =	//"final name", /*placeholder name*/
+stabs mon1stabs =
 {"human",	"elf",		"dwarf",	"gnome",	"hobbit",	"half elf",	"drow",		/*avian*/,	"half orc",	"half dragon",	/*half celestial*/,	"tiefling",	"half air elemental",		"half water elemental",	"half earth elemental",		"half fire elemental",
 "merfolk",	"seaelf",	"satyr",	"fairy",	"pixie",	"naiad",	"naga",		"dryad",	"orc",		"kobald",	"centaur",		"sphinx",	"half electric elemental",	"half ice elemental",	"half nature elemental",	"half metal elemental",
-};
+...};
 
 ptrtab mon1table
 /* contains all polymorphable monsters, of type BASENTYPE.
@@ -1067,7 +1069,8 @@ ptrtab mon1table
  * and non polymorphable by placing them on the low or high tables
  */
 enum mon2_enum
-stabs mon2stabs
+stabs mon2stabs = {...
+,	"Justice",	"Retribution",	"Justice",	"Retribution",	"Death"};
 ptrtab mon2table
 
 /* MONSTERS BY LETTER
@@ -1268,7 +1271,7 @@ else {
 
 struct basentyp:
 aligntyp alignmask
-aggrotype aggro	//here, shiftable denotes a monster's aggro state is locked. also gives the value that patience is set to when a monster calms down, the value that cooldown is set to when it is angered, and the default AI.
+aggrotyp aggro	//here, shiftable denotes a monster's aggro state is locked. also gives the value that patience is set to when a monster calms down, the value that cooldown is set to when it is angered, and the default AI.
 paffectyp base
 venomtyp venom
 uchar spd	//distance calculations use M_SQRT2 for diagonals
@@ -1309,7 +1312,6 @@ struct enttyp:
 (self) *next
 classobjtyp class
 aggrotyp aggro
-setcoord3* coordlist
 symtabref race
 coord3 loc
 polar facing
@@ -1339,6 +1341,19 @@ subobjtyp ringl
 subobjtyp ringr
 subobjtyp wristl
 subobjtyp wristr
+
+struct npctyp:
+(self) *prev
+(self) *next
+eventdata eventident
+classobjtyp class
+setcoord3* path
+symtabref race
+coord3 loc
+polar facing
+conlangtyp lang
+char* lines
+char* gibber
 
 struct followtyp:
 eventdata eventident
@@ -1485,14 +1500,6 @@ uchar splash : 3 //radius of damage on impact
 bool spz : 1 //spread and splash in the z plane.
 bool dig : 1 
 //if (.spread != 0), slope = 4-.spreaad
-
-struct wavetyp {
-speed : 2
-sense : 2
-phase : 1
-direction : 3
-thick : 1
-tile : 7
 
 struct baseweaptyp:
 bool fire : 1
@@ -1727,10 +1734,11 @@ tileset *hightiles
 schar tiledata[MAX_Z][MAX_Y][MAX_X] //both tile and entity coordinets refer to the boxes of the grid
 shadowmask seen
 encontyp *encon_ptr
-patrolistyp *patrol_ptr
 enttyp *ent_ptr
+npctyp *npc_ptr
 mapobjtyp *obj_ptr
 lightyp *lamp_ptr
+setcoord3 *path_ptr
 coord2 downstair
 coord3 upstair
 coord3 home
@@ -1766,7 +1774,6 @@ lightyp *lamp_ptr
  *     .dat : a shared object containing constants.
  *     .txt : UTF-8 text document. usually stored in the program's static files, which is CAT-ed to provide dialouge; also used in dumps of primatives
  *     .nfo : UTF-8 text document (not CP437) containing SGR sequences. otherwise identical to txt.
- *    .json : non-standard json file, used in data dumps.
  *  .tar.gz : each room is saved as a tar.gz file, as are linked lists and the player
  * .tar.bz2 : each plane is saved as a tar.bz2 file.
  *     .sav : a save file. formatted as a .tar.bz2 file tree
@@ -1775,11 +1782,13 @@ lightyp *lamp_ptr
  *    .html : extended documentation
  *      .md : extended documentation
  *       .d : non-null pointers are converted to subdirectorys in saves. the tail element in a linked list has no subdirectory named "next", and "prev" pointers are implicitly stored as "/..".
- *     .ext : an extension language script
  *     .*rc : a configuration file, parsed with the runcommander
+ *    .dump : a debugger data dump, with a format somwhere between json, s-expressions, and the above. also includes HTML href elements, but no other SGML/XML syntax. intedned to be read by people, not processed by computers; should this change, I will fix my own mess.
+ *
+ * if the following new extensions collide with anything, I will change them. I specifically chose ones that were not a TLA or EFLA to try and avoid this, because there have been TDMTLA since before I came along.
+ *   .iwfcl : a plugin. "iwfc" should be replaced with the abbiviation of the final name.
+ * .midibas : midiBASIC, to be parsed by the midi generator into a dat file. Represents a different subset of general midi than regular midi files, but does so in a human readable format.
  */
-
-/* data format for storing event-driven reminders
 
 struct mapgen_bordertyp {
 tileset *hightiles_n
@@ -1911,7 +1920,7 @@ mapobjflags:
 hidden : 1
 moves : 1
 class : 2
-wl_fuzz : 2 //taxicab radius of whitelist, around square(s) indicated by ⌖
+wl_fuzz : 2 //taxicab radius of whitelist, around ⌖.
 bl_mode : 1 //0 = ✥, 1 = ⌖
 
 bool neutral : 1
@@ -2066,13 +2075,11 @@ eventdata data
 struct eventtyp:
 (self) *prev
 (self) *next
-char16_t unichar
-eventdata eventdatavals
 const char* requires	//path to a shared object, or NULL
+eventdata eventdatavals
 triggertyp whenthis
-triggerfunc ifthis()
-eventfunc dothis(paramtyp)
-paramtyp params
+int(paramtyp)* ifthis
+int(paramtyp)* dothis
 const char* name
 cylinder dim
 ulong duration
@@ -2227,7 +2234,6 @@ DOOR_FLAG : contains doortyp
 LOCK_FLAG : contains locktyp (gates are this)
 MONEY_FLAG : contains moneytyp
 SPAWN_FLAG : contains spawntyp
-WAVE_FLAG : contains wavetyp
 
 /*pseudocode*/radius
 /* uses floats to define a circle,
@@ -2250,8 +2256,8 @@ an UNDERLINE is a shadow
 ⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves. % is meat. ⊞ is food (don't shoot it). $ is gold. ¢ is copper.
 ⌘ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♫ is a lyre. ƒ is a violin. ♪ is a different music instrument.
 ¿ are potions (fragile). ∫ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet. ^ is a crown.
-/ is a wand. ♮ is a ladder. ⋎ is a fountain or gyser. ≏ is a bell. ⎋ is a clockface. ♠ ♣ ‡ are trees. ⋏ is fire. ♜ is a pedestal.
-≃ is shallow liquid. ≈ is deep liquid's surface. ∬ is a waterfall. ~ is a liquid (as seen while submerged). ∿ is a wave.
+/ is a wand. ♮ is a ladder. ⋎ is a fountain or gyser. ⍾ is a bell. ⎋ is a clockface. ♠ ♣ ‡ are trees. ⋏ is fire. ♜ is a pedestal.
+∿ is shallow liquid. ≈ is deep liquid's surface. ∬ is a waterfall. ~ is a liquid (as seen while submerged). 
 ⌁ is electricity. * is ice. ⎈ spider web. ⌬ beehive. ↥ are spikes. ⎙ ⍝ ⎍ ∎ ⎅ are tombstones or signs. ␥ is glass.
 ? is invisible. ! is trouble. ⌑ is a light source. ⌸ is a door. ⍯ is a locked door. ⎕ is an open door. = is a gate. ≠ is a locked gate.
 • is a boulder. . is a rock. ⁂ is a rockslide. ◇ is a gemstone. ◊ is a giant magic crystal. ⑆ are footprints.
@@ -2260,7 +2266,7 @@ an UNDERLINE is a shadow
 # █ ▓ ▒ ░ ▞ ▚ (etc) are thick walls or floor. ≋ is a cloud (no walking; keep your head out of them). ≣ is a staircase. 
 ˜ ␣ are holes. ' is a stalagtite or icicle. , is a plant. ; is a grain or sunflower (impassable).
 box drawings are low walls or columns. ⑉ ⋮ are iron bars. · is an ember or star. ` ´ ˇ are flower petals.
-✪ is a rune. ː ⍽ are traps. ¬ (blinking) is stale air (unbreathable). ≉ ∯ is stagnent water (unbreathable). ☣ ‽ is gas.
+✪ is a rune. ː ⍽ are traps. ¬ (blinking) is stale air (unbreathable). ≃ is stagnent water (unbreathable). ☣ ‽ is gas.
 " deliminates text. \ deliminates commands.
 ⍰ is a missingno.
 
@@ -2277,10 +2283,10 @@ box drawings:
  ╘╧╛     ╚╩╝
 
 A_DIM is used to provide 16 colors
-A_BOLD symbols are petrified (statues).
+A_ITALIC symbols are petrified (statues).
 A_BLINK is a tile that is out of view
-A_ITALIC is something that is only visable through magical means
-if an object or entity is not able to be seen for any reason, it is rendered A_INVIS or not at all
+A_BOLD symbols are highlighted
+A_INVIS is not able to be seen
 A_REVERSE video is a magic spell's area of effect
 A_UNDERLINE is the shadow of an entity
 
@@ -2313,23 +2319,6 @@ nonstandard punctuation should be established in obvious, unambiguous, context b
 monospaced raster fonts presented light-on-dark can be unappealing to the uninitiated, so every opportunity should be taken to make the text more appealing.
 other nonstandard punctuation that is not used to disambiguate meaning (♪, ♥, ♩♯, ↯, ☠) helps to paint the medium, making the dialouge come alive;
 for the same reason, dialouge should be colored and styled as appropriate whenever possible.
-
-/* rotten?
- * if digging causes a ≈ or ∬ to become uncontained, it will immediately spawn a ∿
- * which leaves ≃ or ∬ behind it when it moves. it's behavior differs depending on
- * the liquid's viscosity:
- * 	highly viscus (lava): deflected only by solid objects,
- * 	sensitive to edges at ║1║1. moves by ║1║∞.
- *
- * 	watery: meander by half wave on flat unobstructed ground. deflected
- * 	by any object, sensitive to edges at ║3║1. distance from starting position
- * 	to ending position is up to ║3║∞ in xy, and -9 in z
- *
- * 	           ≃≃≃                ≃≃
- * 	half wave: ∿ ≃ (horizontal) ; ∿  (diagonal)
- *
- * if the ∿ reaches an edge, it will queue itself to be loaded in the room it panned to.
- */
 
 foods (* = uses meta)
 hardtak tortilla cornmeal cornbread
@@ -2393,7 +2382,7 @@ jelly* jam* preserves* peanutbutter
 icecube snow ember blacksoup
 broth* stew* ration mistake
 
-/*rotten pseudocode*/playermove(xmove,ymove,zmove)
+/*ROTTEN pseudocode*/playermove(xmove,ymove,zmove)
 schar xmove
 schar ymove
 schar zmove
@@ -2565,8 +2554,8 @@ else {
 
 ROOM = loadroom(WORLD)
 
-GLOBREG.NEW = true
-GLOBREG.FIRST = !(visited)
+NEW = true
+FIRST = !(visited)
 ROOM.visited = true
 }
 
@@ -2591,8 +2580,8 @@ if (roomptr == NULL) {roomptr = ROOM}
 	current = NULL
 	}
 	{
-	patrolistyp* current = roomptr→encon_ptr→prev
-	patrolistyp* previous = roomptr→encon_ptr→prev→prev
+	setcoord3* current = roomptr→encon_ptr→prev
+	setcoord3* previous = roomptr→encon_ptr→prev→prev
 	roomptr→encon_ptr→prev→next = NULL
 	roomptr→encon_ptr→prev = NULL
 	while (previous != NULL) {
@@ -2655,6 +2644,9 @@ roomtyp* loadroom(latlontyp)
 /*pseudocode*/loadgame()
 /*pseudocode*/savegame()
 //loading and saving of the entire file
+
+/*pseudocode implicit*/dump(datatypenum,void*)
+// used by the debugger to dump data.
 
 /*pseudocode implicit*/castshadow(xpos,ypos,zpos)
 uchar xpos
@@ -2758,12 +2750,11 @@ switch (tmp.rem) : {
 }
 
 main () {
-if (GLOBREG.NEW) {
+if (NEW) {
 	checkglobal(NEW_FLAG,true)
-	GLOBREG.NEW = false
+	NEW = false
 	}
 checkevents()	//check event triggers
-wavecheck()	//check waves
 player_act()	//player's turn
 follow_iter()	//iterate through follower entities
 ent_iter()	//iterate through local entities
@@ -2807,18 +2798,6 @@ for (;count != 0;count--) {
  * draw other entitys that can be seen
  * add shadows
  */
-
-enum roomgenenum {FIXED_GEN_FLAG,SKY_GEN_FLAG,VILLAGE_GEN_FLAG,PLAIN_GEN_FLAG,FOREST_GEN_FLAG,HILL_GEN_FLAG,MOUNTAIN_GEN_FLAG,DESERT_GEN_FLAG,VOLCANO_GEN_FLAG,BEACH_GEN_FLAG,OCEAN_GEN_FLAG,MAZE_GEN_FLAG,MAZE_ROOMS_GEN_FLAG,PATH_GEN_FLAG,PATH_ROOMS_GEN_FLAG,LAVA_MAZE_GEN_FLAG,LAVA_MAZE_ROOMS_GEN_FLAG,LAVA_PATH_GEN_FLAG,LAVA_PATH_ROOMS_GEN_FLAG,MINES_GEN_FLAG,CAVE_GEN_FLAG,CANYON_GEN_FLAG,CAVE_NOFLOOR_GEN_FLAG,CAVE_NOCEIL_GEN_FLAG,CAVE_MASSIVE_FLAG,LAVA_MINES_GEN_FLAG}
-
-struct roomgentyp
-{
-roomgenenum roomgen : 8
-uchar height : 4
-bool peacful : 1	//do not generate any monsters
-bool dark : 1	//warn of and generate grue.
-bool upstair : 1
-bool downstair : 1
-}
 
 enginehook() {
 	printf("\033c\033[0H\n\n \033[1;95m~~ Iwannafly Roguelike Engine : %s ~~\033[m\n\033[97m  gamemaster version: %s\n       savefile type: %s\n    compression type: %s\n     sound interface: %s\n\n \033[96m - %s -\033[m\n\033[97m      RPG rules revision: %s\nstory event API revision: %s\n   file handler revision: %s\n\n\033[37mCompiled on %s\n\033m\a",GAMENAME,GM_VERSION,SAVE_FORMAT,COMPRESSION,"deferred",DEVEL_STATE,REV_RULES,REV_EVENTS,REV_FILES,__DATE__);

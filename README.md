@@ -20,9 +20,32 @@ Prerequisits
 ------------
 
 Libraries:
-
-- C Standard Libraries
-- Ncurses
+- <CODE>stdlib.h</CODE>
+- <CODE>stdio.h</CODE>
+- <CODE>stdbool.h</CODE>
+- <CODE>stdint.h</CODE>
+- <CODE>math.h</CODE>
+- <CODE>limits.h</CODE>
+- <CODE>time.h</CODE>
+- <CODE>string.h</CODE>
+- <CODE>ctype.h</CODE>
+- <CODE>uchar.h</CODE>
+- <CODE>dlfcn.h</CODE>
+- <CODE>unistd.h</CODE>
+- <CODE>signal.h</CODE>
+- <CODE>locale.h</CODE>
+- <CODE>regex.h</CODE>
+- <CODE>dirent.h</CODE>
+- <CODE>sys/types.h</CODE>
+- <CODE>sys/ioctl.h</CODE>
+- <CODE>fcntl.h</CODE>
+- <CODE>sys/stat.h</CODE>
+- <CODE>libtar.h</CODE>
+- <CODE>zlib.h</CODE>
+- <CODE>libbz2.h</CODE>
+- <CODE>ncursesw/ncurses.h</CODE>
+- <CODE>menu.h</CODE>
+- <CODE>forms.h</CODE>
 
 Obfuscated C
 ------------

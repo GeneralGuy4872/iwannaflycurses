@@ -54,3 +54,6 @@ notes/* = linguist-documentation=true
 *.tar.* = binary diff linguist-vendored=false
 *.midi = binary diff linguist-vendored=false
 *.nfo = binary diff linguist-documentation=true linguist-vendored=false
+*.dump = linguist-language=json linguist-vendored=false diff
+*.iwfcl = linguist-language=lisp linguist-vendored=false diff
+*.midibas = linguist-language=basic linguist-vendored=false diff
