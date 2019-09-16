@@ -3,6 +3,13 @@
  * this file will eventually become main.h or main.c.
  *
  * the bulk of it's contents, however, will be moved.
+ *
+ * workflow:
+ * outline blackboxes top-down (-ish)
+ * outline pseudocode top-down (-ish)
+ * write real code bottom-up
+ * structs are made both top-down (specific) and bottom-up (generic)
+ * changes must be propogated both down and up
  */
 
 /******************************
@@ -106,11 +113,11 @@
  *
  * an s-expression extension language interpreter will be provided
  * for the API, implemented using custom gets-strtok-regex-switch calls;
- * - a line is got
+ * - a line is got and toupper-ed
  * - it is tokenized
  * - recursive regex tests identify the specie of token
- * - if the token is a literal string, a b-tree of expected strings
- *	in that context is summoned and comparisons identify it
+ * - if the token is a literal string, a list of expected strings
+ *	in that context is created and reduced to a match or null
  * there are better ways to do this, but I can understand this one
  * right now, and will worry about changing it later.
  *
@@ -166,6 +173,13 @@
 
 // need to find a MIDI library.
 
+#ifndef OK
+#define OK 0
+#endif
+#ifndef ERR
+#define ERR ~0	//not zero
+#endif
+
 mvaddch16(int x,int y,char16_t raw) {
 const wchar_t wch = raw;
 mvaddnwstr(13,16,&wch,1);
@@ -193,7 +207,7 @@ addnwstr(&wch,1);
 #define FLOPPYDISK 1474560
 #define BGCOLORS 8
 #define FGCOLORS 8
-#define GAMENAME "Default Game"
+#define GAMENAME "IWF DEFAULT GAME"
 #define GM_VERSION "0.0"
 #define DEVEL_STATE "Prealpha"
 #define SAVE_FORMAT "raw dump"
@@ -209,24 +223,24 @@ char16_t TILDEWIDE = setwidetilde()
 
 /*FUNCTION MACROS*/
 #define BACKGROUND 010
-
 #define MAX(A,B) (A > B ? A : B)
 #define MIN(A,B) (A < B ? A : B)
 #define INTERVAL(A,N,B) MIN(MAX(A,N),B)
 #define COORDSUB(Z,Y,X) ((MAX_Y * Z) + (MAX_X * Y) + X)
+
+// kludge so that stdio and ncurses play nice together
 #define RESET "\033c\033[2J\033[0H"
-#define DROPCURSES endwin();printf("\033c\033[24;1H");fflush(stdout);
 #define BREAKCURSES clear();refresh();endwin();printf(RESET);fflush(stdout);
 #define FIXCURSES printf(RESET);fflush(stdout);initialize();while (fgetc(stdin) != '\n');refresh;
-#define forever for (;;)
 
-//prettify the tokens my eyes don't parse
+// prettify the tokens my eyes don't parse
 #define ≥ >=
 #define ≤ <=
 #define → ->
 #define ← |=
-/* ɛ̩̍ will be used for "and" the conjunction in comments where logical && would give a meaning that
- * could be validly, but incompatibly, interpreted as different from what is intended.
+#define forever for (;;)
+/* ɛ̩̍ will be used for "and", the conjunction, in comments where logical && would give a meaning that
+ * could be validly, but incompatibly, interpreted as compleatly different from what is intended.
  * if confusion arises from or, similar mesures will be implemented for it, too.
  */
 
@@ -404,15 +418,6 @@ char* text
  * } Rune; //not needed
  */
 
-/* the game's internal representation uses 6 different character sets:
- * - UTF-8 for all input ɛ̩̍ output, as well as external text storage
- * - UCS-2 for internal unicode text
- * - ISO-8859-1 for most other internal text
- * - RADIX-50 (16 bit) for 3:2 lossy compression of ascii text
- *
- * the game does not use EBCDIC.
- */
-
 uint mainh__roll (num,side,low)
 uchar num;	//number of dice to roll
 uchar side;	//sides on each die
@@ -452,7 +457,7 @@ int lines;
 if (openfile == NULL) {
 	MISSING_FILE(path);
 	ERROR_GRAPHIC("File not found",0,0,0,0,false);
-	return -1;
+	return ERR;
 	}
 char tmpbuffer[BUFFER_MAX];
 BREAKCURSES
@@ -532,7 +537,7 @@ int(void)* MAPGENFUNC[ROOF][(EQUATOR/2)+1][EQUATOR]
 #define MAX_X 64
 #define MAX_Y 24	//MAX_X ≥ MAX_Y ≥ MAX_Z
 #define MAX_Z 16
-#define CEILING ROOM→upstair.z
+#define CEILING ROOM→ceiling
 #define ROOF 201	//it is decreed: mortals shall fly no higher. (this means you!)
 #define EQUATOR 360	//the number of rooms in the circumfrence of the sphere
 shadowmask SHADOWKNOWS
@@ -875,7 +880,7 @@ uchar tobeat : 8
 struct latlontyp {
 uchar dep : 8	//0 ≤ dep ≤ 201
 schar lat : 8	//-90 ≤ lat ≤ 90
-sshort lon : 9	//-180 ≤ lon < 180
+sshort lon : 9	//-180 ≤ lon < 179
 bool shift : 1	//are you plane shifted?
 bool moon : 1	//are you on the moon?
 uchar az : 3	//azimuth on a plane chart
@@ -1011,7 +1016,7 @@ legendtyp legendtable[20]
 
 char* psystabs[8] = {"detect alignment","charm","hold","sleep","mind blast","passify","unhinge","terrify"}
 
-/*pseudocode*/psionic(id)
+/*blackbox*/psionic(id)
 uchar id
 //switch case for each psionic ability
 
@@ -1070,7 +1075,7 @@ ptrtab mon1table
  */
 enum mon2_enum
 stabs mon2stabs = {...
-,	"Justice",	"Retribution",	"Justice",	"Retribution",	"Death"};
+/*$FA*/,	"Justice"/*not invincible*/,	"Retribution"/*not invincible*/,	"Justice"/*invincible*/,	"Retribution"/*invincible*/,	"Death"};
 ptrtab mon2table
 
 /* MONSTERS BY LETTER
@@ -1086,7 +1091,7 @@ ptrtab mon2table
  * d: hellhound, wolf, dire wolf, dog, fox, cyote,
  * E: <elementals>, stalker,
  * e: floating eye,
- * F: turkey, rooster, chicken, peacock, duck, goose, swan, albatross, gull,
+ * F: turkey, rooster, chicken, peacock, duck, goose, swan, albatross, gull, dodo,
  * f: panther, lion, tiger, manticore, cat, lynx, bobcat, displacer beast,
  * G: ghost, banshee, revenent, barrow wight,
  * g: gremlin, gargoyle, winged gargoyle,
@@ -1104,8 +1109,8 @@ ptrtab mon2table
  * m: <mummies>
  * N: naga,
  * n: merfolk, naiad, dryad,
- * O: <letter O considered harmful>
- * o: orc, half orc, uruk-hai, ogre,
+ * O: orc, half orc, uruk-hai, ogre,
+ * o: ostrich, emu, moa,
  * P: fairy, pixie,
  * p: dolphin, narwhal, orca, beluga,
  * Q: elephant, mammoth, rhino,
@@ -1205,7 +1210,7 @@ enum equipenum = {ENUM_WEAP_LEFT,ENUM_WEAP_RIGHT,ENUM_SHIELD_ENUM_BOW,ENUM_ARMOR
 ENUM_GLOVES,ENUM_CANNON,ENUM_BOOTS,ENUM_GREEV,ENUM_AMUL,ENUM_RING_LEFT,ENUM_RING_RIGHT,ENUM_WRIST_LEFT,
 ENUM_WRIST_RIGHT}
 
-psudo update_player
+/*blackbox*/update_player
 /* resets .fromequip , then iterates through the entire equipment list to regenerate it.
  * must be called every time equipment is changed to ensure that it is up to date
  * effects in .permenent can only be removed by finding something that affects the opposite change
@@ -1217,12 +1222,12 @@ psudo update_player
  * this may be done automatically when you sleep.
  */
 
-/*pseudocode*/inventsort
+/*blackbox*/inventsort
 /* compresses stackable items into stacks, sorts items by objid and itemid.
  * more computationally expensive than update_player.
  */
 
-/*pseudocode*/force_global
+/*blackbox*/force_global
 /* forces some queued globals to be loaded. takes a very long time, but can
  * sometimes be necissary if the global buffer is bogged down.
 
@@ -1731,7 +1736,8 @@ paffectyp enchnt
 struct roomtyp: //top-down display of a 3d space
 latlontyp latlon
 tileset *hightiles
-schar tiledata[MAX_Z][MAX_Y][MAX_X] //both tile and entity coordinets refer to the boxes of the grid
+schar* tiledata[][MAX_Y][MAX_X]
+uchar ceiling
 shadowmask seen
 encontyp *encon_ptr
 enttyp *ent_ptr
@@ -1740,7 +1746,7 @@ mapobjtyp *obj_ptr
 lightyp *lamp_ptr
 setcoord3 *path_ptr
 coord2 downstair
-coord3 upstair
+coord2 upstair
 coord3 home
 bool do_upstair : 1
 bool do_downstair : 1
@@ -1749,8 +1755,7 @@ bool blank : 1
 bool shadefloor : 1
 uchar floorcolor : 3
 uchar meta //may be used by events
-/* z coord of the upstair is the maximum height of the map for underground levels
- * if invalid coords are given for a warp (typically {$FF,$FF}),
+/* if invalid coords are given for a warp (typically {$FF,$FF}),
  * then the player is dumped at the location indicated by home.
  *
  * if the player has invalid coords, then the error string "fell out of terminal",N1=x,N2=y is generated.
@@ -1816,7 +1821,7 @@ schar down[MAX_Y][MAX_X]
  * up and down do not need secondary directions as the map cannot be scrolled that way
  */
 
-typedef bitfield shadowmask[MAX_Z/8][MAX_Y][MAX_X]
+typedef ushort shadowmask[MAX_Y][MAX_X]
 typedef bitfield starfield[MAX_Y][MAX_X/8]
 
 struct petaltyp {
@@ -2235,7 +2240,7 @@ LOCK_FLAG : contains locktyp (gates are this)
 MONEY_FLAG : contains moneytyp
 SPAWN_FLAG : contains spawntyp
 
-/*pseudocode*/radius
+/*blackbox*/radius
 /* uses floats to define a circle,
  * terminating when there is not enough
  * value left to move another whole block.
@@ -2411,7 +2416,7 @@ else if (PLAYER.pos.y ≥ MAX_Y) {
 PLAYER.pos.z += zmove
 }
 
-/*pseudocode*/playervelocitycheck() velocitycheck(*entity)
+/*blackbox*/playervelocitycheck() velocitycheck(*entity)
 	/* if you have a nonzero velocity vector, when you try to move
 	 * you travel in a direction determined by the mean vector of
 	 * your move and your velocity. each turn, your velocity reduces
@@ -2419,7 +2424,7 @@ PLAYER.pos.z += zmove
 	 * in a direction if you hit something.
 	 */
 
-/*pseudocode*/movecheck(xmove,ymove,zmove)
+/*blackbox*/movecheck(xmove,ymove,zmove)
 	/* if you are flying {
 	 *	checks your flying skill and restricts your movement accordingly
 	 *		if you have no flying skill, grav is added to your -Z velocity
@@ -2440,7 +2445,7 @@ PLAYER.pos.z += zmove
 	 * }
 	 */
 
-/*pseudocode*/newtonlaw(xmove,ymove,zmove)
+/*blackbox*/newtonlaw(xmove,ymove,zmove)
 	- checks if you're flying magically, on ice, or in a liquid
 	- if you are, adds {-xmove,-ymove,-zmove} to your velocity
 	  (half this value in liquids)
@@ -2453,12 +2458,11 @@ saveroom()
 
 WORLD = destination
 
-mapscrollargs nullscroll = {0,0,0,false,false}
-mapscroll(nullscroll)
+mapscroll(NOSCROLL)
 
 loadroom(WORLD)
 
-if ((tocoord.x ≥ MAX_X) || (tocoord.y ≥ MAX_Y) || (tocoord.z ≥ CEILING)) {
+if ((tocoord.x > MAX_X) || (tocoord.y > MAX_Y) || (tocoord.z ≥ CEILING)) {
 	PLAYER.pos.x = ROOM.home.x
 	PLAYER.pos.y = ROOM.home.y
 	PLAYER.pos.z = ROOM.home.z
@@ -2470,7 +2474,7 @@ else {
 	}
 }
 
-/*pseudocode*/loading()
+/*blackbox*/loading()
 	/* clears screen
 	 * prints "  LOADING..." on line 13
 	 * prints a hint on line 22.
@@ -2485,9 +2489,16 @@ bool stair : 1
 bool home : 1
 }
 
+mapscrollargs NOSCROLL = {0,0,0,false,false}
+
 /*implicit*/mapscroll(args)
 mapscrollargs args
 {
+BREAKCURSES
+printf("\033]0;%s: loading...\a",GAMENAME);
+printf("loading...");
+fflush(stdout);
+FIXCURSES
 saveroom(NULL)
 freeroom(NULL)
 WORLD.coord.lat += args.latmove
@@ -2557,9 +2568,14 @@ ROOM = loadroom(WORLD)
 NEW = true
 FIRST = !(visited)
 ROOM.visited = true
+
+BREAKCURSES
+printf("\033]0;%s: %i°%c, %i°%c, %i\a",GAMENAME,abs(WORLD.lat),WORLD.lat > 0 ? 'N' : (WORLD.lat < 0 ? 'S' : ' '),WORLD.lon > 0 ? 'E' : ((WORLD.lon < 0) && !(WORLD.lon == -180) ? 'W' : ' '),WORLD.dep - 100);
+FIXCURSES
+render();
 }
 
-/*pseudocode*/saveroom(roomtyp*)
+/*blackbox*/saveroom(roomtyp*)
 //saves the room pointed to, or the current room if NULL
 
 /*implicit*/freeroom(roomptr)
@@ -2637,15 +2653,15 @@ if (roomptr == NULL) {roomptr = ROOM}
 roomtyp* loadroom(latlontyp)
 //loads room indicated by WORLD
 
-/*pseudocode*/saveworld()
-/*pseudocode*/loadworld()
+/*blackbox*/saveworld()
+/*blackbox*/loadworld()
 //sync and load the files for planes
 
-/*pseudocode*/loadgame()
-/*pseudocode*/savegame()
+/*blackbox*/loadgame()
+/*blackbox*/savegame()
 //loading and saving of the entire file
 
-/*pseudocode implicit*/dump(datatypenum,void*)
+/*blackbox implicit*/dump(datatypenum,void*)
 // used by the debugger to dump data.
 
 /*pseudocode implicit*/castshadow(xpos,ypos,zpos)
@@ -2681,52 +2697,75 @@ uchar ycoord
 uchar xcoord
 shadowmask mask
 {
-div_t tmp = div(zcoord,8)
-switch (tmp.rem) : {
-	case 0 : return mask[tmp.quot][ycoord][xcoord].a;
-	case 1 : return mask[tmp.quot][ycoord][xcoord].b;
-	case 2 : return mask[tmp.quot][ycoord][xcoord].c;
-	case 3 : return mask[tmp.quot][ycoord][xcoord].d;
-	case 4 : return mask[tmp.quot][ycoord][xcoord].w;
-	case 5 : return mask[tmp.quot][ycoord][xcoord].x;
-	case 6 : return mask[tmp.quot][ycoord][xcoord].y;
-	case 7 : return mask[tmp.quot][ycoord][xcoord].z;
-	default : ERROR_GRAPHIC("math: impossible (cosmic rays)",'X',tmp.rem,'X',0x07,true); raise(SIGSEGV);
+switch (zcoord) : {
+	case 0 : return (bool) (mask[ycoord][xcoord] & 0x8000);
+	case 1 : return (bool) (mask[ycoord][xcoord] & 0x4000);
+	case 2 : return (bool) (mask[ycoord][xcoord] & 0x2000);
+	case 3 : return (bool) (mask[ycoord][xcoord] & 0x1000);
+	case 4 : return (bool) (mask[ycoord][xcoord] & 0x0800);
+	case 5 : return (bool) (mask[ycoord][xcoord] & 0x0400);
+	case 6 : return (bool) (mask[ycoord][xcoord] & 0x0200);
+	case 7 : return (bool) (mask[ycoord][xcoord] & 0x0100);
+	case 8 : return (bool) (mask[ycoord][xcoord] & 0x0080);
+	case 9 : return (bool) (mask[ycoord][xcoord] & 0x0040);
+	case 0xA : return (bool) (mask[ycoord][xcoord] & 0x0020);
+	case 0xB : return (bool) (mask[ycoord][xcoord] & 0x0010);
+	case 0xC : return (bool) (mask[ycoord][xcoord] & 0x0008);
+	case 0xD : return (bool) (mask[ycoord][xcoord] & 0x0004);
+	case 0xE : return (bool) (mask[ycoord][xcoord] & 0x0002);
+	case 0xF : return (bool) (mask[ycoord][xcoord] & 0x0001);
+	default : return false;
 	}
 }
 
-/*implicit*/maskwrite(zcoord,ycoord,xcoord,mask,value)
+/*implicit*/maskset(zcoord,ycoord,xcoord,mask,value)
 uchar zcoord;
 uchar ycoord;
 uchar xcoord;
 shadowmask mask;
 bool value;
 {
-div_t tmp = div(zcoord,8)
-switch (tmp.rem) : {
-	case 0 : mask[tmp.quot][ycoord][xcoord].a = value; break;
-	case 1 : mask[tmp.quot][ycoord][xcoord].b = value; break;
-	case 2 : mask[tmp.quot][ycoord][xcoord].c = value; break;
-	case 3 : mask[tmp.quot][ycoord][xcoord].d = value; break;
-	case 4 : mask[tmp.quot][ycoord][xcoord].w = value; break;
-	case 5 : mask[tmp.quot][ycoord][xcoord].x = value; break;
-	case 6 : mask[tmp.quot][ycoord][xcoord].y = value; break;
-	case 7 : mask[tmp.quot][ycoord][xcoord].z = value; break;
-	default : ERROR_GRAPHIC("math: impossible (cosmic rays)",'X',tmp.rem,'X',0x07,true); raise(SIGSEGV);
+if (value) {
+	switch (zcoord) : {
+		case 0 : return mask[ycoord][xcoord] ← 0x8000;
+		case 1 : return mask[ycoord][xcoord] ← 0x4000;
+		case 2 : return mask[ycoord][xcoord] ← 0x2000;
+		case 3 : return mask[ycoord][xcoord] ← 0x1000;
+		case 4 : return mask[ycoord][xcoord] ← 0x0800;
+		case 5 : return mask[ycoord][xcoord] ← 0x0400;
+		case 6 : return mask[ycoord][xcoord] ← 0x0200;
+		case 7 : return mask[ycoord][xcoord] ← 0x0100;
+		case 8 : return mask[ycoord][xcoord] ← 0x0080;
+		case 9 : return mask[ycoord][xcoord] ← 0x0040;
+		case 0xA : return mask[ycoord][xcoord] ← 0x0020;
+		case 0xB : return mask[ycoord][xcoord] ← 0x0010;
+		case 0xC : return mask[ycoord][xcoord] ← 0x0008;
+		case 0xD : return mask[ycoord][xcoord] ← 0x0004;
+		case 0xE : return mask[ycoord][xcoord] ← 0x0002;
+		case 0xF : return mask[ycoord][xcoord] ← 0x0001;
+		default : return ERR;
+		}
 	}
-return -1;
-}
-
-uchar defaulthightget(zcoord)
-uchar zcoord
-{
-if (zcoord ≥ 100) {return MAX_Z - 1;}
-div_t tmp = div(zcoord,2)
-if (tmp.quot > 50) {ERROR_GRAPHIC("math: impossible (cosmic rays)",'u',(tmp.quot * 2) + tmp.rem,'u',MAX(zcoord,99),true); raise(SIGSEGV)}
-switch (tmp.rem) : {
-	case 0 : return MAPGENHIGHTS[tmp.quot].lo;
-	case 1 : return MAPGENHIGHTS[tmp.quot].hi;
-	default : ERROR_GRAPHIC("math: invalid remainder",'u',temp.rem,'u',2,true); raise(SIGSEGV);
+else {
+	switch (zcoord) : {
+		case 0 : return mask[ycoord][xcoord] &= ~0x8000;
+		case 1 : return mask[ycoord][xcoord] &= ~0x4000;
+		case 2 : return mask[ycoord][xcoord] &= ~0x2000;
+		case 3 : return mask[ycoord][xcoord] &= ~0x1000;
+		case 4 : return mask[ycoord][xcoord] &= ~0x0800;
+		case 5 : return mask[ycoord][xcoord] &= ~0x0400;
+		case 6 : return mask[ycoord][xcoord] &= ~0x0200;
+		case 7 : return mask[ycoord][xcoord] &= ~0x0100;
+		case 8 : return mask[ycoord][xcoord] &= ~0x0080;
+		case 9 : return mask[ycoord][xcoord] &= ~0x0040;
+		case 0xA : return mask[ycoord][xcoord] &= ~0x0020;
+		case 0xB : return mask[ycoord][xcoord] &= ~0x0010;
+		case 0xC : return mask[ycoord][xcoord] &= ~0x0008;
+		case 0xD : return mask[ycoord][xcoord] &= ~0x0004;
+		case 0xE : return mask[ycoord][xcoord] &= ~0x0002;
+		case 0xF : return mask[ycoord][xcoord] &= ~0x0001;
+		default : return ERR;
+		}
 	}
 }
 
@@ -2786,7 +2825,7 @@ for (;count != 0;count--) {
 	}
 }
 
-/*pseudocode*/render() {
+/*blackbox*/render() {
 /* flush THESHADOWKNOWS and SHINEALIGHT
  * translate the view so that the player is on line 13
  * cast shadows and record the player's shadow
@@ -2800,42 +2839,58 @@ for (;count != 0;count--) {
  */
 
 enginehook() {
-	printf("\033c\033[0H\n\n \033[1;95m~~ Iwannafly Roguelike Engine : %s ~~\033[m\n\033[97m  gamemaster version: %s\n       savefile type: %s\n    compression type: %s\n     sound interface: %s\n\n \033[96m - %s -\033[m\n\033[97m      RPG rules revision: %s\nstory event API revision: %s\n   file handler revision: %s\n\n\033[37mCompiled on %s\n\033m\a",GAMENAME,GM_VERSION,SAVE_FORMAT,COMPRESSION,"deferred",DEVEL_STATE,REV_RULES,REV_EVENTS,REV_FILES,__DATE__);
-	fflush(stdout);
-	sleep(10);
-	printf("\033c\033[0H\033[1;32m\tCopyright (C) 2019 \"GeneralGuy4872\"\n\n\tThis program is free software; you can redistribute it and/or\n\tmodify it under the terms of the GNU General Public License\n\tas published by the Free Software Foundation; either version 2\n\tof the License, or (at your option) any later version.\n\n\tThis program is distributed in the hope that it will be useful,\n\tbut WITHOUT ANY WARRANTY; without even the implied warranty of\n\tMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n\tGNU General Public License for more details.\n\n\tYou should have received a copy of the GNU General Public License\n\talong with this program.  If not, see \033[4,94mhttps://www.gnu.org/licenses/\033[1;32m.\a");
-	fflush(stdout);
-	sleep(9);
-	printf("\033c\033[0H\033[92mLibraries linked:\nNCurses by Zeyd M Ben-Halim,\n           Eric S. Raymond,\n           Thomas E Dickey\n           and the Free Software Foundation\nLibTar by Mark D. Roth\nZlib by Jean-loup Gaully and Mark Adler\nLibBZip2 by Julian Steward\n");
-	fflush(stdout);
-	sleep(8);
-	printf("\033c\033[0H\033[92mAlgorithems Implemented:\nDijkstra's Algorithem\nPrim's Algorithem\nKruskal's Algorithem and Kruskal's Reverse Algorithem\nBorůvka's Algorithm\nRolling Dice\nSierpiński Attractor\nPerlin Noise\a");
-	fflush(stdout);
-	sleep(7);
-	printf("\033c\033[0H\033[95mContains compositions by Beethoven, Bach, and Vivaldi\a");
-	fflush(stdout);
-	sleep(6);
-	printf("\033c\033[0H\a");
-	fflush(stdout);
-	sleep(5);
-	printf("\033c\033[0H\033[1;3,96mIn a WORLD...\a");	//scene
+	printf(RESET);
+	printf(" \033[1;95m~~ IWANNAFLY ROGUELIKE ENGINE : %s ~~\033[m\n\033[97m  gamemaster version: %s\n       savefile type: %s\n    compression type: %s\n     sound interface: %s\n\n \033[96m - %s -\033[m\n\033[97m      RPG rules revision: %s\nstory event API revision: %s\n   file handler revision: %s\n\n\033[37mCompiled on %s\n\033m\a",GAMENAME,GM_VERSION,SAVE_FORMAT,COMPRESSION,"deferred",DEVEL_STATE,REV_RULES,REV_EVENTS,REV_FILES,__DATE__);
 	fflush(stdout);
 	sleep(4);
-	printf("\033c\033[0H\033[93m >>>TEXT HERE<<< \a");	//scene
+	printf(RESET);
+	printf("\033[1;32m\tCopyright (C) 2019 \"GeneralGuy4872\"\n\n\tThis program is free software; you can redistribute it and/or\n\tmodify it under the terms of the GNU General Public License\n\tas published by the Free Software Foundation; either version 2\n\tof the License, or (at your option) any later version.\n\n\tThis program is distributed in the hope that it will be useful,\n\tbut WITHOUT ANY WARRANTY; without even the implied warranty of\n\tMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n\tGNU General Public License for more details.\n\n\tYou should have received a copy of the GNU General Public License\n\talong with this program.  If not, see \n\t\033[m\033[4;94mhttps://www.gnu.org/licenses/\033[m\033[1;32m.\a");
 	fflush(stdout);
-	sleep(3);
-	printf("\033c\033[0H\033[93m >>>TEXT HERE<<< \a");	//scene
+	sleep(4);
+	printf(RESET);
+	printf("\033[92mLibraries linked:\nNCurses by Zeyd M Ben-Halim,\n           Eric S. Raymond,\n           Thomas E Dickey\n           and the Free Software Foundation\nLibTar by Mark D. Roth\nZlib by Jean-loup Gaully and Mark Adler\nLibBZip2 by Julian Steward\n");
 	fflush(stdout);
-	sleep(2);
-	printf("\033c\033[0H\033c\033[2J\033[0H\033[5m_\a");
+	sleep(4);
+	printf(RESET);
+	printf("\033[92mAlgorithems Implemented:\nDijkstra's Algorithem\nPrim's Algorithem\nKruskal's Algorithem and Kruskal's Reverse Algorithem\nBorůvka's Algorithm\nRolling Dice\nSierpiński Attractor\nPerlin Noise\a");
 	fflush(stdout);
-	sleep(1);
-	printf("\033c\033[0HSo it begins...\a");
+	sleep(4);
+	printf(RESET);
+	printf("\033[95mContains compositions by Beethoven, Bach, and Vivaldi\a");
 	fflush(stdout);
+	sleep(4);
+	printf(RESET);
+	printf("\033c\033[2J\033[0H\033[5m_\a");
+	fflush(stdout);
+	sleep(4);
+	printf(RESET);
+	printf("\033[1;3;96mLong ago, in times of myth...\a");
+	fflush(stdout);
+	sleep(4);
+	printf(RESET);
+	printf("\033[93mA great storm descended upon the land. A storm so terrible that even those who\ndwelled beyond the veil feared it's power. It threatened to destroy all the\nrealms, and all seemed powerless to stop it.\a");
+	fflush(stdout);
+	sleep(4);
+	printf(RESET);
+	printf("\033[93mHowever, the heros of the world, aided by the masters of the elements and the\nguardians of the planes, sealed the darkness away for one million years, in the\nvoid of the unworthy.\a");
+	fflush(stdout);
+	sleep(4);
+	printf(RESET);
+	printf("\033[93mToday, the seals are fading, and the storm is rising again...");	//...okay, it's the story of every JRPG ever, but the story of the 3D game didn't have a wide enough scope. I'll write more later, when I'm in that mindset.
+	fflush(stdout);
+	sleep(4);
+	printf(RESET);
+	printf("\033c\033[2J\033[0H\033[5m_\a");
+	fflush(stdout);
+	sleep(4);
+	printf(RESET);
+	printf("\033[3mSo it begins...\a\033[23m\033[m\n");
+	fflush(stdout);
+	sleep(4);
 	do_intro_movie();
 	loadfile();
 
-/*pseudocode*/exitengine()
+/*blackbox*/exitengine()
 /* at exit:
  * 	prompt save, y: saveworld
  * 	free files

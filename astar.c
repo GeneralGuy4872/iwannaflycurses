@@ -8,11 +8,10 @@ roomtyp* activeroom
 pathfinderdata data = makepathgrid(pointb.x,pointb.y,pointb.z)
 data.grid[COORDSUB(pointa.z,pointa.y,pointa.x)].runningdist = 0.0
 data.grid[COORDSUB(pointb.z,pointb.y,pointb.x)].goaldist = 0.0
-setpathobs(&data,args)
+
+if (!args.ignore) {dgetobs(&data,args,activeroom)}
+
 pathbackwards(&data,args,pointb)
-/* will either fill all grid points with a norm distance,
- * or run an aimless dijkstra from point b
- */
 
 setcoord3* neighborhood[3][3][3] = {{
 {NULL,NULL,NULL}
@@ -27,7 +26,7 @@ setcoord3* neighborhood[3][3][3] = {{
 {NULL,NULL,NULL}
 {NULL,NULL,NULL}
 }}
-#define RESETNEIGHBORHOOD do {neighborhood[0][0][0] = NULL; neighborhood[0][0][1] = NULL; neighborhood[0][0][2] = NULL; neighborhood[0][1][0] = NULL; neighborhood[0][1][1] = NULL; neighborhood[0][1][2] = NULL; neighborhood[0][2][0] = NULL; neighborhood[0][2][1] = NULL; neighborhood[0][2][2] = NULL; neighborhood[1][0][0] = NULL; neighborhood[1][0][1] = NULL; neighborhood[1][0][2] = NULL; neighborhood[1][1][0] = NULL; neighborhood[1][1][1] = current; neighborhood[1][1][2] = NULL; neighborhood[1][2][0] = NULL; neighborhood[1][2][1] = NULL; neighborhood[1][2][2] = NULL; neighborhood[2][0][0] = NULL; neighborhood[2][0][1] = NULL; neighborhood[2][0][2] = NULL; neighborhood[2][1][0] = NULL; neighborhood[2][1][1] = NULL; neighborhood[2][1][2] = NULL; neighborhood[2][2][0] = NULL; neighborhood[2][2][1] = NULL; neighborhood[2][2][2] = NULL;} while (0)
+#define RESETNEIGHBORHOOD neighborhood[0][0][0] = NULL; neighborhood[0][0][1] = NULL; neighborhood[0][0][2] = NULL; neighborhood[0][1][0] = NULL; neighborhood[0][1][1] = NULL; neighborhood[0][1][2] = NULL; neighborhood[0][2][0] = NULL; neighborhood[0][2][1] = NULL; neighborhood[0][2][2] = NULL; neighborhood[1][0][0] = NULL; neighborhood[1][0][1] = NULL; neighborhood[1][0][2] = NULL; neighborhood[1][1][0] = NULL; neighborhood[1][1][1] = current; neighborhood[1][1][2] = NULL; neighborhood[1][2][0] = NULL; neighborhood[1][2][1] = NULL; neighborhood[1][2][2] = NULL; neighborhood[2][0][0] = NULL; neighborhood[2][0][1] = NULL; neighborhood[2][0][2] = NULL; neighborhood[2][1][0] = NULL; neighborhood[2][1][1] = NULL; neighborhood[2][1][2] = NULL; neighborhood[2][2][0] = NULL; neighborhood[2][2][1] = NULL; neighborhood[2][2][2] = NULL;
 
 setcoord3* current = datakeeper.hydra_ptr
 setcoord3* tail = datakeeper.hydra_ptr
@@ -54,7 +53,7 @@ forever {
 					default : goto(skip);
 					}
 				if (
-					!(( ((abs(xdiff) + abs(ydiff) + abs(zdiff)) > 1) && ortho)
+					!(( ((abs(xdiff) + abs(ydiff) + abs(zdiff)) > 1) && args.ortho)
 					(current→x + xdiff < MAX_X) &&
 					(current→x + xdiff ≥ 0) &&
 					(current→y + ydiff < MAX_Y) &&
@@ -115,7 +114,7 @@ reap:
 		}
 
 skip:
-	if (((current→x == pointb.x) && (current→y == pointb.y) && (current→z == pointb.z)) && !indecisive) {goto(breakout)}
+	if (((current→x == pointb.x) && (current→y == pointb.y) && (current→z == pointb.z)) && !args.indecisive) {goto(breakout)}
 	}
 
 breakout:
@@ -162,3 +161,4 @@ while (!((currentcoord.x == pointa.x) && (currentcoord.y == pointa.y) && (curren
 	}
 return output
 }
+#undef RESETNEIGHBORHOOD

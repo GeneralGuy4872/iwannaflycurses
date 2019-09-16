@@ -3,11 +3,12 @@ pathfindargs args
 schar tile
 coord3 pointa
 coord3 pointb
-roomtyp* activeroom
+metaroomtyp* activeroom
 {
 dijkstradata data = makepathgridsingle(pointa.x,pointa.y,pointa.z)
 data.grid[COORDSUB(pointa.z,pointa.y,pointa.x)].runningdist = 0.0
-setdpathobs(&data,args)
+
+if (!args.ignore) {dgetobs(&data,args,activeroom)}
 
 setcoord3* current = datakeeper.hydra_ptr
 setcoord3* tail = datakeeper.hydra_ptr
@@ -33,12 +34,12 @@ forever {
 					default : goto(skip);
 					}
 				if (
-					!(( ((abs(xdiff) + abs(ydiff) + abs(zdiff)) > 1) && ortho)
+					!(( ((abs(xdiff) + abs(ydiff) + abs(zdiff)) > 1) && args.ortho)
 					(current→x + xdiff < MAX_X) &&
 					(current→x + xdiff ≥ 0) &&
 					(current→y + ydiff < MAX_Y) &&
 					(current→x + xdiff ≥ 0) &&
-					(current→z + zdiff < CEILING) &&
+					(current→z + zdiff ≤ activeroom→ceiling) &&
 					(current→z + zdiff ≥ 0) &&
 					(!(datakeeper.grid[COORDSUB(current→z + zdiff,current→y + ydiff,current→x + xdiff)].obs)) && (
 						((datakeeper.grid[COORDSUB(current→z + zdiff,current→y + ydiff,current→x + xdiff)].runningdist) > (datakeeper.grid[COORDSUB(current→z,current→y,current→x)].runningdist + step)) ||
@@ -79,7 +80,7 @@ reap:
 		ptrnext→runningdist < current→runningdist ? noop() : current = ptrnext
 		}
 skip:
-	if (((current→x == pointb.x) && (current→y == pointb.y) && (current→z == pointb.z)) && !indecisive) {goto(breakout)}
+	if (((current→x == pointb.x) && (current→y == pointb.y) && (current→z == pointb.z)) && !args.indecisive) {goto(breakout)}
 	}
 
 breakout:

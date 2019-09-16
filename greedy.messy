@@ -1,3 +1,20 @@
+//will split off terrain gen and ai stuff to specific files, only keeping generic stuff here
+
+struct metaroomtyp {
+tileset *hightiles
+schar* tiledata[][MAX_Y][MAX_X]
+uchar ceiling
+coord2 downstair
+coord2 upstair
+coord3 home
+shadowmask obs
+bool do_downstair
+bool do_upstair
+}
+
+/*blackbox*/roomtyp* makeroom(metaroomtyp*)
+// analizes a metaroom and generates a room; frees the metaroom.
+
 struct setedge:
 (self) *prev
 (self) *next
@@ -24,16 +41,35 @@ schar zup : 2
 float runningdist
 
 struct pathfinderdata {
-setpathnode* grid	//note: scaler pointer, so can't be multi-subscripted. use COORDSUB
+setpathnode* grid[][MAX_Y][MAX_X]
 setcoord3* hydra_ptr
 }
 
-pathfinderdata makepathgrid(xcoord,ycoord,zcoord)
+metaroomtyp* makemetaroom(do_downstair,downstair_x,downstair_y,do_upstair,upstair_x,upstair_y,ceiling,home_x,home_y,home_z,hightiles)
+bool do_downstair do_upstair
+uchar downstair_x downstair_y upstair_x upstair_y ceiling home_x home_y home_z
+tileset *hightiles
+{
+metaroomtyp* output = malloc(sizeof(metaroomtyp))
+output→tiledata = calloc((ceiling + 1) * MAX_Y * MAX_X,sizeof(schar))
+output→downstair→x = downstair_x
+output→downstair→y = downstair_y
+output→upstair→x = upstair_x
+output→upstair→y = upstair_y
+output→home→x = home_x
+output→home→y = home_y
+output→home→z = home_z
+output→do_downstair = do_downstair
+output→do_upstair = do_upstair
+}
+
+pathfinderdata makepathgrid(xcoord,ycoord,zcoord,parent)
 uchar xcoord ycoord zcoord
+metaroomtyp* parent
 {
 pathfinderdata output
-setpathnode* pathgrid = calloc(CEILING * MAX_Y * MAX_X,sizeof(pathfinderdata))
-for (uchar z;z < CEILING;z++) {
+setpathnode* pathgrid = calloc((parent→ceiling + 1) * MAX_Y * MAX_X,sizeof(pathfinderdata))
+for (uchar z;z ≤ parent→ceiling;z++) {
 	for (uchar y;y < MAX_Y;y++) {
 		for (uchar x;x < MAX_X;x++) {
 			pathgrid[COORDSUB(z,y,x)].runningdist = -1
@@ -79,12 +115,13 @@ setpathnode* grid	//note: scaler pointer, so can't be multi-subscripted. use COO
 setcoord3* hydra_ptr
 }
 
-dijkstradata makepathgridsingle(xcoord,ycoord,zcoord)
+dijkstradata makepathgridsingle(xcoord,ycoord,zcoord,parent)
 uchar xcoord ycoord zcoord
+metaroomtyp* parent
 {
 dijkstradata output
-setpathnode* pathgrid = calloc(CEILING * MAX_Y * MAX_X,sizeof(dijkstradata))
-for (uchar z;z < CEILING;z++) {
+setpathnode* pathgrid = calloc((parent→ceiling + 1) * MAX_Y * MAX_X,sizeof(dijkstradata))
+for (uchar z;z ≤ parent→ceiling;z++) {
 	for (uchar y;y < MAX_Y;y++) {
 		for (uchar x;x < MAX_X;x++) {
 			pathgrid[COORDSUB(z,y,x)].runningdist = -1
@@ -123,8 +160,8 @@ output.hydra_ptr = urhydra
 return output
 }
 
-setpathobs(pathfinderdata* pathgrid,pathfindargstyp args)
-setdpathobs(dijkstradata* pathgrid,pathfindargstyp args)
+getobs(pathfinderdata* pathgrid,pathfindargstyp args)
+dgetobs(dijkstradata* pathgrid,pathfindargstyp args)
 
 ushort normINF(pointa,pointb)
 coord3 pointa
@@ -170,21 +207,11 @@ for 0→50 do
 		block (room)
 		register (room's doors)
 
-struct pathfindermovetyp {
-ushort water[16]
-uchar fly
-float swim
-
-struct pathfindereplace {
-ushort keep[16]
-schar tile
-
-
 struct pathfindargstyp {
 ushort avoid[16]
 bool indecisive : 1
 bool slowbacktrace : 1
-bool flat : 1
+bool ignore : 1
 bool ortho : 1
 uchar weightnorm : 2	//norm used with the distance grid. 3 to use dijkstra's algorithem instead of astar.
 uchar runningnorm : 2	//norm used to keep running distance. 3 is invalid.
@@ -217,6 +244,10 @@ switch (tile|0x0F) : {
 	}
 return (bool) (mask[row] & column)
 }
+/* mask[row] is the applicable row of a 16bit*16bit mask
+ * column is the individual bit which identifys the tile
+ * being tested inside that row.
+ */
 
 struct mazealignparamtyp {
 bool xalign : 1	//align to !north or +south
@@ -235,13 +266,13 @@ the following algorithems can be combined to generate terrain:
  */
 
 #include "dijkstra.c"
-float test_dijkstra(bool ortho,schar mode,uchar runningnorm,coord3 pointa,coord3 pointb,bool fly,bool swim,roomtyp* activeroom)	//replace && taxicab && ortho would equal norm1 exactly
-//dijkstra(bool ortho,schar mode,uchar runningnorm,schar tile,coord3 pointa,coord3 pointb,bool fly,bool swim,roomtyp* activeroom)
-aimlessdijkstra
+float test_dijkstra(pathfindargs args,coord3 pointa,coord3 pointb,metaroomtyp* activeroom)	//replace && taxicab && ortho would equal norm1 exactly
+//dijkstra(pathfindargs args,coord3 pointa,coord3 pointb,metaroomtyp* activeroom)
 	//nearest path head first, no information about room or relative location.
 
-float test_astar(bool ortho,astarparamtyp params,coord3 pointa,coord3 pointb,bool fly,bool swim,roomtyp* activeroom)	//replace && !(taxicab || ortho) would approximate to norm2, replace && taxicab && ortho would equal norm1 exactly
-astar(bool ortho,astarparamtyp params,schar tile,coord3 pointa,coord3 pointb,bool fly,bool swim,roomtyp* activeroom)
+#include "astar.c"
+float test_astar(pathfindargs args,coord3 pointa,coord3 pointb,metaroomtyp* activeroom)	//replace && !(taxicab || ortho) would approximate to norm2, replace && taxicab && ortho would equal norm1 exactly
+astar(pathfindargs args,coord3 pointa,coord3 pointb,metaroomtyp* activeroom)
 	/* - operates with knowlage of the norm distance to the destination
 	 * 	path heads try to move closer first, whenever possible.
 	 * 	should generalize an unobstructed path to a raster line if norm distance is calculated in norm2
@@ -260,16 +291,21 @@ astar(bool ortho,astarparamtyp params,schar tile,coord3 pointa,coord3 pointb,boo
 	 * 	- populates the grid using dijkstra from point b instead of norm distance from b.
 	 */
 
+pathbackwards(pathfinderdata* data,pathfindargs args,coord3 pointb)
+/* will either fill all grid points with a norm distance,
+ * or run an aimless dijkstra from point b
+ */
+
 setedge* norm_completegraph(uchar norm,setcoord3 *coordlist)	//errors on invalid norm
-setedge* pathfinder_completegraph(bool ortho,astarparamtyp params,setcoord3 *coordlist,bool fly,bool swim)
+setedge* pathfinder_completegraph(pathfindargs args,setcoord3 *coordlist,metaroomtyp* area)
 setedge* random_completegraph(setcoord3 *coordlist)
 
-prim(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist,roomtyp* activeroom)
+setcoord3* prim(pathfindargs args,setedge *forest,metaroomtyp* activeroom)
 	/* shortest connected edge first
 	 * edges are moved from a complete graph to a final graph
 	 */
 
-kruskal(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist,roomtyp* activeroom)
+setcoord3* kruskal(pathfindargs args,setedge *forest,metaroomtyp* activeroom)
 	/* disjoint sets use the meta field of the setedge type
 	 *
 	 * before a new disjoint set is created, the existing list is checked
@@ -280,14 +316,14 @@ kruskal(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *co
 	 * edges are moved from a complete graph to a final graph
 	 */
 
-revdelete(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist,roomtyp* activeroom)
+setcoord3* revdelete(pathfindargs args,setedge *forest,metaroomtyp* activeroom)
 	/* something compleatly different
 	 * longest edge is removed from a complete graph and held
 	 * graph is then tested to ensure that all points are connected (using dijkstra's)
 	 * if so, edge is removed. if not, edge is put back and ignored permenantly.
 	 */
 
-sollin(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coordlist,roomtyp* activeroom)
+setcoord3* sollin(pathfindargs args,setedge *forest,metaroomtyp* activeroom)
 	/* disjoint sets use the meta field of the setedge type
 	 *
 	 * before a new disjoint set is created, the existing list is checked
@@ -297,23 +333,14 @@ sollin(bool ortho,astarparamtyp params,schar tile,setedge *forest,setcoord3 *coo
 	 * node iteration→tree iteration ; shortest first
 	 */
 
-tiles_cubefill(bool overwrite,schar tile,coord3 pointa,coord3 pointb,roomtyp* activeroom)
-tiles_cubeshell(bool overwrite,bool blank,schar tile,coord3 pointa,coord3 pointb,roomtyp* activeroom)
-tiles_cubesub(schar foo,schar bar,coord3 pointa,coord3 pointb,roomtyp* activeroom)
-tiles_normfill(bool overwrite,schar tile,normenum norm,coord3 center,float radius,roomtyp* activeroom)
-tiles_normshell(bool overwrite,bool blank,schar tile,normenum norm,coord3 center,float radius,roomtyp* activeroom)
-tiles_normsub(schar foo,schar bar,normenum norm,coord3 center,float radius,roomtyp* activeroom)
-tiles_globsub(schar foo,schar bar,roomtyp* activeroom)
+setcoord3* makemaze(uchar gridspacing,uchar floorspacing,mazealignparamtyp maze,metaroomtyp* activeroom)	//sets basic aspects of the room, generates a grid of points, puts upstair, downstair, and home on that grid.
 
-setcoord3* makemaze(uchar ceilheight,bool do_upstair,bool do_downstair,uchar gridspacing,mazealignparamtyp maze,roomtyp* activeroom)	//sets basic aspects of the room, generates a grid of points, puts upstair, downstair, and home on that grid.
+shadowmask* walltrace(schar tile,uchar height,metaroomtyp* activeroom)	//outlines all currently generated tiles in activeroom that match tile
 
-addwalls(schar tile,coord3 pointa,coord3 pointb,roomtyp* activeroom)	//outlines all currently generated tiles inside pointa and pointb
-
-
-attractor(bool replace,schar tile,setcoord *coordlist,uchar iterations,bool invert,roomtyp* activeroom)
+shadowmask* attractor(bool replace,schar tile,setcoord *coordlist,uchar iterations,bool invert,metaroomtyp* activeroom)
 	/* uchar xcoord = roll 1dMAX_X
 	 * uchar ycoord = roll 1dMAX_Y
-	 * uchar zcoord = roll 1dCEILING
+	 * uchar zcoord = roll 1d(activeroom→ceiling + 1)
 	 *
 	 * uint rotate = random()
 	 * for (;rotate;rotate--) {coordlist = coordlist→next}
@@ -332,15 +359,31 @@ attractor(bool replace,schar tile,setcoord *coordlist,uchar iterations,bool inve
 	 *	}
 	 */
 
-spikenoise(replace,tile,floor or ceiling,roomtyp* activeroom)
+shadowmask* spikenoise(replace,tile,floor or ceiling,metaroomtyp* activeroom)
 	/* generate a (MAX_X/4) by (MAX_Y/4) array of random vector2's. 
 	 * make an 8*8 gradient from a vector.
 	 * sum it onto a MAX_X*MAX_Y array of values, spaced every 4 lines, each quadrent overlapping.
 	 * values of less than zero are flat, values greater are spikes.
 	 */
 
-hailofdice(replace,tile,number,roomtyp* activeroom)
-	//while number { roll(1dMAX_X,1dMAX_Y,1dCEILING); put tile; number--; }
+shadowmask* hailofdice(replace,tile,number,metaroomtyp* activeroom)
+	//while number { roll(1dMAX_X,1dMAX_Y,1d(activeroom→ceiling + 1)); put tile; number--; }
+
+tiles_cubefill(bool overwrite,schar tile,coord3 pointa,coord3 pointb,metaroomtyp* activeroom)
+tiles_cubeshell(bool overwrite,bool blank,schar tile,coord3 pointa,coord3 pointb,metaroomtyp* activeroom)
+tiles_cubesub(schar foo,schar bar,coord3 pointa,coord3 pointb,metaroomtyp* activeroom)
+tiles_normfill(bool overwrite,schar tile,normenum norm,coord3 center,float radius,metaroomtyp* activeroom)
+tiles_normshell(bool overwrite,bool blank,schar tile,normenum norm,coord3 center,float radius,metaroomtyp* activeroom)
+tiles_normsub(schar foo,schar bar,normenum norm,coord3 center,float radius,metaroomtyp* activeroom)
+tiles_globsub(schar foo,schar bar,metaroomtyp* activeroom)
+
+shadowmask* setcoord_into_mask(setcoord3* input)
+shadowmask* setcoord_addto_mask(setcoord3* input,shadowmask* base)
+setcoord3* setcoord_union(setcoord3* foo,setcoord3* bar)
+
+batchtile_setcoord(metaroomtyp* target,setcoord3* batch,schar tile,bool obs)
+batchtile_mask(metaroomtyp* target,setcoord3* batch,schar tile,bool obs)
+// blindly sets all the coords from batch in target to tile. also sets obs if true.
 
 /* mapgen functions may be optimized or added to, but like all API functions,
  * will never be depracated once alpha has been reached,
