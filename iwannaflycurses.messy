@@ -2225,7 +2225,7 @@ to avoid confusion, by default the player always uses a unique character: ☻
 
 an UNDERLINE is a shadow
 
-) is a sword or dagger. ⍏ are polearms. ¦ is a staff. : is a club or mace. ℓ is a whip. ⦅ is a bow. ⇤ is an arrow. ⍖ is a writing instrument.
+) is a sword or dagger. ⍏ are polearms. \ is a staff. ¦ is a club. : is a mace. ℓ is a whip. ⦅ is a bow. ⇤ is an arrow. ⍖ is a writing instrument.
 ⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves. % is meat. ⊞ is food (don't shoot it). $ is gold. ¢ is copper.
 ⌘ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♫ is a lyre. ƒ is a violin. ♪ is a different music instrument.
 ¿ are potions (fragile). ∫ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet. ^ is a crown.
@@ -2240,7 +2240,7 @@ an UNDERLINE is a shadow
 ˜ ␣ are holes. ' is a stalagtite or icicle. , is a plant. ; is a grain or sunflower (impassable).
 box drawings are low walls or columns. ⑉ ⋮ are iron bars. · is an ember or star. ` ´ ˇ are flower petals.
 ✪ is a rune. ː ⍽ are traps. ¬ (blinking) is stale air (unbreathable). ≃ is stagnent water (unbreathable). ☣ ‽ is gas.
-" deliminates text. \ deliminates commands.
+" deliminates text.
 ⍰ is a missingno.
 
 the symbol for gemstone and giant crystal has been the source of much headache,
