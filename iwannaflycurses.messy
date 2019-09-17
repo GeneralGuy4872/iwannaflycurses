@@ -154,7 +154,7 @@
 #include <signal.h>
 #include <locale.h>
 //#include <regex.h>
-//#include <dirent.h>
+//#include <glob.h>
 //#include <sys/types.h>
 //#include <sys/ioctl.h>
 //#include <fcntl.h>
@@ -521,7 +521,9 @@ move( 8,0); printw("[Q]uit?")
 move( 9,0); printw(" [A]bort?")
 move(10,0); printw("  [Z] %s?",opt3)
 
-//keytrap stuff here
+/* keytrap stuff here
+ * if hard, SIGTRAP
+ */
 }
 
 /*GLOBALS*/
@@ -530,16 +532,13 @@ playertyp PLAYER
 coord3 PLAYERSHD	//position of player's shadow, for renderer
 latlontyp WORLD
 roomtyp* ROOM
-int(void)* MAPGENFUNC[ROOF][(EQUATOR/2)+1][EQUATOR]
-/* pointers to commands to generate rooms. these may be pure C,
- * or they may open a plugin and parse it.
- */
 #define MAX_X 64
 #define MAX_Y 24	//MAX_X ≥ MAX_Y ≥ MAX_Z
 #define MAX_Z 16
 #define CEILING ROOM→ceiling
 #define ROOF 201	//it is decreed: mortals shall fly no higher. (this means you!)
 #define EQUATOR 360	//the number of rooms in the circumfrence of the sphere
+int(latlontyp)* ROOMGENCALL[ROOF + 1][EQUATOR/2 + 1][EQUATOR]
 shadowmask SHADOWKNOWS
 shadowmask SHINEALIGHT
 ulonglong TURN
@@ -778,14 +777,6 @@ uchar x : 6
 uchar y : 5
 uchar z : 4
 bool w : 1
-
-struct paramtyp {
-ushort a
-ushort b
-ushort c
-ushort d
-eventdata eventident
-}
 
 struct nibbles {
 uchar lo : 4
@@ -1158,11 +1149,10 @@ struct conlangtype:
 symtabref id : 5
 bool r : 1
 bool w : 1
-bool x : 1	//can be engraved by hand, as well as written. (note: those with talons cannot use writing instruments without a much higher dex, and still tend to break them)
+bool x : 1	//can be spoken
 
 char* conlangtab[32] = {"common language","middle elvish","old elvish","dwarvish", "gnomish","gothic","orkish","draconic", "fey","celestic","demonic","blackspeech", "skyspeak","waterspeak","earthspeak","firespeak",
 	"thieves cant",/*?*/,/*?*/,/*?*/, /*?*/,/*?*/,/*?*/,/*?*/, /*?*/,/*?*/,/*?*/,/*?*/, "electric","icespeak","treespeak","metallic"}
-bitfield conlangx[4] = {{false,false,true,true, true,true,true,true},{false,false,true,true, true,false,true,true},{true, },{, true,true,true,true}}
 
 struct playertyp:
 classobjtyp class
@@ -1286,6 +1276,7 @@ uchar xplvl
 uchar airmax	//how long you can hold your breath
 symtabref lang0 : 6
 symtabref lang1 : 6
+uchar vocal[4]
 symtabref spell0
 symtabref spell1
 symtabref spell2
@@ -1580,7 +1571,7 @@ bool talon : 1	//effects walking, swimming, unarmed attacks
 bool fangs : 1	//effects unarmed attacks
 bool quad : 1	//effects walking, swimming, unarmed attacks
 bool nolegs : 1	//effects walking, swimming, unarmed attacks
-bool noarms : 1	//effects walking, swimming, unarmed attacks
+bool noarms : 1	//effects walking, swimming, unarmed attacks, writing
 bool nolungs : 1	//effects breathing above water
 bool noswim : 1	//effects swimming
 bool atktail : 1	//effects unarmed attacks, swimming, flying
@@ -1786,9 +1777,9 @@ lightyp *lamp_ptr
  *          : documentation
  *    .html : extended documentation
  *      .md : extended documentation
- *       .d : non-null pointers are converted to subdirectorys in saves. the tail element in a linked list has no subdirectory named "next", and "prev" pointers are implicitly stored as "/..".
+ *       .d : structs are stored as directories, and pointers to structs are stored as subdirectories with the name of that field. the tail element in a linked list has no subdirectory named "next", and "prev" pointers are implicitly stored as "/..". (malloc and static pointers to primatives are placed in the current directory and named by address, using C notation.)
  *     .*rc : a configuration file, parsed with the runcommander
- *    .dump : a debugger data dump, with a format somwhere between json, s-expressions, and the above. also includes HTML href elements, but no other SGML/XML syntax. intedned to be read by people, not processed by computers; should this change, I will fix my own mess.
+ *    .dump : a debugger data dump, with a format somwhere between json, s-expressions, and the above. also stores pointers as HTML href elements, but uses no other (SG|X)ML syntax. intedned to be read by people, not processed by computers; should it become necissary, I will write some basic tools for querying these files.
  *
  * if the following new extensions collide with anything, I will change them. I specifically chose ones that were not a TLA or EFLA to try and avoid this, because there have been TDMTLA since before I came along.
  *   .iwfcl : a plugin. "iwfc" should be replaced with the abbiviation of the final name.
@@ -1942,6 +1933,7 @@ bool nochaos : 1
 struct mapobjtyp:
 (self) *prev
 (self) *next
+eventdata eventident
 coord3 pos
 objid type
 void* data
@@ -1952,6 +1944,13 @@ struct lamptyp:
 (self) *next
 coord3 pos
 uchar lum
+
+struct signtyp {
+char16_t unichar
+conlangtyp lang
+char* lines
+char* gibber
+}
 
 struct chestyp:
 heldobjtyp *bag_ptr
@@ -2045,46 +2044,14 @@ struct eventdatobj {	//list of events
 eventdata data
 }
 
-/* file format for storeing event-based data in hex files:
- *	[SOH]<48 bits event data>
- *		[STX]string data[ETX][Seperator]
- *		[XON]<length of field>[DLE]…[XOFF][Seperator]
- *		[NAK][Seperator]	//false
- *		[ACK][Seperator]	//true
- *	[ETB]
- *	[SOH]...
- *	[EM]
- * where different seperators organise the data:
- * US = …},{…
- * RS = …}},{{…
- * GS = …}}},{{{…
- * FS = …}}}},{{{{…
- *
- * here are the values of the control characters used
- *  SOH (^A) = $01
- *  STX (^B) = $02
- *  ETX (^C) = $03
- *  ACK (^F) = $06
- *  DLE (^P) = $10
- *  XON (^Q) = $11
- * XOFF (^S) = $13
- *  NAK (^U) = $15
- *  ETB (^W) = $17
- *   EM (^Y) = $19
- *   FS (^\) = $1C
- *   GS (^]) = $1D
- *   RS (^^) = $1E
- *   US (^_) = $1F
- */
-
 struct eventtyp:
 (self) *prev
 (self) *next
 const char* requires	//path to a shared object, or NULL
 eventdata eventdatavals
 triggertyp whenthis
-int(paramtyp)* ifthis
-int(paramtyp)* dothis
+int(short,short,char,char,char,eventdata)* ifthis
+int(short,short,char,char,char,eventdata)* dothis
 const char* name
 cylinder dim
 ulong duration
@@ -2239,6 +2206,7 @@ DOOR_FLAG : contains doortyp
 LOCK_FLAG : contains locktyp (gates are this)
 MONEY_FLAG : contains moneytyp
 SPAWN_FLAG : contains spawntyp
+SIGN_FLAG : contains signtyp
 
 /*blackbox*/radius
 /* uses floats to define a circle,
@@ -2769,26 +2737,26 @@ else {
 	}
 }
 
-bool langetx(id)
+bool langetx(race,id)
+basentyp race
 uchar id
 {
-if (id > 31) {ERROR_GRAPHIC("math: out of bounds",'u',id,'u',31,false); return false}
 div_t tmp = div(id,8)
-if (tmp.quot > 3) {ERROR_GRAPHIC("math: impossible (cosmic rays)",'u',(tmp.quot * 8) + tmp.rem,'u',MAX(id,31),true); raise(SIGSEGV)}
+if (tmp.quot > 3) {ERROR_GRAPHIC("math: out of bounds",'u',id,'u',31,false); return false}
 switch (tmp.rem) : {
-	case 0 : return conlangx[tmp.quot].a;
-	case 1 : return conlangx[tmp.quot].b;
-	case 2 : return conlangx[tmp.quot].c;
-	case 3 : return conlangx[tmp.quot].d;
-	case 4 : return conlangx[tmp.quot].w;
-	case 5 : return conlangx[tmp.quot].x;
-	case 6 : return conlangx[tmp.quot].y;
-	case 7 : return conlangx[tmp.quot].z;
-	default : ERROR_GRAPHIC("math: invalid remainder",'u',temp.rem,'u',8,true); raise(SIGSEGV);
+	case 0 : return (bool) (race.vocal[tmp.quot] & 0x80);
+	case 1 : return (bool) (race.vocal[tmp.quot] & 0x40);
+	case 2 : return (bool) (race.vocal[tmp.quot] & 0x20);
+	case 3 : return (bool) (race.vocal[tmp.quot] & 0x10);
+	case 4 : return (bool) (race.vocal[tmp.quot] & 0x08);
+	case 5 : return (bool) (race.vocal[tmp.quot] & 0x04);
+	case 6 : return (bool) (race.vocal[tmp.quot] & 0x02);
+	case 7 : return (bool) (race.vocal[tmp.quot] & 0x01);
+	default : ERROR_GRAPHIC("math: invalid remainder",'u',temp.rem,'u',8,true); raise(SIGTRAP);
 	}
 }
 
-main () {
+engineloop () {
 if (NEW) {
 	checkglobal(NEW_FLAG,true)
 	NEW = false
@@ -2889,6 +2857,7 @@ enginehook() {
 	sleep(4);
 	do_intro_movie();
 	loadfile();
+	engineloop();
 
 /*blackbox*/exitengine()
 /* at exit:

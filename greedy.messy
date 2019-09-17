@@ -12,7 +12,7 @@ bool do_downstair
 bool do_upstair
 }
 
-/*blackbox*/roomtyp* makeroom(metaroomtyp*)
+/*blackbox*/roomtyp* makeroom(metaroomtyp*,latlontyp)
 // analizes a metaroom and generates a room; frees the metaroom.
 
 struct setedge:
@@ -405,6 +405,9 @@ batchtile_mask(metaroomtyp* target,setcoord3* batch,schar tile,bool obs)
  * do this)
  *
  * floor heights are also uniform accross spherical shells when possible.
+ * room generation functions are called from an array of int(latlontyp) function pointers.
+ * these should contain more complicated calls to generate rooms, which can be broken down 
+ * into wrappers above the api in whatever way is optimum.
  */
 
 /* ai can use modifyed versions of dijkstra or any of the astar varients

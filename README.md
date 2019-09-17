@@ -35,7 +35,7 @@ Libraries:
 - <CODE>signal.h</CODE>
 - <CODE>locale.h</CODE>
 - <CODE>regex.h</CODE>
-- <CODE>dirent.h</CODE>
+- <CODE>glob.h</CODE>
 - <CODE>sys/types.h</CODE>
 - <CODE>sys/ioctl.h</CODE>
 - <CODE>fcntl.h</CODE>
