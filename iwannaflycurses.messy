@@ -564,8 +564,6 @@ bitfield globools
 #define EVE globools.y
 #define MIDNIT globools.z
 
-
-
 /* buffered room loading for future implementation:
  * roomtyp* ROOMARRAY[3][3][3]
  * #define ROOM ROOMARRAY[1][1][1]
@@ -632,6 +630,52 @@ bitfield globools
  * #define ROOM_DOWN_WEST_MASKBIT ((ulong) 0x00000002)
  * #define ROOM_DOWN_NW_MASKBIT ((ulong) 0x00000001)
  */
+
+#define GOOD_MASK 0700
+#define LAWFUL_MASK 0444
+#define EVIL_MASK 0007
+#define CHAOTIC_MASK 0111
+
+#define NEUT_HORIZ_MASK 0070
+#define NEUT_VERT_MASK 0222
+
+#define LAW_GOOD_BIT 0400
+#define NEUT_GOOD_BIT 0200
+#define CHAOS_GOOD_BIT 0100
+#define LAW_NEUT_BIT 0040
+#define TRUE_NEUT_BIT 0020
+#define CHAOS_NEUT_BIT 0010
+#define LAW_EVIL_BIT 0004
+#define NEUT_EVIL_BIT 0002
+#define CHAOS_EVIL_BIT 0001
+
+#define LAW_GOOD_WIDEMSK 0764
+#define CHAOS_GOOD_WIDEMSK 0731
+#define LAW_EVIL_WIDEMSK 0467
+#define CHAOS_EVIL_WIDEMSK 0137
+#define NEUTRAL_WIDEMSK 0272
+
+#define ELE_WATER_BIT 0x80
+#define ELE_ICE_BIT 0x40
+#define ELE_AIR_BIT 0x20
+#define ELE_ELEC_BIT 0x10
+#define ELE_FIRE_BIT 0x08
+#define ELE_METAL_BIT 0x04
+#define ELE_EARTH_BIT 0x02
+#define ELE_TREE_BIT 0x01
+
+#define ELE_WATER_WIDEMSK 0xC1
+#define ELE_ICE_WIDEMSK 0xE0
+#define ELE_AIR_WIDEMSK 0x70
+#define ELE_ELEC_WIDEMSK 0x38
+#define ELE_FIRE_WIDEMSK 0x1C
+#define ELE_METAL_WIDEMSK 0x0C
+#define ELE_EARTH_WIDEMSK 0x07
+#define ELE_TREE_WIDEMSK 0x83
+
+#define LIGHT_BIT 04
+#define DARK_BIT 02
+#define ENTROPY_BIT 01
 
 /*end GLOBALS*/
 
@@ -909,19 +953,10 @@ struct placetyp {
 (self) *prev
 (self) *next
 eventdata eventident	//7FFF is removeable
-ulong name
+char* name
 latlontyp latlon
 coord3 pos
 }
-/* used to register places
- * if the commandline catches hex where it expects coords,
- * it searches for a place.
- *
- * names are given as 2 sets of 4 hex digits,
- * the 2 fields seperated by a hyphen. names should be unique;
- * when looking for a place by name, searching stops at the first
- * match.
- */
 
 struct cylinder:
 uchar r : 7
@@ -1021,17 +1056,9 @@ classtyp class
 magictyp element
 
 typedef classtyp {
-unchar role : 2
-unchar class : 3
-bool lawfulgood : 1
-bool good : 1
-bool chaosgood : 1
-bool lawful : 1
-bool neutral : 1
-bool chaos : 1
-bool lawfulevil : 1
-bool evil : 1
-bool chaosevil : 1
+uchar role : 2
+uchar class : 3
+ushort align : 9
 bool charismatic : 1
 bool scorned : 1
 
@@ -1306,6 +1333,7 @@ bool unhinged : 1
 struct enttyp:
 (self) *prev
 (self) *next
+char* name
 classobjtyp class
 aggrotyp aggro
 symtabref race
@@ -1341,6 +1369,7 @@ subobjtyp wristr
 struct npctyp:
 (self) *prev
 (self) *next
+char* name
 eventdata eventident
 classobjtyp class
 setcoord3* path
@@ -1352,6 +1381,9 @@ char* lines
 char* gibber
 
 struct followtyp:
+(self) *prev
+(self) *next
+char* name
 eventdata eventident
 classobjtyp class
 aggrotyp aggro
@@ -1441,9 +1473,7 @@ bool fire : 1
 bool air : 1
 bool water : 1
 bool earth : 1
-bool entro : 1 //entropy is not light. entropy is not darkness. entropy is balance. entropy is fate; doom; *death*. not things you want to be on the wrong end of.
-bool light : 1 //light is not necisarrily good
-bool dark : 1 //dark is not necisarrily evil
+uchar lde : 3
 bool planer : 1
 
 struct shiftertyp {
@@ -1915,20 +1945,9 @@ char16_t unichar : 16
 mapobjflags:
 hidden : 1
 moves : 1
-class : 2
-wl_fuzz : 2 //taxicab radius of whitelist, around ⌖.
-bl_mode : 1 //0 = ✥, 1 = ⌖
-
-bool neutral : 1
-bool law : 1
-bool chaos : 1
-bool good : 1
-bool evil : 1
-
-bool nogood : 1
-bool noevil : 1
-bool nolaw : 1
-bool nochaos : 1
+bool rclass : 1
+uchar class : 4
+ushort alignment : 9
 
 struct mapobjtyp:
 (self) *prev
@@ -2016,26 +2035,9 @@ bool uses_class : 1
 uchar race : 5
 uchar role : 2
 uchar class : 3
-bool lawfulgood : 1
-bool good : 1
-bool chaosgood : 1
-bool lawful : 1
-bool neutral : 1
-bool chaos : 1
-bool lawfulevil : 1
-bool evil : 1
-bool chaosevil : 1
-bool water : 1
-bool ice : 1
-bool air : 1
-bool electricity : 1
-bool fire : 1
-bool metal : 1
-bool earth : 1
-bool trees : 1
-bool light : 1
-bool darkness : 1
-bool entropy : 1
+ushort align : 9
+uchar element : 8
+uchar lde : 3
 }
 
 struct eventdatobj {	//list of events
@@ -2874,11 +2876,53 @@ void death(path/to/epitaphs)
  * exit with atexit
  */
 
+uint stringlen (input)
+char* input
+{
+uint n = 0
+while (input[n] != 0) {n++}
+return n + 1
+}
+
 stringlistyp* loadstringlist(path)
 const char* path
 {
-stringlistyp* 
+stringlistyp* newnode
 
 FILE* list = fopen(path)
-int retval = 0
-while (retval != EOF) {
+char buffer[BUFFERMAX]
+stringlistyp* output = malloc(sizeof(stringlistyp))
+fgets(buffer,BUFFERMAX - 1,list)
+output→prev = output
+output→next = output
+output→text = calloc(stringlen(buffer),sizeof(char))
+strcpy(output→text,buffer)
+
+stringlistyp* new
+while (EOF != fgets(buffer,511,list)) {
+	new = malloc(sizeof(stringlistyp))
+	fgets(buffer,BUFFERMAX - 1,list)
+	output→prev = output
+	output→next = output
+	output→text = calloc(stringlen(buffer),sizeof(char))
+	strcpy(output→text,buffer)
+	output→prev→next = new
+	new→prev = output→prev
+	new→next = output
+	output→prev = new
+	}
+}
+
+char* getname()
+{
+char buffer[BUFFERMAX]
+char* buffer
+
+BREAKCURSES
+puts("name:")
+fgets(buffer,BUFFERMAX - 1,stdin)
+output = calloc(stringlen(buffer),sizeof(char))
+strcpy(output,buffer)
+FIXCURSES
+return output
+}

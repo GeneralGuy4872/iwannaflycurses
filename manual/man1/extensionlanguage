@@ -1,0 +1,45 @@
+@ denotes an octal number
+$ or 0x denotes a hexidecimal number
+
+/**/ denotes a comment.
+
+'' is the value of a character
+
+"" denotes a string.
+
+() denotes an s-expression
+	(let ((foo foo)) 
+		(cond	((eq 'r') @1)
+			((eq 'w') @2)
+			((eq 'x') @4)))
+	/*note that the eq used here is not ==, rather it is the inverse of ^*/
+
+[] denotes an array, struct, or a c-like function's args
+	printf["%i foo",bar]
+
+	mainh__roll[4,20,T]
+	
+	[[NIL,@01,@02,@03,@04,@05,@06,@07],
+	[NIL,@11,@12,@13,@12,@15,@16,@17],
+	[NIL,@21,@22,@23,@24,@25,@26,@27],
+	[NIL,@31,@32,@33,@34,@35,@36,@37],
+	[NIL,@41,@42,@43,@44,@45,@46,@47],
+	[NIL,@51,@52,@53,@54,@55,@56,@57],
+	[NIL,@61,@62,@63,@64,@65,@66,@67],
+	[NIL,@71,@72,@73,@74,@75,@76,@77]]
+
+	/* note that c functions translate almost character-for-character
+	 * array elements are addressed using ; in the same way as . but sizes are still given as arrays, with NIL being wildcard
+	 */
+
+{} denotes an infix-expression
+	{{{foo < {{2 + bar} * 4} || {quux > {{10 - xyzzy} ** 2}}}
+
+`= denotes a c-like lvalue and an assignment operation
+	`unsigned short int * foo [NIL,4,8,16] = [[[[...
+
+while s-expressions are the most powerful,
+infix-expressions and clike-functions are likely to be more familiar,
+thus their inclusion. the goal is to be as easy as possible for an end user.
+
+functions imported from C may or may not be translated to s-expressions 

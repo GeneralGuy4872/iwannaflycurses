@@ -5,7 +5,10 @@ NUMBER -?[0-9]+
 HEX ("$"|"0x")[0-9a-fA-F]+
 OCTAL @[0-7]+
 ENDQUOTE [^\\]"
+ENDPRIME [^\\]'
 TEXT [.]+
+CHAR [\0-\x7F]
+UTF8 ([\0xB0-\0xCF][\0x80-\0xAF]|[\0x70-\0x7F][\0x80-\0xAF][\0x80-\0xAF]|[\0xF0-\0xF7][\0x80-\0xAF][\0x80-\0xAF][\0x80-\0xAF])
 
 STRUCTPTR ("->"|"→")
 BITLEFT ("<<"|"«")
@@ -14,20 +17,25 @@ BITRIGHT (">>"|"»")
 GE (">="|"≥")
 IFFTOK [Ii]("FF"|"ff")
 XORTOK [Xx]("OR"|"or")
+EQTOK	[Ee][Qq]
 NE "!="
-
-	/*todo: escape sequences, numeric value '', but this should be enough to get this up and running*/
+DIE ^([Aa]("BORT"|"bort"))$
 
 %{
 #include <stdio.h>
 #include <string.h>
 #include "y.tab.h"
 %}
-%x STRING COMMENT
+%x STRING COMMENT CHARVAL
 %%
 "\""	BEGIN(STRING);
 <STRING>{ENDQUOTE}	BEGIN(0);
 <STRING>{TEXT}	yyval.string = strdup(yytext);return(TEXT);
+
+"\'"	BEGIN(CHARVAL);
+<CHARVAL>{CHARVAL}	BEGIN(0);
+<CHARVAL>{CHAR}	yyval.number = *yytext;return(HEX);
+<CHARVAL>{UTF8}	yyval.string = strdup(yytext);return(UTF8);
 
 "/*"	BEGIN(COMMENT);
 <COMMENT>"*/"	BEGIN(0);
@@ -74,9 +82,13 @@ NE "!="
 "&"	return '&';
 "|"	return '|';
 "^"	return '^';
+{EQTOK}	return(EQTOK);
 "?"	return '?';
 ":"	return ':';
 "."	return '.';
 ";"	return ';';
 ","	return ',';
+"\\"	return '\\';
+"`"	return '`';
+{DIE}	fprintf(stderr,"Your wish is my command..."); quit(1);
 %%
