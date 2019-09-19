@@ -1,12 +1,9 @@
 core.autocrlf=false
 
-**/* = linguist-detectable=false diff
-/manual/* = linguist-documentation=true linguist-detectable=true
-/manual/**/* = linguist-documentation=true linguist-detectable=true
-/manual/extended/plaintext/* = linguist-detectable=false
-/manual/extended/plaintext/**/* = linguist-detectable=false
-/src/* = linguist-vendored=false linguist-documentation=false linguist-detectable=true
-/src/**/* = linguist-vendored=false linguist-documentation=false linguist-detectable=true
+**/* = linguist-vendored=false linguist-documentation=false linguist-detectable=false diff
+/manual/**/* = linguist-detectable=true
+/manual/extended/plaintext/**/* = linguist-documentation=true
+/src/**/* = linguist-detectable=true
 
 *.c = linguist-language=C
 *.h = linguist-language=C
@@ -51,7 +48,7 @@ CMakeLists.txt = linguist-language=CMake
 # *.man.* = linguist-language=roff
 # *.html = linguist-language=HTML
 # *.css = linguist-language=CSS
-*.txt = linguist-language=text linguist-vendored=false linguist-documentation=false linguist-detectable=true
+*.txt = linguist-language=text
 *.hex = binary diff
 *.bin = binary diff
 *.raw = binary diff
