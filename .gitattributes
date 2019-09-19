@@ -1,11 +1,14 @@
 core.autocrlf=false
 
 **/* = linguist-detectable=false diff
-/* = linguist-documentation=true
+/* = linguist-documentation=true linguist-detectable=false diff
 /*.sh = linguist-documentation=false linguist-vendored=true
-/manual/** = linguist-documentation=true linguist-detectable=true
-/manual/extended/plaintext/** = linguist-detectable=false
-/src/** = linguist-vendored=false linguist-documentation=false linguist-detectable=false
+/manual/* = linguist-documentation=true linguist-detectable=true
+/manual/**/* = linguist-documentation=true linguist-detectable=true
+/manual/extended/plaintext/* = linguist-detectable=false
+/manual/extended/plaintext/**/* = linguist-detectable=false
+/src/* = linguist-vendored=false linguist-documentation=false linguist-detectable=false
+/src/**/* = linguist-vendored=false linguist-documentation=false linguist-detectable=false
 
 *.c = linguist-language=C
 *.h = linguist-language=C
