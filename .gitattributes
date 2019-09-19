@@ -1,7 +1,7 @@
 core.autocrlf=false
 
-** = linguist-detectable=false diff
-/*.* = linguist-documentation=true
+**/* = linguist-detectable=false diff
+/* = linguist-documentation=true
 /*.sh = linguist-documentation=false linguist-vendored=true
 /manual/** = linguist-documentation=true linguist-detectable=true
 /manual/extended/plaintext/** = linguist-detectable=false
