@@ -1,59 +1,63 @@
 core.autocrlf=false
-*.c = linguist-language=C linguist-vendored=false diff
-*.h = linguist-language=C linguist-vendored=false diff
-*.cc = linguist-language=C++ linguist-vendored=false diff
-*.hh = linguist-language=C++ linguist-vendored=false diff
-*.m = linguist-language=Objective-C linguist-vendored=false diff
-*.mm = linguist-language=Objective-C++ linguist-vendored=false diff
-*.m4 = linguist-language=M4 linguist-vendored=false diff
-*.pas = linguist-language=Pascal linguist-vendored=false diff
-*.p = linguist-language=Pascal linguist-vendored=false diff
-*.pp = linguist-language=Pascal linguist-vendored=false diff
-*.a68 = linguist-language=Algol linguist-vendored=false diff
-*.icn = linguist-language=icon linguist-vendored=false diff
-*.u = linguist-language=unicon linguist-vendored=false diff
-*.awk = linguist-language=Awk linguist-vendored=false diff
-*.pl = linguist-language=Perl linguist-vendored=false diff
-*.cl = linguist-language=Lisp linguist-vendored=false diff
-*.scm = linguist-language=Scheme linguist-vendored=false diff
-*.sno = linguist-language=SNOBOL4 linguist-vendored=false diff
-*.bas = linguist-language=BASIC linguist-vendored=false diff
-*.apl = linguist-language=APL linguist-vendored=false diff
-*.fth = linguist-language=forth  linguist-vendored=false diff
-*.asm = linguist-language=assembly linguist-vendored=false diff
-*.lua = linguist-language=lua linguist-vendored=false diff
-*.py = linguist-language=python linguist-vendored=false diff
-*.js = linguist-language=javascript linguist-vendored=false diff
-*.sh = linguist-language=Shell linguist-vendored=false diff
-*.lex = linguist-language=Lex linguist-vendored=false diff
-*.y = linguist-language=Yacc linguist-vendored=false diff
-make = linguist-language=makefile linguist-vendored=false diff
-*.cmake = linguist-language=CMake linguist-vendored=false diff
-CMakeLists.txt = linguist-language=CMake linguist-vendored=false diff
-*.ini = linguist-language=INI linguist-vendored=false diff
-*.tab = linguist-language=tsv linguist-vendored=false diff
-*.tsv = linguist-language=tsv linguist-vendored=false diff
-*.csv = linguist-language=csv linguist-vendored=false diff
-*.json = linguist-language=json linguist-vendored=false diff
-*.xml = linguist-language=xml linguist-vendored=false diff
-*.pseudo = linguist-language=text linguist-documentation=false linguist-vendored=false
-*.messy = linguist-language=text linguist-documentation=false linguist-vendored=false
-*.man.* = linguist-documentation=true
-*.html = linguist-documentation=true
-*.css = linguist-language=CSS linguist-documentation=true
-*.txt = linguist-documentation=true linguist-vendored=false diff
-*.md = linguist-documentation=true
-notes/* = linguist-documentation=true
-*.hex = binary diff linguist-vendored=false
-*.bin = binary diff linguist-vendored=false
-*.raw = binary diff linguist-vendored=false
-*.r8 = binary diff linguist-vendored=false
-*.r16 = binary diff linguist-vendored=false
-*.dat = binary diff linguist-vendored=false
-*.tar = binary diff linguist-vendored=false
-*.tar.* = binary diff linguist-vendored=false
-*.midi = binary diff linguist-vendored=false
-*.nfo = binary diff linguist-documentation=true linguist-vendored=false
-*.dump = linguist-language=json linguist-vendored=false diff
-*.iwfcl = linguist-language=lisp linguist-vendored=false diff
-*.midibas = linguist-language=basic linguist-vendored=false diff
+
+** = linguist-vendored=true linguist-documentation=true diff
+/manual/** = linguist-vendored=false
+/src/** = linguist-vendored=false linguist-documentation=false
+
+*.c = linguist-language=C
+*.h = linguist-language=C
+*.cc = linguist-language=C++
+*.hh = linguist-language=C++
+*.m = linguist-language=Objective-C
+*.mm = linguist-language=Objective-C++
+*.m4 = linguist-language=M4
+# *.pas = linguist-language=Pascal
+# *.p = linguist-language=Pascal
+# *.pp = linguist-language=Pascal
+*.a68 = linguist-language=Algol
+*.icn = linguist-language=icon
+*.u = linguist-language=unicon
+# *.awk = linguist-language=Awk
+*.pl = linguist-language=Perl
+*.cl = linguist-language=Lisp
+*.scm = linguist-language=Scheme
+*.sno = linguist-language=SNOBOL4
+# *.bas = linguist-language=BASIC
+*.apl = linguist-language=APL
+# *.fth = linguist-language=forth 
+*.asm = linguist-language=assembly
+# *.lua = linguist-language=lua
+# *.py = linguist-language=python
+# *.js = linguist-language=javascript
+# *.sh = linguist-language=Shell
+# *.lex = linguist-language=Lex
+# *.y = linguist-language=Yacc
+make = linguist-language=makefile
+*.cmake = linguist-language=CMake
+CMakeLists.txt = linguist-language=CMake
+# *.ini = linguist-language=INI
+# *.tab = linguist-language=tsv
+# *.tsv = linguist-language=tsv
+# *.csv = linguist-language=csv
+# *.json = linguist-language=json
+# *.xml = linguist-language=xml
+# *.yaml = linguist-language=yaml
+*.pseudo = linguist-language=clike
+*.messy = linguist-language=clike
+# *.man.* = linguist-language=roff
+# *.html = linguist-language=HTML
+# *.css = linguist-language=CSS
+# *.txt = linguist-language=text
+*.hex = binary
+*.bin = binary
+*.raw = binary
+*.r8 = binary
+*.r16 = binary
+*.dat = binary
+*.tar = binary
+*.tar.* = binary
+*.midi = binary
+*.nfo = binary linguist-language=text
+*.dump = linguist-language=json
+*.iwfcl = linguist-language=lisp
+*.midibas = linguist-language=basic

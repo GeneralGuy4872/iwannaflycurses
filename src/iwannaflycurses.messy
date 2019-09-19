@@ -109,25 +109,32 @@
  *
  * the backend consists of shims between generalized internal representations of
  * 	a thing, and the actual way that a library or driver expects it to be
- * 	formatted. So far, the only use of this layer will be in MIDI.
+ * 	formatted. the following are/will be considered part of this layer:
+ *	- anything underneath a call to a parser
+ *	- what goes on inside of the midi threads
+ *	- the raw calls to the compression libraries
+ *
+ * The API should always be backwards-compatable with all versions, from beta to doomsday.
+ * The Guts may have breaking changes between MAJOR versions, but not otherwise.
+ * The Backend depends on things beyond my control, and should be considered non-dependable.
+ * 	special cases should be noted, that the savefile format and language version have
+ *	their own versioning system. this still may be broken if the flex-yacc or
+ *	compression libraries of the build enviroment are changed from expectations,
+ *	but is a good start.
  *
  * an s-expression extension language interpreter will be provided
- * for the API, implemented using custom gets-strtok-regex-switch calls;
- * - a line is got and toupper-ed
- * - it is tokenized
- * - recursive regex tests identify the specie of token
- * - if the token is a literal string, a list of expected strings
- *	in that context is created and reduced to a match or null
- * there are better ways to do this, but I can understand this one
- * right now, and will worry about changing it later.
+ * for the API, implemented using flex/byacc;
+ *
+ * one might use the Generic C Preprocessor or M4 to aid in writing stand-alone
+ * plugins, but these are not built into the language itself and are not avalible
+ * on the CLI as a result
  *
  * an runcontrol-file interpreter will be writen this way as well,
  * to be used by the new savefile generator. it will have syntax
  * inspired by .nethackrc
  *
  * lastly, a nonstructured language will be provided for defining midi streams
- * in a human readable format. this language will only be provided as a flex/byacc
- * parser, which emits a rawmidi file.
+ * in a human readable format.
  *
  * GPLv2 or later, All Wrongs Reserved
  */
@@ -207,19 +214,36 @@ addnwstr(&wch,1);
 #define FLOPPYDISK 1474560
 #define BGCOLORS 8
 #define FGCOLORS 8
-#define GAMENAME "IWF DEFAULT GAME"
-#define GM_VERSION "0.0"
-#define DEVEL_STATE "Prealpha"
-#define SAVE_FORMAT "raw dump"
-#define COMPRESSION "libtar, zlib, libbz2"
-#define REV_RULES "0.0"
-#define REV_EVENTS "0.0"
-#define REV_FILES "0.0"
-/* version: Major.Minor.Hotfix
- * revision: Changes.Fixes
- */
-
 char16_t TILDEWIDE = setwidetilde()
+
+/*VERSION*/
+#define ENGINE_VERSION "Prealpha"
+#define RULES_VERSION "Prealpha"
+#define API_VERSION "Prealpha"
+#ifndef SAVE_VERSION
+#define SAVE_VERSION "MISSING"
+#endif
+#ifndef EXT_PARS_VERSION
+#define EXT_PARSE_VERSION "MISSING"
+#endif
+#ifndef RUNCOM_VERSION
+#define RUNCOM_VERSION "MISSING"
+#endif
+#ifndef MIDIBAS_VERSION
+#define MIDIBAS_VERSION "MISSING"
+#endif
+#ifndef MIDI_TYPE
+#define MIDI_TYPE "MISSING"
+#endif
+#ifndef GAME_NAME
+#define GAME_NAME "MISSING"
+#endif
+#ifndef GAME_VERSION
+#define GAME_VERSION "MISSING"
+#endif
+#ifndef STORY_REV
+#define STORY_REV "MISSING"
+#endif
 
 /*FUNCTION MACROS*/
 #define BACKGROUND 010
@@ -237,7 +261,6 @@ char16_t TILDEWIDE = setwidetilde()
 #define ≥ >=
 #define ≤ <=
 #define → ->
-#define ← |=
 #define forever for (;;)
 /* ɛ̩̍ will be used for "and", the conjunction, in comments where logical && would give a meaning that
  * could be validly, but incompatibly, interpreted as compleatly different from what is intended.
@@ -252,22 +275,10 @@ char16_t TILDEWIDE = setwidetilde()
 #define schar int8_t
 #define ushort uint16_t
 #define sshort int16_t
-#define ulong uint32_t
-#define slong int32_t
-#define ulonglong uint64_t
-#define slonglong int64_t
-
-/*debugger types*/
-enum datatypenum = {
-type_bool,type_char,type_uchar,type_schar,type_string,
-type_short,type_sshort,type_ushort,type_utf16,type_radix50,
-type_implicit,type_int,type_uint,type_sint,
-type_intptr_t,type_pointer,
-type_ulong,type_slong,
-type_float,type_double,
-type_div_t,type_time_t,type_clock_t,type_size_t,
-type_struct_bitfield,type_struct_coord2,type_struct_coord3,
-...
+#define umint uint32_t
+#define smint int32_t
+#define ulong uint64_t
+#define slong int64_t
 
 /* the 3D version of Iwannafly started off as a general RT-RPG library that
  * then became narrowed to a specific game. this version was originally
@@ -330,7 +341,7 @@ forever {
  * with ncurses, as well as stored in a temporary file.
  *
  * once the enter key is pressed, the temp file is rewound.
- * a gets-strtok-regex-switch parser is used to process the tokens.
+ * a flex-generated parser is used to process the tokens.
  *
  * interpretation mode will change depending on the syntax.
  * invalid commands may produce the response
@@ -406,7 +417,7 @@ char* text
 // like stringlistyp, but also has a field for eventident
 
 /* typedef struct Rune {
- * ulong sym : 24;
+ * umint sym : 24;
  * bool bold : 1;
  * bool italic : 1;
  * bool under : 1;
@@ -541,12 +552,12 @@ roomtyp* ROOM
 int(latlontyp)* ROOMGENCALL[ROOF + 1][EQUATOR/2 + 1][EQUATOR]
 shadowmask SHADOWKNOWS
 shadowmask SHINEALIGHT
-ulonglong TURN
+ulong TURN
 nibbles TIMER
 schar ALARM = -1
 turntyp DATE
 uchar ROOMTURN
-ulonglong KILLS
+ulong KILLS
 char* SAVEPATH
 followtype *FOLLOW_ptr	//pursuers, i.e. paid assasins, ninjas, the reaper...
 eventtyp *EVNT_ptr	//FOO_ptr refers to the doubly linked list's head. the tail is FOO_ptr→prev
@@ -595,40 +606,40 @@ bitfield globools
  * #define ROOM_DOWN_NW ROOMARRAY[2][0][0]
  * 
  * masks to select rooms
- * #define UP_ROOMS_MASK ((ulong) 0xFF400000)
- * #define DOWN_ROOMS_MASK ((ulong) 0x000002FF)
- * #define NORTH_ROOMS_MASK ((ulong) 0xC10C10C1)
- * #define SOUTH_ROOMS_MASK ((ulong) 0x1C01C01C)
- * #define EAST_ROOMS_MASK ((ulong) 0x70070070)
- * #define WEST_ROOMS_MASK ((ulong) 0x07007007)
- * #define ALL_ROOMS_MASK ((ulong) 0xFF4FF2FF)
+ * #define UP_ROOMS_MASK ((umint) 0xFF400000)
+ * #define DOWN_ROOMS_MASK ((umint) 0x000002FF)
+ * #define NORTH_ROOMS_MASK ((umint) 0xC10C10C1)
+ * #define SOUTH_ROOMS_MASK ((umint) 0x1C01C01C)
+ * #define EAST_ROOMS_MASK ((umint) 0x70070070)
+ * #define WEST_ROOMS_MASK ((umint) 0x07007007)
+ * #define ALL_ROOMS_MASK ((umint) 0xFF4FF2FF)
  * 
- * #define ROOM_NORTH_MASKBIT ((ulong) 0x00080000)
- * #define ROOM_NE_MASKBIT ((ulong) 0x00040000)
- * #define ROOM_EAST_MASKBIT ((ulong) 0x00020000)
- * #define ROOM_SE_MASKBIT ((ulong) 0x00010000)
- * #define ROOM_SOUTH_MASKBIT ((ulong) 0x00008000)
- * #define ROOM_SW_MASKBIT ((ulong) 0x00004000)
- * #define ROOM_WEST_MASKBIT ((ulong) 0x00002000)
- * #define ROOM_NW_MASKBIT ((ulong) 0x00001000)
- * #define ROOM_UP_MASKBIT ((ulong) 0x00400000)
- * #define ROOM_UP_NORTH_MASKBIT ((ulong) 0x80000000)
- * #define ROOM_UP_NE_MASKBIT ((ulong) 0x40000000)
- * #define ROOM_UP_EAST_MASKBIT ((ulong) 0x20000000)
- * #define ROOM_UP_SE_MASKBIT ((ulong) 0x10000000)
- * #define ROOM_UP_SOUTH_MASKBIT ((ulong) 0x08000000)
- * #define ROOM_UP_SW_MASKBIT ((ulong) 0x04000000)
- * #define ROOM_UP_WEST_MASKBIT ((ulong) 0x02000000)
- * #define ROOM_UP_NW_MASKBIT ((ulong) 0x01000000)
- * #define ROOM_DOWN_MASKBIT ((ulong) 0x00000200)
- * #define ROOM_DOWN_NORTH_MASKBIT ((ulong) 0x00000080)
- * #define ROOM_DOWN_NE_MASKBIT ((ulong) 0x00000040)
- * #define ROOM_DOWN_EAST_MASKBIT ((ulong) 0x00000020)
- * #define ROOM_DOWN_SE_MASKBIT ((ulong) 0x00000010)
- * #define ROOM_DOWN_SOUTH_MASKBIT ((ulong) 0x00000008)
- * #define ROOM_DOWN_SW_MASKBIT ((ulong) 0x00000004)
- * #define ROOM_DOWN_WEST_MASKBIT ((ulong) 0x00000002)
- * #define ROOM_DOWN_NW_MASKBIT ((ulong) 0x00000001)
+ * #define ROOM_NORTH_MASKBIT ((umint) 0x00080000)
+ * #define ROOM_NE_MASKBIT ((umint) 0x00040000)
+ * #define ROOM_EAST_MASKBIT ((umint) 0x00020000)
+ * #define ROOM_SE_MASKBIT ((umint) 0x00010000)
+ * #define ROOM_SOUTH_MASKBIT ((umint) 0x00008000)
+ * #define ROOM_SW_MASKBIT ((umint) 0x00004000)
+ * #define ROOM_WEST_MASKBIT ((umint) 0x00002000)
+ * #define ROOM_NW_MASKBIT ((umint) 0x00001000)
+ * #define ROOM_UP_MASKBIT ((umint) 0x00400000)
+ * #define ROOM_UP_NORTH_MASKBIT ((umint) 0x80000000)
+ * #define ROOM_UP_NE_MASKBIT ((umint) 0x40000000)
+ * #define ROOM_UP_EAST_MASKBIT ((umint) 0x20000000)
+ * #define ROOM_UP_SE_MASKBIT ((umint) 0x10000000)
+ * #define ROOM_UP_SOUTH_MASKBIT ((umint) 0x08000000)
+ * #define ROOM_UP_SW_MASKBIT ((umint) 0x04000000)
+ * #define ROOM_UP_WEST_MASKBIT ((umint) 0x02000000)
+ * #define ROOM_UP_NW_MASKBIT ((umint) 0x01000000)
+ * #define ROOM_DOWN_MASKBIT ((umint) 0x00000200)
+ * #define ROOM_DOWN_NORTH_MASKBIT ((umint) 0x00000080)
+ * #define ROOM_DOWN_NE_MASKBIT ((umint) 0x00000040)
+ * #define ROOM_DOWN_EAST_MASKBIT ((umint) 0x00000020)
+ * #define ROOM_DOWN_SE_MASKBIT ((umint) 0x00000010)
+ * #define ROOM_DOWN_SOUTH_MASKBIT ((umint) 0x00000008)
+ * #define ROOM_DOWN_SW_MASKBIT ((umint) 0x00000004)
+ * #define ROOM_DOWN_WEST_MASKBIT ((umint) 0x00000002)
+ * #define ROOM_DOWN_NW_MASKBIT ((umint) 0x00000001)
  */
 
 #define GOOD_MASK 0700
@@ -713,7 +724,7 @@ forever {
 free(LINEBUFFER)
 }
 
-ulong getsixteen (y,x)
+umint getsixteen (y,x)
 uchar y x
 {
 char hexbuffer[8] = "00000000"
@@ -748,7 +759,7 @@ forever {
 	move(y,x+offset);
 	}
 fin:
-return (ulong) strtoul(hexbuffer,NULL,16);
+return (umint) strtoul(hexbuffer,NULL,16);
 }
 
 struct turntyp:
@@ -1198,7 +1209,7 @@ ushort hp	//they're fun and easy to...wait
 ushort mp
 uchar air
 ushort uptime
-ulong xp
+umint xp
 uchar lvl
 sshort food
 moneytyp gold
@@ -1400,7 +1411,7 @@ scoord2 align
 ushort hp
 ushort mp
 uchar air
-ulong xp
+umint xp
 uchar lvl
 sshort food
 moneytyp gold
@@ -1805,8 +1816,8 @@ lightyp *lamp_ptr
  *     .sav : a save file. formatted as a .tar.bz2 file tree
  *   .man.# : a manpage
  *          : documentation
- *    .html : extended documentation
- *      .md : extended documentation
+ *    .html : documentation
+ * .texinfo : documentation
  *       .d : structs are stored as directories, and pointers to structs are stored as subdirectories with the name of that field. the tail element in a linked list has no subdirectory named "next", and "prev" pointers are implicitly stored as "/..". (malloc and static pointers to primatives are placed in the current directory and named by address, using C notation.)
  *     .*rc : a configuration file, parsed with the runcommander
  *    .dump : a debugger data dump, with a format somwhere between json, s-expressions, and the above. also stores pointers as HTML href elements, but uses no other (SG|X)ML syntax. intedned to be read by people, not processed by computers; should it become necissary, I will write some basic tools for querying these files.
@@ -2056,7 +2067,7 @@ int(short,short,char,char,char,eventdata)* ifthis
 int(short,short,char,char,char,eventdata)* dothis
 const char* name
 cylinder dim
-ulong duration
+umint duration
 /* events call raw C functions, without any sort of restrictions on what they have
  * access to beyond what the program can give it. the idea is to provide a full
  * turing-complete interface by which the game's world can be altered according
@@ -2697,22 +2708,22 @@ bool value;
 {
 if (value) {
 	switch (zcoord) : {
-		case 0 : return mask[ycoord][xcoord] ← 0x8000;
-		case 1 : return mask[ycoord][xcoord] ← 0x4000;
-		case 2 : return mask[ycoord][xcoord] ← 0x2000;
-		case 3 : return mask[ycoord][xcoord] ← 0x1000;
-		case 4 : return mask[ycoord][xcoord] ← 0x0800;
-		case 5 : return mask[ycoord][xcoord] ← 0x0400;
-		case 6 : return mask[ycoord][xcoord] ← 0x0200;
-		case 7 : return mask[ycoord][xcoord] ← 0x0100;
-		case 8 : return mask[ycoord][xcoord] ← 0x0080;
-		case 9 : return mask[ycoord][xcoord] ← 0x0040;
-		case 0xA : return mask[ycoord][xcoord] ← 0x0020;
-		case 0xB : return mask[ycoord][xcoord] ← 0x0010;
-		case 0xC : return mask[ycoord][xcoord] ← 0x0008;
-		case 0xD : return mask[ycoord][xcoord] ← 0x0004;
-		case 0xE : return mask[ycoord][xcoord] ← 0x0002;
-		case 0xF : return mask[ycoord][xcoord] ← 0x0001;
+		case 0 : return mask[ycoord][xcoord] |= 0x8000;
+		case 1 : return mask[ycoord][xcoord] |= 0x4000;
+		case 2 : return mask[ycoord][xcoord] |= 0x2000;
+		case 3 : return mask[ycoord][xcoord] |= 0x1000;
+		case 4 : return mask[ycoord][xcoord] |= 0x0800;
+		case 5 : return mask[ycoord][xcoord] |= 0x0400;
+		case 6 : return mask[ycoord][xcoord] |= 0x0200;
+		case 7 : return mask[ycoord][xcoord] |= 0x0100;
+		case 8 : return mask[ycoord][xcoord] |= 0x0080;
+		case 9 : return mask[ycoord][xcoord] |= 0x0040;
+		case 0xA : return mask[ycoord][xcoord] |= 0x0020;
+		case 0xB : return mask[ycoord][xcoord] |= 0x0010;
+		case 0xC : return mask[ycoord][xcoord] |= 0x0008;
+		case 0xD : return mask[ycoord][xcoord] |= 0x0004;
+		case 0xE : return mask[ycoord][xcoord] |= 0x0002;
+		case 0xF : return mask[ycoord][xcoord] |= 0x0001;
 		default : return ERR;
 		}
 	}
@@ -2808,9 +2819,9 @@ for (;count != 0;count--) {
  * add shadows
  */
 
-enginehook() {
+/*pseudocode*/enginehook() {
 	printf(RESET);
-	printf(" \033[1;95m~~ IWANNAFLY ROGUELIKE ENGINE : %s ~~\033[m\n\033[97m  gamemaster version: %s\n       savefile type: %s\n    compression type: %s\n     sound interface: %s\n\n \033[96m - %s -\033[m\n\033[97m      RPG rules revision: %s\nstory event API revision: %s\n   file handler revision: %s\n\n\033[37mCompiled on %s\n\033m\a",GAMENAME,GM_VERSION,SAVE_FORMAT,COMPRESSION,"deferred",DEVEL_STATE,REV_RULES,REV_EVENTS,REV_FILES,__DATE__);
+	printf(" \033[1;95m~~ IWANNAFLY ROGUELIKE ENGINE ~~\033[m\n\033[97m          engine version: %s\n          rules revision: %s\n            API revision: %s\n        savefile version: %s\nextension parser version: %s\n    runcommander version: %s\n       midibasic version: %s\n       midi backend type: %s\n\n \033[96m - %s -\033[m\n\033[97m  game version: %s\nstory revision: %s\n\n\033[37mCompiled on %s\n\033m\a",ENGINE_VERSION,RULES_VERSION,API_VERSION,SAVE_VERSION,EXT_PARSE_VERSION,RUNCOM_VERSION,MIDIBAS_VERSION,MIDI_TYPE,GAME_NAME,GAME_VERSION,STORY_REV,__DATE__);
 	fflush(stdout);
 	sleep(4);
 	printf(RESET);

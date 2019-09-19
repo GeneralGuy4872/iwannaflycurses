@@ -1,0 +1,42 @@
+img {
+	image-rendering: pixelated;
+}
+body {
+	font-size: 100%;
+	background-color: white;
+	color: black;
+}
+blockquote {
+	border-left-style: solid;
+	border-width: 2px;
+}
+code {
+	display: inline;
+	font-family: monospace;
+}
+var {
+	font-family: serif;
+	font-variant: small-caps;
+}
+em {
+	background-color: yellow;
+	font-style: oblique;
+}
+hr {
+	border-style: solid;
+	border-width: 1px;
+} 
+pre {
+	display: block;
+	white-space: pre-wrap;
+	border-style: solid;
+	border-width: 1px 1px 1px 1px;
+}
+.greenscreen {
+	background-color: black;
+	color: lime;
+}
+.basic {
+	background-color: mediumslateblue;
+	color: snow;
+}

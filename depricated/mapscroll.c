@@ -12,22 +12,22 @@ bool home : 1
 /*implicit*/mapscroll(args)
 mapscrollargs args
 {
-ulong cullrooms
-ulong loadrooms
+umint cullrooms
+umint loadrooms
 switch args.latmove : {
 	case 0 : break;
-	case 1 : cullrooms ← SOUTH_ROOMS_MASK; loadrooms ← NORTH_ROOMS_MASK; break;
-	default : cullrooms ← NORTH_ROOMS_MASK; loadrooms ← SOUTH_ROOMS_MASK; break;
+	case 1 : cullrooms |= SOUTH_ROOMS_MASK; loadrooms |= NORTH_ROOMS_MASK; break;
+	default : cullrooms |= NORTH_ROOMS_MASK; loadrooms |= SOUTH_ROOMS_MASK; break;
 	}
 switch args.lonmove : {
 	case 0 : break;
-	case 1 : cullrooms ← WEST_ROOMS_MASK; loadrooms ← EAST_ROOMS_MASK; break;
-	default : cullrooms ← EAST_ROOMS_MASK; loadrooms ← WEST_ROOMS_MASK; break;
+	case 1 : cullrooms |= WEST_ROOMS_MASK; loadrooms |= EAST_ROOMS_MASK; break;
+	default : cullrooms |= EAST_ROOMS_MASK; loadrooms |= WEST_ROOMS_MASK; break;
 	}
 switch args.depmove : {
 	case 0 : break;
-	case 1 : cullrooms ← DOWN_ROOMS_MASK; loadrooms ← UP_ROOMS_MASK; break;
-	default : cullrooms ← UP_ROOMS_MASK; loadrooms ← DOWN_ROOMS_MASK; break;
+	case 1 : cullrooms |= DOWN_ROOMS_MASK; loadrooms |= UP_ROOMS_MASK; break;
+	default : cullrooms |= UP_ROOMS_MASK; loadrooms |= DOWN_ROOMS_MASK; break;
 	}
 if (cullrooms & ROOM_UP_NW_MASKBIT)	{savefreeroom(ROOM_UP_NW)}
 if (cullrooms & ROOM_UP_NORTH_MASKBIT)	{savefreeroom(ROOM_UP_NORTH)}
