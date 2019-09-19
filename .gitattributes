@@ -2,7 +2,7 @@ core.autocrlf=false
 
 **/* = linguist-detectable=false diff
 /* = linguist-documentation=true linguist-detectable=false diff
-/*.sh = linguist-documentation=false linguist-vendored=true
+/*.sh = linguist-documentation=false linguist-vendored=true linguist-detectable=false -diff
 /manual/* = linguist-documentation=true linguist-detectable=true
 /manual/**/* = linguist-documentation=true linguist-detectable=true
 /manual/extended/plaintext/* = linguist-detectable=false
@@ -48,22 +48,22 @@ CMakeLists.txt = linguist-language=CMake
 # *.json = linguist-language=json
 # *.xml = linguist-language=xml
 # *.yaml = linguist-language=yaml
-*.pseudo = linguist-language=clike
-*.messy = linguist-language=clike
+*.pseudo = linguist-language=c
+*.messy = linguist-language=c
 # *.man.* = linguist-language=roff
 # *.html = linguist-language=HTML
 # *.css = linguist-language=CSS
-# *.txt = linguist-language=text
-*.hex = binary
-*.bin = binary
-*.raw = binary
-*.r8 = binary
-*.r16 = binary
-*.dat = binary
-*.tar = binary
-*.tar.* = binary
-*.midi = binary
-*.nfo = binary linguist-language=text
+*.txt = linguist-language=text linguist-vendored=false linguist-documentation=false linguist-detectable=true
+*.hex = binary diff
+*.bin = binary diff
+*.raw = binary diff
+*.r8 = binary diff
+*.r16 = binary diff
+*.dat = binary diff
+*.tar = binary diff
+*.tar.* = binary diff
+*.midi = binary diff
+*.nfo = binary linguist-language=text linguist-vendored=false linguist-documentation=false linguist-detectable=true diff
 *.dump = linguist-language=json
 *.iwfcl = linguist-language=lisp
 *.midibas = linguist-language=basic
