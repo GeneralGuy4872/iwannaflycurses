@@ -7,8 +7,8 @@ core.autocrlf=false
 /manual/**/* = linguist-documentation=true linguist-detectable=true
 /manual/extended/plaintext/* = linguist-detectable=false
 /manual/extended/plaintext/**/* = linguist-detectable=false
-/src/* = linguist-vendored=false linguist-documentation=false linguist-detectable=false
-/src/**/* = linguist-vendored=false linguist-documentation=false linguist-detectable=false
+/src/* = linguist-vendored=false linguist-documentation=false linguist-detectable=true
+/src/**/* = linguist-vendored=false linguist-documentation=false linguist-detectable=true
 
 *.c = linguist-language=C
 *.h = linguist-language=C
