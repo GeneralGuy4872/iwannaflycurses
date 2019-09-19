@@ -1,8 +1,6 @@
 core.autocrlf=false
 
 **/* = linguist-detectable=false diff
-/* = linguist-documentation=true linguist-detectable=false diff
-/*.sh = linguist-documentation=false linguist-vendored=true linguist-detectable=false -diff
 /manual/* = linguist-documentation=true linguist-detectable=true
 /manual/**/* = linguist-documentation=true linguist-detectable=true
 /manual/extended/plaintext/* = linguist-detectable=false
@@ -48,8 +46,8 @@ CMakeLists.txt = linguist-language=CMake
 # *.json = linguist-language=json
 # *.xml = linguist-language=xml
 # *.yaml = linguist-language=yaml
-*.pseudo = linguist-language=c
-*.messy = linguist-language=c
+*.pseudo = linguist-language=C
+*.messy = linguist-language=C
 # *.man.* = linguist-language=roff
 # *.html = linguist-language=HTML
 # *.css = linguist-language=CSS
