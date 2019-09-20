@@ -1,6 +1,6 @@
 #error NOT READY FOR COMPILATION
 /* to preserve the file history,
- * this file will eventually become main.h or main.c.
+ * this file will eventually become main.h, main.c, or util.c
  *
  * the bulk of it's contents, however, will be moved.
  *
@@ -32,7 +32,9 @@
  * with this library. if you don't know what "obfuscated" C is, look at the original
  * unix v7 source of ye old bourne shell for the definative example.
  *
- * the engine should be compiled as a shared object and placed in LD_LOAD_PATH.
+ * the engine should be compiled as a shared object, and installed according to the
+ * values set in paths.h
+ *
  * a game compiled for the engine should obey the following conventions:
  * - it should provide the bulk of it's functions in a shared library in a private
  * 	application directory
@@ -45,11 +47,6 @@
  * 	- the game itself
  * 	- a seperate program for generating a new savefile
  * 	- a savefile editor
- * the savefile editor may be independent, or linked to the game and new savefile generator,
- * in which case those should be executable shared libraries
- * (the default game invents the xso file extension to denote an eXecutable Shared Object).
- * the effect is that short sessions should have small memory footprints, because they only load
- * a few of the modular libraries, but long marathon-like sessions could be huge.
  *
  * enviromental requirements:
  * - UTF-8 terminal of at least 25*80 characters
@@ -57,8 +54,9 @@
  * 		it is a raster font; monospaced raster fonts are more uniform in width than the majority of vector so-called "monospaced" fonts;
  * 		it is unicode, having a wide range of characters; and
  * 		it is extreamly common, being the default font for the linux console, xterm, and urxvt)
- * - Color, Dim, Bold, Italic, Underline, Reverse, Blink, Invisible text effects
- * 	(ncurses will take care of this)
+ * - ANSI SGR escape codes and 16 colors outside of NCurses
+ *	The engine will recognise the term enviroment and can sent xterm-style OSC strings if they are supported as well
+ * - NCurses with support for A_BOLD, A_ITALIC, A_UNDERLINE, A_DIM, A_BLINK, A_REVERSE, A_INVIS, 8 colors, and 64 color pairs
  * - Full Keyboard
  * 	(most keyboard layouts with all ASCII characters *should*
  * 	work, but only QWERTY (US-ANSI) was used in design because
@@ -98,6 +96,13 @@
  *
  * while the API functions have a simple enough calling convention,
  * there is no garuntee that the code underneath is not hundreds of lines long.
+ * the sequence to bring the engine up is:
+ *
+ * termcheck()
+ * enginesplash(name of game,game version,story revision)
+ * <your startup stuff here>
+ * promptload()
+ * engineloop()
  *
  * the middle layer, or the guts, is where the engine actually happens, and
  * 	it isn't pretty. if you want to change how the game works,
@@ -112,7 +117,7 @@
  * 	formatted. the following are/will be considered part of this layer:
  *	- anything underneath a call to a parser
  *	- what goes on inside of the midi threads
- *	- the raw calls to the compression libraries
+ *	- the code underneath the savefile handling calls
  *
  * The API should always be backwards-compatable with all versions, from beta to doomsday.
  * The Guts may have breaking changes between MAJOR versions, but not otherwise.
@@ -123,11 +128,10 @@
  *	but is a good start.
  *
  * an s-expression extension language interpreter will be provided
- * for the API, implemented using flex/byacc;
- *
- * one might use the Generic C Preprocessor or M4 to aid in writing stand-alone
- * plugins, but these are not built into the language itself and are not avalible
- * on the CLI as a result
+ * for the API, implemented using flex/byacc; one might use the
+ * Generic C Preprocessor or M4 to aid in writing stand-alone
+ * plugins, but these are not built into the language itself
+ * and are not avalible on the CLI as a result
  *
  * an runcontrol-file interpreter will be writen this way as well,
  * to be used by the new savefile generator. it will have syntax
@@ -135,6 +139,11 @@
  *
  * lastly, a nonstructured language will be provided for defining midi streams
  * in a human readable format.
+ *
+ * At some point in the far future, once the engine has reached Beta,
+ * a complementery Tileset version of the engine will be created using
+ * the X Toolkit, XPixMap, and the Athena Widgets, while retaining the
+ * mostly the same API.
  *
  * GPLv2 or later, All Wrongs Reserved
  */
@@ -183,9 +192,24 @@
 #ifndef OK
 #define OK 0
 #endif
+
 #ifndef ERR
-#define ERR ~0	//not zero
+#define ERR -1
 #endif
+
+#ifndef EOF
+#error now you're just TRYING to break stuff...
+#endif
+
+#ifndef NULL
+#warning ... ...wh ... ... how??
+#define NULL ((void*)0)
+#endif
+
+#define TRUE true
+#define FALSE false
+#define T true
+#define NIL ((intptr_t)0)	/*should be false and NULL equivilant, might be kept even if the others are purged*/
 
 mvaddch16(int x,int y,char16_t raw) {
 const wchar_t wch = raw;
@@ -215,6 +239,8 @@ addnwstr(&wch,1);
 #define BGCOLORS 8
 #define FGCOLORS 8
 char16_t TILDEWIDE = setwidetilde()
+#define BLINKY "\033[5m_\033[25m"
+char* TERM
 
 /*VERSION*/
 #define ENGINE_VERSION "Prealpha"
@@ -234,15 +260,6 @@ char16_t TILDEWIDE = setwidetilde()
 #endif
 #ifndef MIDI_TYPE
 #define MIDI_TYPE "MISSING"
-#endif
-#ifndef GAME_NAME
-#define GAME_NAME "MISSING"
-#endif
-#ifndef GAME_VERSION
-#define GAME_VERSION "MISSING"
-#endif
-#ifndef STORY_REV
-#define STORY_REV "MISSING"
 #endif
 
 /*FUNCTION MACROS*/
@@ -429,7 +446,7 @@ char* text
  * } Rune; //not needed
  */
 
-uint mainh__roll (num,side,low)
+uint util__roll (num,side,low)
 uchar num;	//number of dice to roll
 uchar side;	//sides on each die
 bool low;	//low number on each die
@@ -444,7 +461,7 @@ return accum;
 }
 //XdN is (X,N,0), XDN is (X,N,1)
 
-sshort mainh__bonus (num)
+sshort util__bonus (num)
 uchar num;
 {
 sshort accum;
@@ -456,7 +473,7 @@ for (uchar n = 0;n<num;n++) {
 return accum;
 }
 
-#define mainh__flip (rand() % 2)
+#define util__flip (rand() % 2)
 
 #define MISSING_FILE(F) fprintf(stderr,"File \"%s\" not found",F); move(22,2); attrset(COLOR_PAIR((BACKGROUND*COLOR_RED)+COLOR_WHITE); printw("File Error : \"%s\"",F); attroff(COLOR_PAIR((BACKGROUND*COLOR_RED)+COLOR_WHITE);
 
@@ -484,6 +501,30 @@ FIXCURSES
 fclose(openfile);
 return lines;
 }
+
+/*implicit*/file_cat_nocurses (path)
+const char *path;
+{
+FILE *openfile = fopen(path,"r");
+int lines;
+if (openfile == NULL) {
+	MISSING_FILE(path);
+	ERROR_GRAPHIC("File not found",0,0,0,0,false);
+	return ERR;
+	}
+char tmpbuffer[BUFFER_MAX];
+for (bool n = true;n;noop()) {
+	if (fgets(tmpbuffer,BUFFER_MAX,openfile) == NULL) {
+		n = false;
+		} else {
+		printf(tmpbuffer);fflush(stdout);
+		lines++;
+		}
+	}
+fclose(openfile);
+return lines;
+}
+
 
 /* should also output __FILE__ ɛ̩̍ __LINE__, which will likely be the program's version of
  * undecipherable hex codes to anyone not extreamly fammiliar with the source. less severe
@@ -990,15 +1031,6 @@ uchar cp : 7
 #define GOLDMAX = 130999
 #define COPPERMAX = 99
 
-/* Alignment uses set operations on 2 perpindicular discreet lines.
- * I will assign unique symbols for clarity and brevity:
- * ✥ is union (used as arrows)
- * ⌖ is intersection
- *	a norm1 distance might be given with ⌖ to denote a radius around the point
- *	it designates; more than 2 arguments to ⌖ would always be ∅ according to this
- *	definition, but I provide the following contengency for the usage here:
- * 	X > 2 selections are processed as the ∪ of (X nCr 2) seperate ⌖.
- */
 struct aligntyp:
 good : b1
 evil : b1
@@ -1009,8 +1041,8 @@ noevil : b1
 nolaw : b1
 nochaos : b1
 /* used as a mask.
- * starting alignment must be one of the high nibble (✥ if one or more than 2 are selected, ⌖ ║2║1 if exactly 2 are selected, true neutral ║1║1 if none are selected).
- * alignment may NEVER enter any of the low nibble, marked "no" (✥ always, overrides whitelist).
+ * starting alignment must be one of the high nibble (those bit flags | true neutral if more than 1 is selected.)
+ * alignment may NEVER enter any of the low nibble, marked "no"
  *
  * there are other ways that alignment masks may be specified,
  * all of which have finer grained control.
@@ -1103,7 +1135,7 @@ ptrtab mon1table
  * and non polymorphable by placing them on the low or high tables
  */
 enum mon2_enum
-stabs mon2stabs = {...
+stabs mon2stabs = {"grue",	...
 /*$FA*/,	"Justice"/*not invincible*/,	"Retribution"/*not invincible*/,	"Justice"/*invincible*/,	"Retribution"/*invincible*/,	"Death"};
 ptrtab mon2table
 
@@ -1121,7 +1153,7 @@ ptrtab mon2table
  * E: <elementals>, stalker,
  * e: floating eye,
  * F: turkey, rooster, chicken, peacock, duck, goose, swan, albatross, gull, dodo,
- * f: panther, lion, tiger, manticore, cat, lynx, bobcat, displacer beast,
+ * f: panther, lion, tiger, manticore, cat, lynx, bobcat,
  * G: ghost, banshee, revenent, barrow wight,
  * g: gremlin, gargoyle, winged gargoyle,
  * H: giant, cyclops,
@@ -1730,7 +1762,7 @@ uchar fly : 2 //0 = never had wings, 1 = slow falling, 2 = cannot gain altitude,
 
 /* damage = MAX( incoming-defense , 0 )
  *
- * polyshock = -abs(base.hplvl-poly.hplvl) * !mainh__roll(1,20,0)
+ * polyshock = -abs(base.hplvl-poly.hplvl) * !util__roll(1,20,0)
  * ⎧if n < -HPMAX     : Instakill (deathmessage: miscalculated a crucial equivilant-exchange parameter,hath choose...poorly)
  * ⎪if n = -HPMAX     : Stoning
  * ⎨if -HPMAX < n < 0 : abs(n) Damage (deathmessage: could not withstand the cost of transmutation)
@@ -2238,21 +2270,22 @@ to avoid confusion, by default the player always uses a unique character: ☻
 
 an UNDERLINE is a shadow
 
-) is a sword or dagger. ⍏ are polearms. \ is a staff. ¦ is a club. : is a mace. ℓ is a whip. ⦅ is a bow. ⇤ is an arrow. ⍖ is a writing instrument.
+note: unicode symbols are (mostly) used be their appearence, not by their meaning
+) is a sword or dagger. ⍏ are polearms. \ is a staff. ¦ is a club. : is a mace. ℓ is a whip. ( is a bow. ⇤ is an arrow. ⍖ is a writing instrument.
 ⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves. % is meat. ⊞ is food (don't shoot it). $ is gold. ¢ is copper.
-⌘ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♫ is a lyre. ƒ is a violin. ♪ is a different music instrument.
+? is a misc item. ✥ is a shurkin. ↧ is a digging tool. ⌥ is a key or lockpick. ♫ is a lyre. ƒ is a violin. ♪ is a different music instrument.
 ¿ are potions (fragile). ∫ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet. ^ is a crown.
 / is a wand. ♮ is a ladder. ⋎ is a fountain or gyser. ⍾ is a bell. ⎋ is a clockface. ♠ ♣ ‡ are trees. ⋏ is fire. ♜ is a pedestal.
-∿ is shallow liquid. ≈ is deep liquid's surface. ∬ is a waterfall. ~ is a liquid (as seen while submerged). 
+∿ is shallow liquid. ≈ is deep liquid's surface. ∬ is a waterfall. ~ is a liquid (as seen while submerged).  ≣ is a staircase. 
 ⌁ is electricity. * is ice. ⎈ spider web. ⌬ beehive. ↥ are spikes. ⎙ ⍝ ⎍ ∎ ⎅ are tombstones or signs. ␥ is glass.
-? is invisible. ! is trouble. ⌑ is a light source. ⌸ is a door. ⍯ is a locked door. ⎕ is an open door. = is a gate. ≠ is a locked gate.
+! is trouble. ⌑ is a light source. ⌸ is a door. ⍯ is a locked door. ⎕ is an open door. = is a gate. ≠ is a locked gate. ∷ is an open gate.
 • is a boulder. . is a rock. ⁂ is a rockslide. ◇ is a gemstone. ◊ is a giant magic crystal. ⑆ are footprints.
-∪ is a sink. ⏍ is a chest. ↯ (cyan) is the thunderbolt. ∅ is a spacetime anomaly (do not touch). < > are level stairs. 
-← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are cannons (the kind that goes boom).
-# █ ▓ ▒ ░ ▞ ▚ (etc) are thick walls or floor. ≋ is a cloud (no walking; keep your head out of them). ≣ is a staircase. 
+∪ is a sink. ⏍ is a chest. ↯ (cyan) is the thunderbolt. ∅ is a spacetime anomaly (do not touch). < > are level stairs. ⌘ is home.
+← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are ballistae. ✪ is a rune. ː ⍽ are traps.
+# █ ▓ ▒ ░ ▞ ▚ (etc) are thick walls or floor. ≋ is a cloud (do not walk on them; keep your head out of them).
 ˜ ␣ are holes. ' is a stalagtite or icicle. , is a plant. ; is a grain or sunflower (impassable).
 box drawings are low walls or columns. ⑉ ⋮ are iron bars. · is an ember or star. ` ´ ˇ are flower petals.
-✪ is a rune. ː ⍽ are traps. ¬ (blinking) is stale air (unbreathable). ≃ is stagnent water (unbreathable). ☣ ‽ is gas.
+¬ (blinking) is stale air (unbreathable). ≃ is stagnent water (unbreathable). ☣ ‽ is gas.
 " deliminates text.
 ⍰ is a missingno.
 
@@ -2261,7 +2294,7 @@ but any truly monospace font should render their relative sizes correctly;
 if the font is only pretending to be monospace (like the default github font),
 you'll have bigger issues of non-uniform characters warping and tearing
 the world's projection grid. it is for this reason that the recommended font
-is a raster one.
+is a raster one, as raster fonts tend to be more uniform.
 
 box drawings:
  ╒╤╕     ╔╦╗
@@ -2276,19 +2309,19 @@ A_INVIS is not able to be seen
 A_REVERSE video is a magic spell's area of effect
 A_UNDERLINE is the shadow of an entity
 
-text that is catted from an nfo file, or otherwise printed using stdio, will not be restricted to ncurses formatting,
-and will use the full range of ANSI+AIX SGR escape codes
+text that is cat-ed from an nfo file, or otherwise printed using stdio, will not be restricted to ncurses formatting,
+and will use the full range of ANSI SGR escape codes
 
 rune symbols
 ◬ air, ⍫ earth, △ fire, ▽ water, ⍰ missingno
-※ ice, ↯ (yellow) electricity, ♤ metal, π nature
+※ ice, ↯ (yellow) electricity, ♤ metal, ♻ nature
 ☣ status effect, ‽ stoning, ∅ entropy
 ☼ light, ☽ dark, § polymorph, ↹ planer
 ♥ healing
 
 magic AOE symbols
 ≋ air, • earth, ⋏ fire, ≈ water
-* ice, ⌁ electricity, $ metal, ♠ nature
+* ice, ⌁ electricity, ↥ metal, ♠ nature
 ☣ status effect, ‽ stoning, ∅ entropy
 ⌑ light, ⎈ dark, § polymorph
 
@@ -2296,8 +2329,8 @@ directional symbols:
 ←, ↑, →, ↓, ↖, ↗, ↘, ↙, direction in XY;
 ! far side; ↧, ↥, direction in Z;
 ↹ different plane;
-◬, ⍫, △, ▽, ※, ↯, ♤, π, ☼, ☽, ∅, inner planes;
-LG, NG, CG, LN, CN, LE, NE, CE, TN, U, ☠, outer planes;
+◬, ⍫, △, ▽, ※, ↯, ♤, ♻, ☼, ☽, ∅, inner planes;
+LG, NG, CG, LN, CN, LE, NE, CE, TN, ×, ☠, outer planes;
 
 STYLE GUIDE:
 the following nonstandard punctuation may be used in dialouge (list not exaustive) :  ‽ explosive disbelief  ⸮ rhetorical  .ˢ sarcasm  ♪ playful  ♥ careing  ♩♯ taunt  ↯ explosive anger  ☠ foul oath
@@ -2476,7 +2509,7 @@ mapscrollargs NOSCROLL = {0,0,0,false,false}
 mapscrollargs args
 {
 BREAKCURSES
-printf("\033]0;%s: loading...\a",GAMENAME);
+if (IS_XTERM) {printf("\033]2;IWannaFlyCurses - %s: loading...\033\\",GAMENAME);}
 printf("loading...");
 fflush(stdout);
 FIXCURSES
@@ -2551,7 +2584,7 @@ FIRST = !(visited)
 ROOM.visited = true
 
 BREAKCURSES
-printf("\033]0;%s: %i°%c, %i°%c, %i\a",GAMENAME,abs(WORLD.lat),WORLD.lat > 0 ? 'N' : (WORLD.lat < 0 ? 'S' : ' '),WORLD.lon > 0 ? 'E' : ((WORLD.lon < 0) && !(WORLD.lon == -180) ? 'W' : ' '),WORLD.dep - 100);
+if (IS_XTERM) {printf("\033]2;IWannaFlyCurses - %s: %i°%c, %i°%c, %i\033\\",GAMENAME,abs(WORLD.lat),WORLD.lat > 0 ? 'N' : (WORLD.lat < 0 ? 'S' : ' '),WORLD.lon > 0 ? 'E' : ((WORLD.lon < 0) && !(WORLD.lon == -180) ? 'W' : ' '),WORLD.dep - 100);
 FIXCURSES
 render();
 }
@@ -2819,58 +2852,60 @@ for (;count != 0;count--) {
  * add shadows
  */
 
-/*pseudocode*/enginehook() {
-	printf(RESET);
-	printf(" \033[1;95m~~ IWANNAFLY ROGUELIKE ENGINE ~~\033[m\n\033[97m          engine version: %s\n          rules revision: %s\n            API revision: %s\n        savefile version: %s\nextension parser version: %s\n    runcommander version: %s\n       midibasic version: %s\n       midi backend type: %s\n\n \033[96m - %s -\033[m\n\033[97m  game version: %s\nstory revision: %s\n\n\033[37mCompiled on %s\n\033m\a",ENGINE_VERSION,RULES_VERSION,API_VERSION,SAVE_VERSION,EXT_PARSE_VERSION,RUNCOM_VERSION,MIDIBAS_VERSION,MIDI_TYPE,GAME_NAME,GAME_VERSION,STORY_REV,__DATE__);
-	fflush(stdout);
-	sleep(4);
-	printf(RESET);
-	printf("\033[1;32m\tCopyright (C) 2019 \"GeneralGuy4872\"\n\n\tThis program is free software; you can redistribute it and/or\n\tmodify it under the terms of the GNU General Public License\n\tas published by the Free Software Foundation; either version 2\n\tof the License, or (at your option) any later version.\n\n\tThis program is distributed in the hope that it will be useful,\n\tbut WITHOUT ANY WARRANTY; without even the implied warranty of\n\tMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n\tGNU General Public License for more details.\n\n\tYou should have received a copy of the GNU General Public License\n\talong with this program.  If not, see \n\t\033[m\033[4;94mhttps://www.gnu.org/licenses/\033[m\033[1;32m.\a");
-	fflush(stdout);
-	sleep(4);
-	printf(RESET);
-	printf("\033[92mLibraries linked:\nNCurses by Zeyd M Ben-Halim,\n           Eric S. Raymond,\n           Thomas E Dickey\n           and the Free Software Foundation\nLibTar by Mark D. Roth\nZlib by Jean-loup Gaully and Mark Adler\nLibBZip2 by Julian Steward\n");
-	fflush(stdout);
-	sleep(4);
-	printf(RESET);
-	printf("\033[92mAlgorithems Implemented:\nDijkstra's Algorithem\nPrim's Algorithem\nKruskal's Algorithem and Kruskal's Reverse Algorithem\nBorůvka's Algorithm\nRolling Dice\nSierpiński Attractor\nPerlin Noise\a");
-	fflush(stdout);
-	sleep(4);
-	printf(RESET);
-	printf("\033[95mContains compositions by Beethoven, Bach, and Vivaldi\a");
-	fflush(stdout);
-	sleep(4);
-	printf(RESET);
-	printf("\033c\033[2J\033[0H\033[5m_\a");
-	fflush(stdout);
-	sleep(4);
-	printf(RESET);
-	printf("\033[1;3;96mLong ago, in times of myth...\a");
-	fflush(stdout);
-	sleep(4);
-	printf(RESET);
-	printf("\033[93mA great storm descended upon the land. A storm so terrible that even those who\ndwelled beyond the veil feared it's power. It threatened to destroy all the\nrealms, and all seemed powerless to stop it.\a");
-	fflush(stdout);
-	sleep(4);
-	printf(RESET);
-	printf("\033[93mHowever, the heros of the world, aided by the masters of the elements and the\nguardians of the planes, sealed the darkness away for one million years, in the\nvoid of the unworthy.\a");
-	fflush(stdout);
-	sleep(4);
-	printf(RESET);
-	printf("\033[93mToday, the seals are fading, and the storm is rising again...");	//...okay, it's the story of every JRPG ever, but the story of the 3D game didn't have a wide enough scope. I'll write more later, when I'm in that mindset.
-	fflush(stdout);
-	sleep(4);
-	printf(RESET);
-	printf("\033c\033[2J\033[0H\033[5m_\a");
-	fflush(stdout);
-	sleep(4);
-	printf(RESET);
-	printf("\033[3mSo it begins...\a\033[23m\033[m\n");
-	fflush(stdout);
-	sleep(4);
-	do_intro_movie();
-	loadfile();
-	engineloop();
+termcheck() {
+TERM = getenv("TERM");
+if (strstr(TERM,"xterm") != NULL) {
+	IS_XTERM = true
+	}
+
+
+/*pseudocode*/enginesplash(GAME_NAME,GAME_VERSION,STORY_REV)
+const char* GAME_NAME GAME_VERSION STORY_REV
+{
+	if (IS_XTERM = true) {
+	printf("\033]1;IWannaFlyCurses\033\\");
+	printf("\033]2;IWannaFlyCurses - %s\033\\",GAMENAME);
+	}
+printf(RESET);
+printf(" \033[1;95m~~ IWANNAFLY ROGUELIKE ENGINE ~~\033[m\n\033[97m          engine version: %s\n          rules revision: %s\n            API revision: %s\n        savefile version: %s\nextension parser version: %s\n    runcommander version: %s\n       midibasic version: %s\n       midi backend type: %s\n\n \033[96m - %s -\033[m\n\033[97m  game version: %s\nstory revision: %s\n\n\033[37mCompiled on %s\n\033m\a",ENGINE_VERSION,RULES_VERSION,API_VERSION,SAVE_VERSION,EXT_PARSE_VERSION,RUNCOM_VERSION,MIDIBAS_VERSION,MIDI_TYPE,GAME_NAME,GAME_VERSION,STORY_REV,__DATE__);
+fflush(stdout);
+sleep(4);
+printf(RESET);
+printf("\033[1;32m\tEngine Copyright (C) 2019- \"GeneralGuy4872\"\n\n\tThis program is free software; you can redistribute it and/or\n\tmodify it under the terms of the GNU General Public License\n\tas published by the Free Software Foundation; either version 2\n\tof the License, or (at your option) any later version.\n\n\tThis program is distributed in the hope that it will be useful,\n\tbut WITHOUT ANY WARRANTY; without even the implied warranty of\n\tMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n\tGNU General Public License for more details.\n\n\tYou should have received a copy of the GNU General Public License\n\talong with this program.  If not, see \n\t\033[m\033[4;94mhttps://www.gnu.org/licenses/\033[m\033[1;32m.\a");
+fflush(stdout);
+sleep(4);
+printf(RESET);
+printf("\033[92mLibraries linked:\nNCurses by Zeyd M Ben-Halim,\n           Eric S. Raymond,\n           Thomas E Dickey\n           and the Free Software Foundation\nLibTar by Mark D. Roth\nZlib by Jean-loup Gaully and Mark Adler\nLibBZip2 by Julian Steward\n");
+fflush(stdout);
+sleep(4);
+printf(RESET);
+printf("\033[92mAlgorithems Implemented:\nDijkstra's Algorithem\nPrim's Algorithem\nKruskal's Algorithem and Kruskal's Reverse Algorithem\nBorůvka's Algorithm\nRolling Dice\nSierpiński Attractor\nPerlin Noise\a");
+fflush(stdout);
+sleep(4);
+}
+
+main() {
+termcheck();
+enginesplash("Default Game","Prealpha","Rough Draft");
+printf(RESET);printf(BLINKY);
+fflush(stdout);
+sleep(4);
+printf(RESET);
+file_cat_nocurses(STATIC_PATH"scene.nfo");	//...okay, it's the story of every JRPG ever, but the story of the 3D game didn't have a wide enough scope. I'll write more later, when I'm in that mindset.
+printf("\a");
+fflush(stdout);
+sleep(4);
+printf(RESET);printf(BLINKY);
+fflush(stdout);
+sleep(4);
+printf(RESET);
+puts("\033[3mSo it begins...\033[23m\a");
+fflush(stdout);
+sleep(4);
+do_intro_movie();
+promptload();
+engineloop();
+}
 
 /*blackbox*/exitengine()
 /* at exit:
@@ -2930,7 +2965,8 @@ char buffer[BUFFERMAX]
 char* buffer
 
 BREAKCURSES
-puts("name:")
+printf("name")
+puts(BLINKY)
 fgets(buffer,BUFFERMAX - 1,stdin)
 output = calloc(stringlen(buffer),sizeof(char))
 strcpy(output,buffer)
