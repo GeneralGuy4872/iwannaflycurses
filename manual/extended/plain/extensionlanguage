@@ -1,20 +1,23 @@
 @ denotes an octal number
 $ or 0x denotes a hexidecimal number
+← or := is an assignment
+& might be the address-of operator (or bitwise and)
+* might be a pointer deref (or multiplication)
 
-/**/ denotes a comment.
+/* */ denotes a comment.
 
-'' is the value of a character
+' ' is the value of a character
 
-"" denotes a string.
+" " denotes a string.
 
-() denotes an s-expression
+( ) denotes an s-expression
 	(let ((foo foo)) 
 		(cond	((eq 'r') @1)
 			((eq 'w') @2)
 			((eq 'x') @4)))
 	/*note that the eq function used here is not =, rather it is the inverse of ^*/
 
-[] denotes an array, struct, or a c-like function's args
+[ ] denotes an array, struct, or a c-like function's args
 	printf["%i foo",bar]
 
 	mainh__roll[4,20,T]
@@ -32,12 +35,8 @@ $ or 0x denotes a hexidecimal number
 	 * array elements are addressed using ; in the same way as . but sizes are still given as arrays, with NIL being wildcard
 	 */
 
-{} denotes an infix-expression
+{ } denotes an infix-expression
 	{{{foo < {{2 + bar} * 4} || {quux > {{10 - xyzzy} ** 2}}}
-
-`← denotes a c-like lvalue and an assignment operation
-	`unsigned short int * foo [NIL,4,8,16] ← [[[[...
-	/* := may be used instead of ←, they are the same token */
 
 while s-expressions are the most powerful,
 infix-expressions and clike-functions are likely to be more familiar,

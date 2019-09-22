@@ -58,7 +58,7 @@ Depends (libraries by header):
 
 Recommends:
 - <CODE>xterm</CODE>, unicode, color
-- <CODE>/usr/share/fonts/X11/misc/6x13.*</CODE>
+- <CODE>/usr/share/fonts/X11/misc/6x13.\*</CODE>
 	aka <CODE>-Misc-Fixed-Medium-R-SemiCondensed--13-120-75-75-C-60-ISO10646-1</CODE>
 
 Dev Suggests:
