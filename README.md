@@ -23,7 +23,9 @@ Build Deps:
 - <CODE>sh</CODE>
 - <CODE>cc</CODE>
 - <CODE>ld</CODE>
+- <CODE>sed</CODE> maybe?
 - <CODE>awk</CODE> maybe?
+- <CODE>perl</CODE> maybe?
 - <CODE>flex</CODE>
 - <CODE>byacc</CODE>
 - <CODE>make</CODE>
@@ -59,12 +61,12 @@ Depends (libraries by header):
 Recommends:
 - <CODE>xterm</CODE>, unicode, color
 - <CODE>/usr/share/fonts/X11/misc/6x13.\*</CODE>
-	aka <CODE>-Misc-Fixed-Medium-R-SemiCondensed--13-120-75-75-C-60-ISO10646-1</CODE>
+	- aka <CODE>-Misc-Fixed-Medium-R-SemiCondensed--13-120-75-75-C-60-ISO10646-1</CODE>
 
 Dev Suggests:
 - <CODE>m4</CODE>
 - <CODE>gpp</CODE>
-- <CODE>awk</CODE>
+- <CODE>sed</CODE> || <CODE>awk</CODE> || <CODE>perl</CODE>
 - <CODE>emacs</CODE> || <CODE>vim</CODE>
 
 Doc Depends:
