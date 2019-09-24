@@ -101,7 +101,7 @@ NEWS (and Olds)
 
 During Alpha, the project will be optemized for Devuan Linux, however,
 there are (theoretically) no distro-dependent elements, and the code should
-run on ANY *nix with properly fufilled dependancies by configuring paths.h
+run on ANY \*nix with properly fufilled dependancies by configuring paths.h
 
 Manpages will be provided in Linux's ROFF-man and BSD's ROFF-mdoc
 Extended documentation will be provided in plaintext, Texinfo, and HTML
