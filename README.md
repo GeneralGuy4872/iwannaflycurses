@@ -20,6 +20,8 @@ Dependencies:
 (listed by file to be distro-independent)
 
 Build Deps:
+- <CODE>cp</CODE>
+- <CODE>ls</CODE>
 - <CODE>sh</CODE>
 - <CODE>cc</CODE>
 - <CODE>ld</CODE>
@@ -29,6 +31,11 @@ Build Deps:
 - <CODE>flex</CODE>
 - <CODE>byacc</CODE>
 - <CODE>make</CODE>
+
+Build Recommends:
+- <CODE>uname</CODE>
+- <CODE>grep</CODE>
+- <CODE>sed</CODE>
 
 Depends (libraries by header):
 - <CODE>\<stdlib.h\></CODE>
@@ -63,7 +70,7 @@ Recommends:
 - <CODE>/usr/share/fonts/X11/misc/6x13.\*</CODE>
 	- aka <CODE>-Misc-Fixed-Medium-R-SemiCondensed--13-120-75-75-C-60-ISO10646-1</CODE>
 
-Dev Suggests:
+Devkit Suggests:
 - <CODE>m4</CODE>
 - <CODE>gpp</CODE>
 - <CODE>sed</CODE> || <CODE>awk</CODE> || <CODE>perl</CODE>
@@ -71,10 +78,9 @@ Dev Suggests:
 
 Doc Depends:
 - <CODE>man</CODE>
+- <CODE>info</CODE>
 
 Doc Recommends:
-- some browser foo
-- some texinfo foo
 - <CODE>xdvi</CODE>
 
 Obfuscated C
@@ -92,5 +98,13 @@ is called "obfuscated C"
 
 NEWS (and Olds)
 ---------------
+
+During Alpha, the project will be optemized for Devuan Linux, however,
+there are (theoretically) no distro-dependent elements, and the code should
+run on ANY *nix with properly fufilled dependancies by configuring paths.h
+
+Manpages will be provided in Linux's ROFF-man, BSD's ROFF-mdoc, and Illumos' SGML-soldoc
+Extended documentation will be provided in plaintext, Texinfo, and HTML. The default
+value will be obtained from <CODE>uname</CODE>
 
 Lore can be found at my Neocities site: https://generalguy4872.neocities.org/Games/

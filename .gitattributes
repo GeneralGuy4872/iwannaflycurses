@@ -2,7 +2,7 @@ core.autocrlf=false
 
 **/* = linguist-vendored=false linguist-documentation=false linguist-detectable=false diff
 /manual/**/* = linguist-detectable=true
-/manual/extended/plaintext/**/* = linguist-documentation=true
+/manual/plaintext/**/* = linguist-documentation=true
 /src/**/* = linguist-detectable=true
 
 *.c = linguist-language=C

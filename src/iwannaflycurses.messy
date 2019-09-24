@@ -101,6 +101,7 @@
  * termcheck()
  * enginesplash(name of game,game version,story revision)
  * <your startup stuff here>
+ * FIXCURSES
  * promptload()
  * engineloop()
  *
@@ -2902,6 +2903,7 @@ printf(RESET);
 puts("\033[3mSo it begins...\033[23m\a");
 fflush(stdout);
 sleep(4);
+FIXCURSES
 do_intro_movie();
 promptload();
 engineloop();
