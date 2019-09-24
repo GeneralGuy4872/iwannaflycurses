@@ -48,6 +48,8 @@ CMakeLists.txt = linguist-language=CMake
 # *.man.* = linguist-language=roff
 # *.html = linguist-language=HTML
 # *.css = linguist-language=CSS
+# *.sgml = linguist-language=SGML
+*.sgml.* = linguist-language=SGML
 *.txt = linguist-language=text
 *.hex = binary diff
 *.bin = binary diff

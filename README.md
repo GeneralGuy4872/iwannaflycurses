@@ -103,8 +103,8 @@ During Alpha, the project will be optemized for Devuan Linux, however,
 there are (theoretically) no distro-dependent elements, and the code should
 run on ANY *nix with properly fufilled dependancies by configuring paths.h
 
-Manpages will be provided in Linux's ROFF-man, BSD's ROFF-mdoc, and Illumos' SGML-soldoc
-Extended documentation will be provided in plaintext, Texinfo, and HTML. The default
-value will be obtained from <CODE>uname</CODE>
+Manpages will be provided in Linux's ROFF-man and BSD's ROFF-mdoc
+Extended documentation will be provided in plaintext, Texinfo, and HTML
+the documentation installed will be determined by <CODE>uname</CODE>
 
 Lore can be found at my Neocities site: https://generalguy4872.neocities.org/Games/
