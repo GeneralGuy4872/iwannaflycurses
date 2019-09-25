@@ -128,7 +128,7 @@
  *	compression libraries of the build enviroment are changed from expectations,
  *	but is a good start.
  *
- * an s-expression extension language interpreter will be provided
+ * an extension language interpreter will be provided
  * for the API, implemented using flex/byacc; one might use the
  * Generic C Preprocessor or M4 to aid in writing stand-alone
  * plugins, but these are not built into the language itself
@@ -148,6 +148,8 @@
  *
  * GPLv2 or later, All Wrongs Reserved
  */
+
+
 
 /**standard libraries**/
 #ifndef _XOPEN_SOURCE_EXTENDED
@@ -1392,14 +1394,14 @@ uchar air
 ushort xp
 uchar lvl
 moneytyp gold
-subobjtyp loot
+oneobjtyp loot
 subobjtyp weap_left
 subobjtyp weap_right
 subobjtyp shield
 subobjtyp bow
 subobjtyp armor
 subobjtyp cape
-hattyp helm
+oneobjtyp helm
 subobjtyp gloves
 subobjtyp cannon
 subobjtyp boots
@@ -1856,7 +1858,7 @@ lightyp *lamp_ptr
  *    .dump : a debugger data dump, with a format somwhere between json, s-expressions, and the above. also stores pointers as HTML href elements, but uses no other (SG|X)ML syntax. intedned to be read by people, not processed by computers; should it become necissary, I will write some basic tools for querying these files.
  *
  * if the following new extensions collide with anything, I will change them. I specifically chose ones that were not a TLA or EFLA to try and avoid this, because there have been TDMTLA since before I came along.
- *   .iwfcl : a plugin. "iwfc" should be replaced with the abbiviation of the final name.
+ * .iwfcext : a plugin. "iwfc" should be replaced with the abbiviation of the final name.
  * .midibas : midiBASIC, to be parsed by the midi generator into a dat file. Represents a different subset of general midi than regular midi files, but does so in a human readable format.
  */
 

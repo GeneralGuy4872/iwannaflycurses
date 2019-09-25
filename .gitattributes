@@ -61,6 +61,6 @@ CMakeLists.txt = linguist-language=CMake
 *.tar.* = binary diff
 *.midi = binary diff
 *.nfo = binary linguist-language=text linguist-vendored=false linguist-documentation=false linguist-detectable=true diff
-*.dump = linguist-language=json
-*.iwfcl = linguist-language=lisp
-*.midibas = linguist-language=basic
+*.dump = linguist-language=unknown
+*.iwfcext = linguist-language=unknown
+*.midibas = linguist-language=unknown

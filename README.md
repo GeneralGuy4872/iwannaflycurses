@@ -48,6 +48,7 @@ Depends (libraries by header):
 - <CODE>\<string.h\></CODE>
 - <CODE>\<ctype.h\></CODE>
 - <CODE>\<uchar.h\></CODE>
+
 - <CODE>\<dlfcn.h\></CODE>
 - <CODE>\<unistd.h\></CODE>
 - <CODE>\<signal.h\></CODE>
@@ -58,9 +59,11 @@ Depends (libraries by header):
 - <CODE>\<sys/ioctl.h\></CODE>
 - <CODE>\<fcntl.h\></CODE>
 - <CODE>\<sys/stat.h\></CODE>
+
 - <CODE>\<libtar.h\></CODE>
 - <CODE>\<zlib.h\></CODE>
 - <CODE>\<libbz2.h\></CODE>
+
 - <CODE>\<ncursesw/ncurses.h\></CODE>
 - <CODE>\<menu.h\></CODE>
 - <CODE>\<forms.h\></CODE>
@@ -103,8 +106,9 @@ During Alpha, the project will be optemized for Devuan Linux, however,
 there are (theoretically) no distro-dependent elements, and the code should
 run on ANY \*nix with properly fufilled dependancies by configuring paths.h
 
-Manpages will be provided in Linux's ROFF-man and BSD's ROFF-mdoc
+Manpages will be provided in Linux's ROFF-man and BSD's ROFF-mdoc;
+the documentation installed will be determined by <CODE>uname</CODE>.
 Extended documentation will be provided in plaintext, Texinfo, and HTML
-the documentation installed will be determined by <CODE>uname</CODE>
+
 
 Lore can be found at my Neocities site: https://generalguy4872.neocities.org/Games/
