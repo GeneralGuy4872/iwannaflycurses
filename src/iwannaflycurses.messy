@@ -40,12 +40,15 @@
  * 	application directory
  * - it should provide special use functions, such as events, as seperate shared objects,
  * 	to be dynamically loaded at runtime.
- * - it should provide special use constants likewise, with the dat extension
+ * - it should provide special use constants likewise
  * 	blocks of text, however, should be regular nfo or txt
  * - it should store any dynamic constants in the savefile, as r<wordsize>, hex, tsv, csv, ini, txt, nfo
  * - it should provide at least the following applications (in $PATH) :
  * 	- the game itself
  * 	- a seperate program for generating a new savefile
+ *		- should use (int argc, char *argv[]) to provide bypassing of dotfile,
+ *		  path to a non-default dotfile, overrides of race, class, alignment prefs,
+ *		  and other flags as desired. parsed by a different parser from the dotfile.
  * 	- a savefile editor
  *
  * enviromental requirements:
@@ -1842,24 +1845,41 @@ lightyp *lamp_ptr
  *     .csv : UTF-8 text record deliminated with commas and line breaks
  *     .tsv : UTF-8 text record deliminated with tabs and line breaks
  *     .ini : UTF-8 text record of key=value pairs deliminated with line breaks
- *      .so : a shared object. a game may use as many of these as it wants, and may put them wherever it wants. Placing single-use functions in LD_LOAD_PATH is DISCOURAGED; they should be placed in the game's private files.
- *     .dat : a shared object containing constants.
+ *      .so : a shared object. a game may use as many of these as it wants. Placing single-use functions in LD_LOAD_PATH is DISCOURAGED; they should be placed in the game's private files.
+ *     .dat : internal data from inside a savefile
  *     .txt : UTF-8 text document. usually stored in the program's static files, which is CAT-ed to provide dialouge; also used in dumps of primatives
  *     .nfo : UTF-8 text document (not CP437) containing SGR sequences. otherwise identical to txt.
  *  .tar.gz : each room is saved as a tar.gz file, as are linked lists and the player
  * .tar.bz2 : each plane is saved as a tar.bz2 file.
  *     .sav : a save file. formatted as a .tar.bz2 file tree
- *   .man.# : a manpage
+ *   .man.# : a linux manpage
+ *  .mdoc.# : a bsd manpage
  *          : documentation
  *    .html : documentation
  * .texinfo : documentation
- *       .d : structs are stored as directories, and pointers to structs are stored as subdirectories with the name of that field. the tail element in a linked list has no subdirectory named "next", and "prev" pointers are implicitly stored as "/..". (malloc and static pointers to primatives are placed in the current directory and named by address, using C notation.)
+ *       .d : everything relating to a struct is stored in the same directory, and pointers to structs are stored as subdirectories with the name of that field. the tail element in a linked list has no subdirectory named "next"; "prev" pointers are "../" implicitly.
  *     .*rc : a configuration file, parsed with the runcommander
- *    .dump : a debugger data dump, with a format somwhere between json, s-expressions, and the above. also stores pointers as HTML href elements, but uses no other (SG|X)ML syntax. intedned to be read by people, not processed by computers; should it become necissary, I will write some basic tools for querying these files.
+ *    .dump : a debugger data dump, with a format somwhere between JSON, INI, and C-like pseudocode. essentialy a dat file in readable (and non-raw) format.
  *
  * if the following new extensions collide with anything, I will change them. I specifically chose ones that were not a TLA or EFLA to try and avoid this, because there have been TDMTLA since before I came along.
  * .iwfcext : a plugin. "iwfc" should be replaced with the abbiviation of the final name.
- * .midibas : midiBASIC, to be parsed by the midi generator into a dat file. Represents a different subset of general midi than regular midi files, but does so in a human readable format.
+ * .midibas : midiBASIC, to be parsed by the midi generator into a .h file. Represents a different subset of general midi than regular midi files, but does so in a human readable format.
+ */
+
+/* dat file format:
+ * SOH name STX string ETX SEPERATOR = a text field
+ * SOH name DLE 16bit_length raw_data SEPERATOR = a numeric field
+ * SOH name ACK SEPERATOR = a boolean field that is true
+ * SOH name NAK SEPERATOR = a boolean field that is false
+ * SOH name XON path XOFF SEPERATOR = a pointer to the data at path
+ * SOH name SUB 8bit ... = array dimension
+ *	an array will consist of either multiple bodys chained together without SEPERATOR or
+ *	SOH name inbetween, or a single pointer to a r# or tsv file
+ * SOH name SOH name ... = a struct field
+ * EM = end of data
+ * 
+ * seperator may be one of FS, GS, RS, or US;
+ * lower levels are used to indicate a suboordinate struct
  */
 
 struct mapgen_bordertyp {
@@ -2907,8 +2927,8 @@ fflush(stdout);
 sleep(4);
 FIXCURSES
 do_intro_movie();
-promptload();
-engineloop();
+promptload(argc,argv);
+engineloop(argc,argv);
 }
 
 /*blackbox*/exitengine()

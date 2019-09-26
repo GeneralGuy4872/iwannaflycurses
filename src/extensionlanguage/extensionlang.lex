@@ -30,15 +30,16 @@ LOGNAND	("!&&"|[Nn][Aa]("ND"|"nd"))
 LOGNOR	("!||"|[Nn][Oo][Rr])
 LOGIFF	([Ii]("FF"|"ff")|"⇔"|"<>")
 LOGXOR	([Ee]?[Xx][Oo][Rr])
-EQ	[Ee][Qq]
-EQUALS	([=][=]?|[Ee]("QUAL"|"qual"))
-APPROX	("~="|[Aa]("PPROX"|"pprox")|"≈")
+EQ	([Ee][Qq]|"≡")
+EQUALS	([=][=]|[Ee]("QUAL"|"qual"))
+APPROX	("?="|[Aa]("PPROX"|"pprox")|"≈")
 BITNOR	("~|"|"¥")
 NE	("!="|"≠"|[Nn][Ee])
+NPR	[Nn][Pp][RrKk]
+NCR	[Nn][Cc][RrKk]
 ASSIGN	(":="|"←")
 WHITESPACE	[\a\t-\r\034- ]+
 NULLTOK	[Nn]("ULL"|"ull")
-HUP	\003
 
 SWITCH	[Ss]("WITCH"|witch")
 CASE	[Cc]("ASE"|"ase")
@@ -117,8 +118,11 @@ FI	[Ff][Ii]
 {BITRIGHT}	return(BITRIGHT);
 {GE}	return(GE);
 {GT}	return '>';
-{EQUALS}	return '=';
+{EQUALS}	return(EQUALS);
+'='	return '=';
 {NE}	return(NE);
+{NPR}	return(NPR);
+{NCR}	return(NCR);
 {LOGXOR}	return(LOGXOR);
 {LOGNAND}	return(LOGNAND);
 {LOGNOR}	return(LOGNOR);
@@ -152,8 +156,8 @@ FI	[Ff][Ii]
 {AFTER}	return(AFTER);
 {BREAK}	return(BREAK);
 {RETURN}	return(RETURN);
-{BEGIN}	return(DO);
+{FI}	return(FI);
+{BEGIN}	return(BEGIN);
 {END}	return(END);
-{FI}	return(END);
 {HUP}	return '\003';
 %%

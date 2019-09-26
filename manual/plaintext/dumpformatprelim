@@ -1,0 +1,10 @@
+{number foo = value;
+string foo = "text";
+array foo = [value,value,value];
+array foo = <ref="path/to/file" size=...[y][x]>address</>;
+pointer foo = <ref="path/to/file">address</>;
+struct foo = {
+	type field = value : width;
+	typ field = value : width;
+	};
+}
