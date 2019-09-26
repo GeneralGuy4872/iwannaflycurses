@@ -5,61 +5,45 @@
 
 %top {
 #include stuff here
-#include "runtime.h"
-//inherits "../dummy.h"
+#include "runtime.c"
 %}
 
-%union {
-	long number;
+%union
+{
+	intptr_t number;
 	char* string;
 	double dval;
-%}
+}
 
 %%
-varname
-	:	VAR	{$$ = $1}
-	|	varname '[' NUMBER ']'	{$$ = strcat($1,strcat(strcat("[",$2),"]"))}
-	|	varname STRUCTPTR NAME	{$$ = strcat($1,strcat("->",$3))}
-	|	varname '.' NAME	{$$ = strcat($1,strcat(".",$3))}
-	;
-
 variable
-	:	varname	{$$ = runtime__fetchbyname($1)}
+	:	VAR	{$$ = runtime__fetch($1)}
+	|	variable STRUCTPTR NAME	{$$ = runtime__struct_pointer($1,$3)}
+	|	variable '.' NAME	{$$ = runtime__struct($1,$3)}
+	|	variable '[' unsigned ']'	{$$ = runtime__arraysub($1,$3)}
+	|	variable '[' literalparenth ']'	{$$ = runtime__arraysub($1,$3)}
+	|	variable '[' anything ']'	{$$ = runtime__arraysub_noncon($1,$3)}
 	;
 
 assignment
-	:	varname ASSIGN anything	{$$ = runtime__assignbyname($1,':',$3)}
-	|	varname ' ' ASSIGN ' ' anything	{$$ = runtime__assignbyname($1,':',$5)}
-	|	varname '+' '=' quantity	{$$ = runtime__assignbyname($1,'+',$4)}
-	|	varname ' ' '+' '=' ' ' quantity	{$$ = runtime__assignbyname($1,'+',$6)}
-	|	varname '-' '=' quantity	{$$ = runtime__assignbyname($1,'-',$4)}
-	|	varname ' ' '-' '=' ' ' quantity	{$$ = runtime__assignbyname($1,'-',$6)}
-	|	varname '*' '=' quantity	{$$ = runtime__assignbyname($1,'*',$4)}
-	|	varname ' ' '*' '=' ' ' quantity	{$$ = runtime__assignbyname($1,'*',$6)}
-	|	varname '/' '=' quantity	{$$ = runtime__assignbyname($1,'/',$4)}
-	|	varname ' ' '/' '=' ' ' quantity	{$$ = runtime__assignbyname($1,'/',$6)}
-	|	varname '%' '=' intergal	{$$ = runtime__assignbyname($1,'%',$6)}
-	|	varname ' ' '%' '=' ' ' intergal	{$$ = runtime__assignbyname($1,'%',$6)}
-	|	varname BITLEFT '=' intergal	{$$ = runtime__assignbyname($1,'L',$4)}
-	|	varname ' ' BITLEFT '=' ' ' intergal	{$$ = runtime__assignbyname($1,'L',$6)}
-	|	varname BITRIGHT '=' intergal	{$$ = runtime__assignbyname($1,'R',$6)}
-	|	varname ' ' BITRIGHT '=' ' ' intergal	{$$ = runtime__assignbyname($1,'R',$6)}
-	|	varname '&' '=' intergal	{$$ = runtime__assignbyname($1,'&',$4)}
-	|	varname ' ' '&' '=' ' ' intergal	{$$ = runtime__assignbyname($1,'&',$6)}
-	|	varname '|' '=' intergal	{$$ = runtime__assignbyname($1,'|',$4)}
-	|	varname ' ' '|' '=' ' ' intergal	{$$ = runtime__assignbyname($1,'|',$6)}
-	|	varname '~' '&' '=' intergal	{$$ = runtime__assignbyname($1,'N',$5)}
-	|	varname ' ' '~' '&' '=' ' ' intergal	{$$ = runtime__assignbyname($1,'N',$7)}
-	|	varname BITNOR '=' intergal	{$$ = runtime__assignbyname($1,'Y',$4)}
-	|	varname ' ' BITNOR '=' ' ' intergal	{$$ = runtime__assignbyname($1,'N',$6)}
-	|	varname '^' '=' intergal	{$$ = runtime__assignbyname($1,'^',$4)}
-	|	varname ' ' '^' '=' ' ' intergal	{$$ = runtime__assignbyname($1,'^',$6)}
-	|	varname EQ '=' intergal	{$$ = runtime__assignbyname($1,'E',$4)}
-	|	varname ' ' EQ '=' ' ' intergal	{$$ = runtime__assignbyname($1,'E',$6)}
-	|	varname '~' '=' intergal	{$$ = runtime__assignbyname($1,'~',$4)}
-	|	varname ' ' '~' '=' ' ' intergal	{$$ = runtime__assignbyname($1,'~',$6)}
+	:	variable optsp ASSIGN optsp anything	{$$ = runtime__assign($1,0,$5)}
+	|	variable optsp '+' '=' optsp quantity	{$$ = runtime__assign($1,'+',$6)}
+	|	variable optsp '-' '=' optsp quantity	{$$ = runtime__assign($1,'-',$6)}
+	|	variable optsp '*' '=' optsp quantity	{$$ = runtime__assign($1,'*',$6)}
+	|	variable optsp '/' '=' optsp quantity	{$$ = runtime__assign($1,'/',$6)}
+	|	variable optsp '%' '=' optsp intergal	{$$ = runtime__assign($1,'%',$6)}
+	|	variable optsp BITLEFT '=' optsp intergal	{$$ = runtime__assign($1,'<',$6)}
+	|	variable optsp BITRIGHT '=' optsp intergal	{$$ = runtime__assign($1,'>',$6)}
+	|	variable optsp '&' '=' optsp intergal	{$$ = runtime__assign($1,'&',$6)}
+	|	variable optsp '|' '=' optsp intergal	{$$ = runtime__assign($1,'|',$6)}
+	|	variable optsp '~' '&' '=' optsp intergal	{$$ = runtime__assign($1,~'&',$7)}
+	|	variable optsp '&' '~' '=' optsp intergal	{$$ = runtime__assign($1,'~',$7)}
+	|	variable optsp BITNOR '=' optsp intergal	{$$ = runtime__assign($1,~'|',$6)}
+	|	variable optsp '^' '=' optsp intergal	{$$ = runtime__assign($1,'^',$6)}
+	|	variable optsp EQ '=' optsp intergal	{$$ = runtime__assign($1,~'^',$6)}
+	|	variable optsp '~' '=' optsp intergal	{$$ = runtime__assign($1,-1,$6)}
 	;
-	/*section complete!*/
+	/* section complete! */
 
 anything
 	:	quantity
@@ -114,11 +98,12 @@ expression
 	:	anything
 	|	literalexpression
 	|	expression
-	/*more later*/
 	;
+	/* more later */
 
 literalexpression
 	:	quantityliteral
+	|	literalparenth
 	|	literalexpression ' ' '+' ' ' literalexpression	{$$ = $2 + $5}
 	|	literalexpression ' ' '-' ' ' literalexpression	{$$ = $2 - $5}
 	|	literalexpression ' ' '*' ' ' literalexpression	{$$ = $2 * $5}
@@ -127,18 +112,14 @@ literalexpression
 	|	literalexpression ' ' '*' '*' '*' ' ' literalexpression	{$$ = pow($2,pow($2,$7))}
 	|	'!' literalexpression	{$$ = !($2)}
 	|	literalexpression '!'	{$$ = util__factorial($1)}
-	|	literalexpression ' ' '?' ' ' literalexpression ':' literalexpression	{$$ = $1 ? $5 : $7}
-	/*more later*/
+	|	literalexpression optsp '?' optsp literalexpression optsp ':' optsp literalexpression	{$$ = $1 ? $5 : $9}
 	;
-
-commaval
-	:	anything	{$$ = $1}
-	|	' ' commaval	{$$ = $2}
-	|	commaval ' '	{$$ = $1}
-	;
+	/* more later
+	 * these are the reducibles
+	 */
 
 commalist
-	:	commaval ',' commaval	{
+	:	anything ',' anything	{
 			$$ = malloc(sizeof(struct runtime__list));
 			$$->next = malloc(sizeof(struct runtime__list));
 			$$->prev = $$->next;
@@ -151,7 +132,7 @@ commalist
 			$$->next->number = $3->number;
 			$$->next->ddval = $3->ddval;
 			}
-	|	commalist ',' commaval	{
+	|	commalist ',' anything	{
 			$$ = $1;	{
 				foo = malloc(sizeof(struct parser__list));
 				$$->prev->next = foo;
@@ -167,13 +148,17 @@ commalist
 
 spacelist
 	:	anything ' ' anything	{
-			$$ = malloc(sizeof(struct parser__list));
-			$$->next = malloc(sizeof(struct parser__list));
+			$$ = malloc(sizeof(struct runtime__list));
+			$$->next = malloc(sizeof(struct runtime__list));
 			$$->prev = $$->next;
 			$$->next->next = $$;
 			$$->next->prev = $$;
-			$$->data = $1;
-			$$->next->data = $3;
+			$$->string = $1->string;
+			$$->number = $1->number;
+			$$->ddval = $1->ddval;
+			$$->next->string = $3->string;
+			$$->next->number = $3->number;
+			$$->next->ddval = $3->ddval;
 			}
 	|	spacelist ' ' anything	{
 			$$ = $1;	{
@@ -182,7 +167,9 @@ spacelist
 				foo->prev = $$->prev;
 				$$->prev = foo;
 				foo->next = $$;
-				foo->data = $3;
+				foo->string = $3->string;
+				foo->number = $3->number;
+				foo->ddval = $3->ddval;
 				}
 			}
 	;
@@ -192,31 +179,35 @@ array
 	|	TEXT
 	;
 
+literalparenth
+	:	'(' optsp literalexpression optsp ')'	{$$ = $3}
+	;
+
 parenth
-	:	'(' commaval ')'	{$$ = $2}
-	|	'(' assignment ')'	{$$ = $2}
+	:	'(' optsp anything optsp ')'	{$$ = $3}
+	|	'(' optsp expression optsp ')'	{$$ = $3}
+	|	'(' optsp assignment optsp ')'	{$$ = $3}
+	|	literalparenth	{$$ = $1}
 	;
 
 function
-	:	NAME '(' ')'	{$$ = runtime__queue_noargs($1)}
-	|	NAME '(' anything ')'	{$$ = runtime__queue($1,$3)}
-	|	NAME '(' commalist ')'	{$$ = runtime__queue_list($1,$3)}
-	|	'(' NAME ')'	{$$ = runtime__queue_noargs($2)}
-	|	'(' NAME ' ' anything ')'	{$$ = runtime__queue($2,$3)}
-	|	'(' NAME ' ' spacelist ')'	{$$ = runtime__queue_list($2,$3)}
+	:	'`' NAME '`'	{$$ = runtime__queue_noargs($2)}
+	|	NAME '[' ']'	{$$ = runtime__queue_noargs($1)}
+	|	NAME '[' anything ']'	{$$ = runtime__queue($1,$3)}
+	|	NAME '[' commalist ']'	{$$ = runtime__queue_list($1,$3)}
+	|	'(' optsp NAME optsp ')'	{$$ = runtime__queue_noargs($3)}
+	|	'(' optsp NAME ' ' anything optsp ')'	{$$ = runtime__queue($3,$5)}
+	|	'(' optsp NAME ' ' spacelist optsp ')'	{$$ = runtime__queue_list($3,$5)}
 	|	'+' '+' variable	{$$ = runtime__queue_incr_pre($3)}
 	|	'-' '-' variable	{$$ = runtime__queue_decr_pre($3)}
 	|	variable '+' '+'	{$$ = runtime__queue_incr_post($1)}
 	|	variable '-' '-'	{$$ = runtime__queue_decr_post($1)}
 	;
-
-preparetodie
-	:	HUP	{return(ERR);}
-	;
+	/* section complete! */
 
 dostuff
 	:	function	{$$ = $1}
-	|	parenth	{$$ = NULL}
+	|	parenth	{$$ = $1}
 	|	assignment	{$$ = runtime__queue_sane($1)}
 	|	ifthen	{$$ = $1}
 	|	simpleloop	{$$ = $1}
@@ -271,4 +262,9 @@ caseentry
 caselist
 	:	caseentry caseentry	{$$ = runtime__concat_case($1,$2)}
 	|	caselist caseentry	{$$ = runtime__concat_case($1,$2)}
+	;
+
+optsp
+	:	/* empty */
+	|	' '
 	;

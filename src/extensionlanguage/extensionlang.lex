@@ -32,7 +32,7 @@ LOGIFF	([Ii]("FF"|"ff")|"⇔"|"<>")
 LOGXOR	([Ee]?[Xx][Oo][Rr])
 EQ	([Ee][Qq]|"≡")
 EQUALS	([=][=]|[Ee]("QUAL"|"qual"))
-APPROX	("?="|[Aa]("PPROX"|"pprox")|"≈")
+APPROX	("=~"|[Aa]("PPROX"|"pprox")|"≈")
 BITNOR	("~|"|"¥")
 NE	("!="|"≠"|[Nn][Ee])
 NPR	[Nn][Pp][RrKk]
@@ -81,16 +81,16 @@ FI	[Ff][Ii]
 <COMMENT>"*/"	yy_pop_state();
 <COMMENT>{TEXT};
 
-<FUNC>{WHITESPACE}	return ' ';
+<EXPR>{WHITESPACE}	return ' ';
 
 "("	yy_push_state(FUNC); return '(';
-<FUNC>")"	yy_pop_state(); return ')';
+<EXPR>")"	yy_pop_state(); return ')';
 	/*s-expressions and lists*/
 "{"	yy_push_state(EXPR); return '{';
 <ARR>"}"	yy_pop_state(); return '}';
 	/*infix*/
 "["	yy_push_state(ARR); return '[';
-<EXPR>"]"	yy_pop_state(); return ']';
+<FUNC>"]"	yy_pop_state(); return ']';
 	/*c-like functions, structs, and arrays*/
 
 {NAME}	yyval.string = strdup(yytext);return(NAME);
@@ -102,7 +102,7 @@ FI	[Ff][Ii]
 {NANTOK}	yyval.dval = atof(yytext);return(NANTOK);
 {HEX}	yyval.number = strtoul(yytext,NULL,16);return(RAW);
 {OCTAL}	yyval.number = strtoul(yytext,NULL,8);return(RAW);
-{BOOLEAN}	yyval.number = !(strcmp(toupper(yytext),"T") || strcmp(toupper(yytext),"TRUE"));return(BOOLEAN);
+{BOOLEAN}	yyval.number = !(strcmp(yytext,"T") || strcmp(toupper(yytext),"TRUE"));return(BOOLEAN);
 {ERRVAL}	yyval.number = -(!(strcmp(toupper(yytext),"ERR"))));return(ERRVAL);
 {NULLTOK}	return(NULLTOK);
 "+"	return '+';
@@ -159,5 +159,4 @@ FI	[Ff][Ii]
 {FI}	return(FI);
 {BEGIN}	return(BEGIN);
 {END}	return(END);
-{HUP}	return '\003';
 %%

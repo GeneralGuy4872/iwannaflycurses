@@ -1,4 +1,4 @@
-#include "../dummy.h"
+#include "../dummy.c"
 
 struct runtime__args
 

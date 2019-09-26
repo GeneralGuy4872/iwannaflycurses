@@ -1,6 +1,8 @@
 #error NOT READY FOR COMPILATION
 /* to preserve the file history,
  * this file will eventually become main.h, main.c, or util.c
+ * a dummy.h and dummy.c will provide externs and macros for linkage.
+ * some of the larger comment blocks will be moved to man, info, and/or doc
  *
  * the bulk of it's contents, however, will be moved.
  *
@@ -52,8 +54,8 @@
  * 	- a savefile editor
  *
  * enviromental requirements:
- * - UTF-8 terminal of at least 25*80 characters
- * 	"Fixed" font is recommended (specifically because
+ * - UTF-8 terminal of at least 24*80 characters
+ *	"Fixed" font is recommended (specifically because
  * 		it is a raster font; monospaced raster fonts are more uniform in width than the majority of vector so-called "monospaced" fonts;
  * 		it is unicode, having a wide range of characters; and
  * 		it is extreamly common, being the default font for the linux console, xterm, and urxvt)
@@ -70,13 +72,22 @@
  * 	and Dvorak, by request and/or the ability to remap keys
  * 	by dotfiles.)
  * - Mouse (once pseudo-raycasting is implemented for looking afar)
+ *
+ * XTerm is the recommended X Terminal Emulator (the primary one used in testing),
+ * but the raw TTY Console set up in UTF8 locale will work just as well,
+ * maybe even better if memory is an issue. At first glance, A Vt241 or Vt3*0
+ * seem to meet all the requirements, but note: they predate unicode.
  * 
  * Controls:
- * - number keys or arrow keys move in xy
- * - page up and page down move in z
+ * - number keys move in xy
+ * - arrow keys move in x or y
+ * - < and > move in z
+ * - page up or page down, followed by a direction, move in xyz 
+ * - home starts flying
+ * - end stops flying
  * - spacebar or 5 idle
  * - ! shows or hides sense trouble
- * - . picks up items
+ * - . pick up items
  * - \ initiates the command console
  * more tbd
  *
@@ -105,6 +116,7 @@
  * enginesplash(name of game,game version,story revision)
  * <your startup stuff here>
  * FIXCURSES
+ * <more of your startup stuff here>
  * promptload()
  * engineloop()
  *
@@ -151,8 +163,6 @@
  *
  * GPLv2 or later, All Wrongs Reserved
  */
-
-
 
 /**standard libraries**/
 #ifndef _XOPEN_SOURCE_EXTENDED
@@ -244,7 +254,7 @@ addnwstr(&wch,1);
 #define FLOPPYDISK 1474560
 #define BGCOLORS 8
 #define FGCOLORS 8
-char16_t TILDEWIDE = setwidetilde()
+char16_t TILDEWIDE
 #define BLINKY "\033[5m_\033[25m"
 char* TERM
 
@@ -300,8 +310,10 @@ char* TERM
 #define sshort int16_t
 #define umint uint32_t
 #define smint int32_t
-#define ulong uint64_t
-#define slong int64_t
+#define ulong unsigned long
+#define slong signed long
+#define ullong uint64_t
+#define sllong int64_t
 
 /* the 3D version of Iwannafly started off as a general RT-RPG library that
  * then became narrowed to a specific game. this version was originally
@@ -313,7 +325,7 @@ char* TERM
  */
 
 //anonomous pointers, could be anything. they're anonomous.
-void cachedrum = malloc(1024 * sizeof(char))
+void* cachedrum = malloc(1024 * sizeof(char))
 uchar cachenext = 0
 
 ushort cachealloc (amount)
@@ -430,6 +442,14 @@ char* text
  * may be from a data object, or
  * stored in a tsv
  */
+
+struct filelinetyp {
+(self) *prev
+(self) *next
+ushort lineno
+char* text
+}
+// used by the line editor
 
 struct eventstringtyp {
 (self) *prev
@@ -599,12 +619,12 @@ roomtyp* ROOM
 int(latlontyp)* ROOMGENCALL[ROOF + 1][EQUATOR/2 + 1][EQUATOR]
 shadowmask SHADOWKNOWS
 shadowmask SHINEALIGHT
-ulong TURN
+ullong TURN
 nibbles TIMER
 schar ALARM = -1
 turntyp DATE
 uchar ROOMTURN
-ulong KILLS
+ullong KILLS
 char* SAVEPATH
 followtype *FOLLOW_ptr	//pursuers, i.e. paid assasins, ninjas, the reaper...
 eventtyp *EVNT_ptr	//FOO_ptr refers to the doubly linked list's head. the tail is FOO_ptr→prev
@@ -2826,15 +2846,18 @@ switch (tmp.rem) : {
 }
 
 engineloop () {
-if (NEW) {
-	checkglobal(NEW_FLAG,true)
-	NEW = false
+TILDEWIDE = setwidetilde()
+forever {
+	if (NEW) {
+		checkglobal(NEW_FLAG,true)
+		NEW = false
+		}
+	checkevents()	//check event triggers
+	player_act()	//player's turn
+	follow_iter()	//iterate through follower entities
+	ent_iter()	//iterate through local entities
+	encounter(1D6,1d100)	//generate up to 1D6 of monster number 1d100, iff encounter != NULL
 	}
-checkevents()	//check event triggers
-player_act()	//player's turn
-follow_iter()	//iterate through follower entities
-ent_iter()	//iterate through local entities
-encounter(1D6,1d100)	//generate up to 1D6 of monster number 1d100
 }
 
 /*pseudocode*/ <follow|ent>_iter () {
@@ -2927,8 +2950,8 @@ fflush(stdout);
 sleep(4);
 FIXCURSES
 do_intro_movie();
-promptload(argc,argv);
-engineloop(argc,argv);
+promptload();
+engineloop();
 }
 
 /*blackbox*/exitengine()
@@ -2997,3 +3020,11 @@ strcpy(output,buffer)
 FIXCURSES
 return output
 }
+
+/*pseudocode*/resizetest
+/*IF window is too small THEN PRINT
+ * "The terminal is too small."
+ * "Please increase the number of " ("rows"|"columns"|"rows and columns")
+ * "to avoid segmentation violations."
+ * "Press any key to continue"BLINKY
+ */
