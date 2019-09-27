@@ -83,6 +83,11 @@ Doc Depends:
 - <CODE>man</CODE>
 - <CODE>info</CODE>
 
+Doc Meta-depends:
+- <CODE>mandb</CODE>
+- <CODE>install-info</CODE>
+- <CODE>cp</CODE>
+
 Doc Recommends:
 - <CODE>xdvi</CODE>
 

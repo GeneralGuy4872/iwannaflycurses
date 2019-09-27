@@ -1,1 +1,1 @@
-const char* GAMEDIR = "default/"
+#define GAMEDIR "default/"

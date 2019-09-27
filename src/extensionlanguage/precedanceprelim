@@ -1,0 +1,17 @@
+(because trees grow top-down, precedence is listed here from bottom up)
+
+← typecast 
+→ postfix ++, --
+→ boolean logic
+→ equality
+→ bitwise xor, eq
+→ bitwise nand, nor
+→ addition, subtraction, bitwise or
+→ division
+→ multiplication, bitwise and
+← modulo
+← tetriation, expotentiation
+← negative, not, bitwise not, prefix ++, --
+X functions, parenthases
+
+(note: pointers and derefs are either a cast or part of the variable token itself)

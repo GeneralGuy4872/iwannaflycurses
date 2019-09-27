@@ -1,7 +1,6 @@
 BOOLEAN ("T"|[Tt]("RUE"|"rue")|[Nn]("IL"|"il")|[Ff]("ALSE"|"alse"))
 	/*not lowercase t, that might be needed*/
 NAME	[A-Za-z_\xC2-\xF4][A-Za-z0-9_\x80-\xBF\xC2-\xF4]*
-FUNC	`[A-Za-z_\xC2-\xF4][A-Za-z0-9_\x80-\xBF\xC2-\xF4]*
 VAR	$([A-SU-Za-z]|[A-Za-z_\xC2-\xF4][A-Za-z0-9_\x80-\xBF\xC2-\xF4]+)
 PTRVAR	[\*&]+([A-SU-Za-z]|[A-Za-z_\xC2-\xF4][A-Za-z0-9_\x80-\xBF\xC2-\xF4]+)
 NUMBER	[0-9]+
@@ -14,8 +13,8 @@ ENDQUOTE	[^\\]"
 ENDPRIME	[^\\]'
 TEXT	[.]+
 CHAR	[\0-\x7F]
-UTF8	([\0xB0-\0xCF][\0x80-\0xAF]|[\0x70-\0x7F][\0x80-\0xAF][\0x80-\0xAF]|[\0xF0-\0xF7][\0x80-\0xAF][\0x80-\0xAF][\0x80-\0xAF])
-ERRVAL	([Oo][Kk]("AY"|"ay")?|[Ee]("RR"|"rr"))
+UTF8	("\xC0\x80"|[\xC2-\xDF][\x80-\xBF]|[\x70-\x7F][\x80-\xBF][\x80-\xBF]|[\xF0-\xF7][\x80-\xBF][\x80-\xBF][\x80-\xBF]|[\xF8-\xFB][\x80-\xBF][\x80-\xBF][\x80-\xBF][\x80-\xBF]|[\xFC\xFD][\x80-\xBF][\x80-\xBF][\x80-\xBF][\x80-\xBF][\x80-\xBF])
+ERRVAL	([Oo][Kk]("AY"|"ay")?|[Ee]("RR"|"rr")) 
 
 STRUCTPTR	("->"|"→")
 BITLEFT	("<<"|"«")
@@ -66,7 +65,7 @@ FI	[Ff][Ii]
 #include "y.tab.h"
 %}
 %s FUNC EXPR ARR
-%x STRING COMMENT CHARVAL
+%x STRING COMMENT CHARVAL TYPE
 %%
 "\""	yy_push_state(STRING);
 <STRING>{ENDQUOTE}	yy_pop_state();
@@ -77,21 +76,28 @@ FI	[Ff][Ii]
 <CHARVAL>{CHAR}	yyval.number = *yytext;return(NUMBER);
 <CHARVAL>{UTF8}	yyval.string = strdup(yytext);return(UTF8);
 
+"`"	yy_push_state(TYPE);
+<TYPE>"`"	yy_pop_state()
+<TYPE>"{`"	yy_pop_state();return(LSTRUCT);
+<TYPE>{NAME}	yyval.string = strdup(yytext);return(TYPENAME);
+<TYPE>'*'	return(TYPEPTR);
+<TYPE>'&'	return(DEREF);
+
 "/*"	yy_push_state(COMMENT);
+<TYPE>"/*"	yy_push_state(COMMENT);
 <COMMENT>"*/"	yy_pop_state();
 <COMMENT>{TEXT};
 
 <EXPR>{WHITESPACE}	return ' ';
 
-"("	yy_push_state(FUNC); return '(';
+"("	yy_push_state(EXPR); return '(';
 <EXPR>")"	yy_pop_state(); return ')';
-	/*s-expressions and lists*/
-"{"	yy_push_state(EXPR); return '{';
+
+"{"	yy_push_state(ARR); return '{';
 <ARR>"}"	yy_pop_state(); return '}';
-	/*infix*/
-"["	yy_push_state(ARR); return '[';
+
+"["	yy_push_state(FUNC); return '[';
 <FUNC>"]"	yy_pop_state(); return ']';
-	/*c-like functions, structs, and arrays*/
 
 {NAME}	yyval.string = strdup(yytext);return(NAME);
 {VAR}	yyval.string = strdup(&(yytext[1]));return(VAR);
@@ -141,7 +147,6 @@ FI	[Ff][Ii]
 "."	return '.';
 ";"	return ';';
 ","	return ',';
-"`"	return '`';
 "\\"	return '\\';
 {SWITCH}	return(SWITCH)
 {CASE}	return(CASE);

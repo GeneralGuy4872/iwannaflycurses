@@ -1,0 +1,31 @@
+The extension language runtime executor works in the following way:
+
+1. As code is collected, literal numbers with primative operators are optimized out bottom-up
+2. remaining collected code is used to build an execution tree, top-down
+3. ALL remaining code in a BEGIN-END block is passed to the runtime, where it is then:
+	executed from start to finish
+	freed bottom-up
+4. each BEGIN-END block is processed thus until <EOF>
+
+if code is to be transpiled instead of interpreted,
+C code could will be emitted at step 3
+instead of executing the runtime.
+
+because of how the parser is constructed, it is extreamly bulky,
+and probably always will be, even if moved away from a lex/yacc toolchain.
+(so what's the point?)
+
+to reduce it's parser overhead, a program should be broken into as many
+BEGIN-END blocks as possible, as the allocated program is flushed and
+executed after END.
+
+The parser is designed to generate calls from syntactically valid code;
+this early version cares not if this code is programatically sane, however,
+leading to the probability that untested code will crash games which call
+it in varying and spectacular fashion.
+
+aside from silently dropping invalid tokens, this language has very little
+error checking, as a result of a copious use of void*. most garbage data
+would be passed streight through to the running game, where it might catch
+in the clockwork. especially bogus data might even cause the language's
+runtime to throw hard errors.

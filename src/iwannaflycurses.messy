@@ -325,15 +325,28 @@ char* TERM
  */
 
 //anonomous pointers, could be anything. they're anonomous.
-void* cachedrum = malloc(1024 * sizeof(char))
-uchar cachenext = 0
+struct drum {
+	char data[FLOPPYDISK]
+	smint top
+	}
 
-ushort cachealloc (amount)
-uchar amount
+void* drumalloc (ptr,amount)
+struct drum ptr
+size_t amount
 {
-ushort private = (((amount + cachesubscr) % 128) < cachesubscr) ? 0 : cachesubscr
-cachesubscr = private + amount
-return private
+if ((ptr→top + amount) ≤ (FLOPPYDISK + 1)) {
+	void* output = ptr→data[ptr→top]
+	ptr→top += amount
+	return output
+	}
+else {return NULL}
+}
+
+drumpop (ptr,amount)
+struct drum ptr
+size_t amount
+{
+ptr→top = MAX(ptr→top - amount,0)
 }
 
 setlocale(LC_ALL, "");

@@ -1,6 +1,6 @@
-%token STRUCTPTR BITLEFT LE BITRIGHT GE LOGAND LOGOR LOGNAND LOGNOR LOGIFF LOGXOR EQ EQUALS APPROX BITNOR NE ASSIGN NULLTOK HUP SWITCH CASE IF THEN ELSE WHILE UNTIL FOR FOREVER DO AFTER BREAK RETURN FI BEGIN END
+%token LSTRUCT STRUCTPTR BITLEFT LE BITRIGHT GE LOGAND LOGOR LOGNAND LOGNOR LOGIFF LOGXOR EQ EQUALS APPROX BITNOR NE ASSIGN NULLTOK HUP SWITCH CASE IF THEN ELSE WHILE UNTIL FOR FOREVER DO AFTER BREAK RETURN FI BEGIN END
 %token <number> BOOLEAN RAW NUMBER SIGNED ERRVAL
-%token <string> NAME VAR TEXT UTF8 
+%token <string> NAME VAR TEXT UTF8 TYPENAME
 %token <dval> FLOAT NANTOK 
 
 %top {
@@ -16,6 +16,38 @@
 }
 
 %%
+cast
+	:	TYPENAME	{
+			$$ = malloc(sizeof(stringlistyp))
+			$$→prev = $$
+			$$→next = NULL
+			$$→text = $1
+			}
+	|	cast TYPENAME	{
+			$$ = $1
+			foo = malloc(sizeof(stringlistyp))
+			$$→prev→next = foo
+			foo→prev = $$→prev
+			$$→prev = foo
+			foo→next = NULL
+			foo→text = $2
+			}
+	|	cast TYPEPTR	{
+			$$ = $1
+			foo = malloc(sizeof(stringlistyp))
+			$$→prev→next = foo
+			foo→prev = $$→prev
+			$$→prev = foo
+			foo→next = NULL
+			foo→text = "*"
+			}
+	;
+
+typecast
+	:	cast anything	{$$ = runtime__cast($1,$2)}
+	|	DEREF anything	{$$ = runtime__deref($2)}
+	;
+
 variable
 	:	VAR	{$$ = runtime__fetch($1)}
 	|	variable STRUCTPTR NAME	{$$ = runtime__struct_pointer($1,$3)}
@@ -98,6 +130,7 @@ expression
 	:	anything
 	|	literalexpression
 	|	expression
+	|	typecast
 	;
 	/* more later */
 
@@ -123,7 +156,7 @@ commalist
 			$$ = malloc(sizeof(struct runtime__list));
 			$$->next = malloc(sizeof(struct runtime__list));
 			$$->prev = $$->next;
-			$$->next->next = $$;
+			$$->next->next = NULL;
 			$$->next->prev = $$;
 			$$->string = $1->string;
 			$$->number = $1->number;
@@ -138,7 +171,7 @@ commalist
 				$$->prev->next = foo;
 				foo->prev = $$->prev;
 				$$->prev = foo;
-				foo->next = $$;
+				foo->next = NULL;
 				foo->string = $3->string;
 				foo->number = $3->number;
 				foo->ddval = $3->ddval;
@@ -174,9 +207,14 @@ spacelist
 			}
 	;
 
+structure
+	:	cast LSTRUCT commalist '}'	{$$ = runtime__queue_struct($1,$3)}
+	;
+
 array
 	:	'{' commalist '}'	{$$ = runtime__makearray($2)}
-	|	TEXT
+	|	TEXT	{$$ = $1}
+	|	TEXT TEXT	{$$ = strcat($1,$2)}
 	;
 
 literalparenth
@@ -191,8 +229,7 @@ parenth
 	;
 
 function
-	:	'`' NAME '`'	{$$ = runtime__queue_noargs($2)}
-	|	NAME '[' ']'	{$$ = runtime__queue_noargs($1)}
+	:	NAME '[' ']'	{$$ = runtime__queue_noargs($1)}
 	|	NAME '[' anything ']'	{$$ = runtime__queue($1,$3)}
 	|	NAME '[' commalist ']'	{$$ = runtime__queue_list($1,$3)}
 	|	'(' optsp NAME optsp ')'	{$$ = runtime__queue_noargs($3)}
