@@ -1,17 +1,19 @@
+slightly depricated
+
 /*
 syntax:
 
-SPEED <HEX/OCTAL/NUMBER> : number of pulses per second. there are 24 pulses in a quarter note.
+SPEED <NUMBER> : number of pulses per second. there are 24 pulses in a quarter note.
 
-VOLUME <HEX/OCTAL/NUMBER channel> <HEX/OCTAL/NUMBER volume> : set how loud a channel is
+VOLUME <NUMBER channel> <NUMBER volume> : set how loud a channel is
 
-SPEED++ <HEX/OCTAL/NUMBER channel amount> , VOLUME++ <HEX/OCTAL/NUMBER channel amount> , DETUNE++ <HEX/OCTAL/NUMBER channel> <HEX/OCTAL/NUMBER channel amount> : increase a paramater
+SPEED++ <NUMBER> , VOLUME++ <NUMBER channel> <NUMBER amount> , DETUNE++ <NUMBER channel> <NUMBER amount> : increase a paramater
 
-SPEED-- <HEX/OCTAL/NUMBER channel amount> , VOLUME-- <HEX/OCTAL/NUMBER channel amount> , DETUNE-- <HEX/OCTAL/NUMBER channel> <HEX/OCTAL/NUMBER channel amount> : decrease a paramater
+SPEED-- <NUMBER> , VOLUME-- <NUMBER channel> <NUMBER amount> , DETUNE-- <NUMBER channel> <NUMBER amount> : decrease a paramater
 
-MUTE <HEX/OCTAL/NUMBER channel> : set volume to zero
+MUTE <NUMBER channel> : set volume to zero
 
-FORTE <HEX/OCTAL/NUMBER channel> : set volume to maximum
+FORTE <NUMBER channel> : set volume to maximum
 
 KEY <HEX/OCTAL/NUMBER channel>  <KEYSIG> : change the key. default key is C major
 

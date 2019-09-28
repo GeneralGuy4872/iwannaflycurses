@@ -39,38 +39,38 @@
  *
  * a game compiled for the engine should obey the following conventions:
  * - it should provide the bulk of it's functions in a shared library in a private
- * 	application directory
+ *	application directory
  * - it should provide special use functions, such as events, as seperate shared objects,
- * 	to be dynamically loaded at runtime.
+ *	to be dynamically loaded at runtime.
  * - it should provide special use constants likewise
- * 	blocks of text, however, should be regular nfo or txt
+ *	blocks of text, however, should be regular nfo or txt
  * - it should store any dynamic constants in the savefile, as r<wordsize>, hex, tsv, csv, ini, txt, nfo
  * - it should provide at least the following applications (in $PATH) :
- * 	- the game itself
- * 	- a seperate program for generating a new savefile
+ *	- the game itself
+ *	- a seperate program for generating a new savefile
  *		- should use (int argc, char *argv[]) to provide bypassing of dotfile,
  *		  path to a non-default dotfile, overrides of race, class, alignment prefs,
  *		  and other flags as desired. parsed by a different parser from the dotfile.
- * 	- a savefile editor
+ *	- a savefile editor
  *
  * enviromental requirements:
  * - UTF-8 terminal of at least 24*80 characters
  *	"Fixed" font is recommended (specifically because
- * 		it is a raster font; monospaced raster fonts are more uniform in width than the majority of vector so-called "monospaced" fonts;
- * 		it is unicode, having a wide range of characters; and
- * 		it is extreamly common, being the default font for the linux console, xterm, and urxvt)
+ *		it is a raster font; monospaced raster fonts are more uniform in width than the majority of vector so-called "monospaced" fonts;
+ *		it is unicode, having a wide range of characters; and
+ *		it is extreamly common, being the default font for the linux console, xterm, and urxvt)
  * - ANSI SGR escape codes and 16 colors outside of NCurses
  *	The engine will recognise the term enviroment and can sent xterm-style OSC strings if they are supported as well
  * - NCurses with support for A_BOLD, A_ITALIC, A_UNDERLINE, A_DIM, A_BLINK, A_REVERSE, A_INVIS, 8 colors, and 64 color pairs
  * - Full Keyboard
- * 	(most keyboard layouts with all ASCII characters *should*
- * 	work, but only QWERTY (US-ANSI) was used in design because
- * 	I don't have access to any others, so at best controls may
- * 	be strange on them.
- * 	want to eventually guaruntee support for other keymappings;
- * 	not just for other QWERTY layouts, but also for QWERTZ, AZERTY,
- * 	and Dvorak, by request and/or the ability to remap keys
- * 	by dotfiles.)
+ *	(most keyboard layouts with all ASCII characters *should*
+ *	work, but only QWERTY (US-ANSI) was used in design because
+ *	I don't have access to any others, so at best controls may
+ *	be strange on them.
+ *	want to eventually guaruntee support for other keymappings;
+ *	not just for other QWERTY layouts, but also for QWERTZ, AZERTY,
+ *	and Dvorak, by request and/or the ability to remap keys
+ *	by dotfiles.)
  * - Mouse (once pseudo-raycasting is implemented for looking afar)
  *
  * XTerm is the recommended X Terminal Emulator (the primary one used in testing),
@@ -102,11 +102,11 @@
  * This program is divided into 3 layers:
  *
  * the API layer is the part that provides functions to help with events.
- * 	this is the only part you should need to know to compile your own
- * 	games that can get fairly complex. these alse include the internal
- * 	utilitys for character encoding conversion, input buffering, room
- * 	generation and pathfinding algorithems, dice, warping, dying, error,
- * 	and the internal implementation of cat.
+ *	this is the only part you should need to know to compile your own
+ *	games that can get fairly complex. these alse include the internal
+ *	utilitys for character encoding conversion, input buffering, room
+ *	generation and pathfinding algorithems, dice, warping, dying, error,
+ *	and the internal implementation of cat.
  *
  * while the API functions have a simple enough calling convention,
  * there is no garuntee that the code underneath is not hundreds of lines long.
@@ -121,16 +121,16 @@
  * engineloop()
  *
  * the middle layer, or the guts, is where the engine actually happens, and
- * 	it isn't pretty. if you want to change how the game works,
- * 	it's going to get messy. this is where the functions for
- * 	the RPG system itself, loading and saving, turns, shadows,
- * 	3D rendering, and room changing are placed. these should not
- * 	usually called directly by events, only by other builtin
+ *	it isn't pretty. if you want to change how the game works,
+ *	it's going to get messy. this is where the functions for
+ *	the RPG system itself, loading and saving, turns, shadows,
+ *	3D rendering, and room changing are placed. these should not
+ *	usually called directly by events, only by other builtin
  *	functions; some are only called by main.
  *
  * the backend consists of shims between generalized internal representations of
- * 	a thing, and the actual way that a library or driver expects it to be
- * 	formatted. the following are/will be considered part of this layer:
+ *	a thing, and the actual way that a library or driver expects it to be
+ *	formatted. the following are/will be considered part of this layer:
  *	- anything underneath a call to a parser
  *	- what goes on inside of the midi threads
  *	- the code underneath the savefile handling calls
@@ -138,7 +138,7 @@
  * The API should always be backwards-compatable with all versions, from beta to doomsday.
  * The Guts may have breaking changes between MAJOR versions, but not otherwise.
  * The Backend depends on things beyond my control, and should be considered non-dependable.
- * 	special cases should be noted, that the savefile format and language version have
+ *	special cases should be noted, that the savefile format and language version have
  *	their own versioning system. this still may be broken if the flex-yacc or
  *	compression libraries of the build enviroment are changed from expectations,
  *	but is a good start.
@@ -191,6 +191,7 @@
 //#include <sys/ioctl.h>
 //#include <fcntl.h>
 //#include <sys/stat.h>
+//#include <errno.h>
 
 /**compression libraries**/
 #include <libtar.h>
@@ -242,8 +243,8 @@ addnwstr(&wch,1);
  * using narrow characters with printw or addch
  * using wide characters with these functions
  * setting attributes with attrset, attron, attroff, and chgat
- * 	uses A_DIM, A_BOLD, A_ITALIC, A_UNDERLINE, A_REVERSE, A_BLINK, A_INVIS,
- * 	and 64 color pairs made from 8 colors
+ *	uses A_DIM, A_BOLD, A_ITALIC, A_UNDERLINE, A_REVERSE, A_BLINK, A_INVIS,
+ *	and 64 color pairs made from 8 colors
  * using the above custom functions to put wide characters on
  * the screen using addstr, addnstr, addwstr, addnwstr to print strings
  * pausing curses and dumping an entire file with printf
@@ -251,7 +252,8 @@ addnwstr(&wch,1);
 
 /*ENVIROMENTALS*/
 #define BUFFER_MAX 512
-#define FLOPPYDISK 1474560
+#define FLOPPYSIZE 1474560
+#define DRUMSIZE 16384
 #define BGCOLORS 8
 #define FGCOLORS 8
 char16_t TILDEWIDE
@@ -326,15 +328,15 @@ char* TERM
 
 //anonomous pointers, could be anything. they're anonomous.
 struct drum {
-	char data[FLOPPYDISK]
-	smint top
+	char data[DRUMSIZE]
+	sshort top
 	}
 
 void* drumalloc (ptr,amount)
 struct drum ptr
 size_t amount
 {
-if ((ptr→top + amount) ≤ (FLOPPYDISK + 1)) {
+if ((ptr→top + amount) ≤ (DRUMSIZE)) {
 	void* output = ptr→data[ptr→top]
 	ptr→top += amount
 	return output
@@ -1736,14 +1738,14 @@ bool sleepproof : 1
 bool poisonproof : 1
 
 struct sensetyp:
-trouble
-invis
-infra
-blind
-good
-evil
-law
-chaos
+bool trouble : 1
+bool invis : 1
+bool infra : 1
+bool blind : 1
+bool good : 1
+bool evil : 1
+bool law : 1
+bool chaos : 1
 
 struct effectyp:
 the8stats eight

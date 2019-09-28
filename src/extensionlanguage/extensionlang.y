@@ -1,7 +1,9 @@
 %token LSTRUCT STRUCTPTR BITLEFT LE BITRIGHT GE LOGAND LOGOR LOGNAND LOGNOR LOGIFF LOGXOR EQ EQUALS APPROX BITNOR NE ASSIGN NULLTOK HUP SWITCH CASE IF THEN ELSE WHILE UNTIL FOR FOREVER DO AFTER BREAK RETURN FI BEGIN END
-%token <number> BOOLEAN RAW NUMBER SIGNED ERRVAL
+%token <number> NUMBER ERRVAL
+%token <deadbeef> RAW
+%token <boolean> BOOLEAN
 %token <string> NAME VAR TEXT UTF8 TYPENAME
-%token <dval> FLOAT NANTOK 
+%token <dval> FLOAT NANTOK
 
 %top {
 #include stuff here
@@ -10,9 +12,12 @@
 
 %union
 {
-	intptr_t number;
+	bool boolean;
+	int number;
 	char* string;
 	double dval;
+	intptr_t deadbeef;
+	void* ptr;
 }
 
 %%
@@ -52,7 +57,7 @@ variable
 	:	VAR	{$$ = runtime__fetch($1)}
 	|	variable STRUCTPTR NAME	{$$ = runtime__struct_pointer($1,$3)}
 	|	variable '.' NAME	{$$ = runtime__struct($1,$3)}
-	|	variable '[' unsigned ']'	{$$ = runtime__arraysub($1,$3)}
+	|	variable '[' intergaliteral ']'	{$$ = runtime__arraysub($1,$3)}
 	|	variable '[' literalparenth ']'	{$$ = runtime__arraysub($1,$3)}
 	|	variable '[' anything ']'	{$$ = runtime__arraysub_noncon($1,$3)}
 	;
@@ -109,16 +114,11 @@ intergal
 	;
 
 intergaliteral
-	:	SIGNED
+	:	NUMBER
+	|	BOOLEAN
+	|	RAW
 	|	ERRVAL
 	|	NULLTOK	{$$ = NULL}
-	|	unsigned
-	;
-
-unsigned
-	:	BOOLEAN
-	|	RAW
-	|	NUMBER
 	;
 
 real

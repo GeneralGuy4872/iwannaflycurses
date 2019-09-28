@@ -3,8 +3,7 @@ BOOLEAN ("T"|[Tt]("RUE"|"rue")|[Nn]("IL"|"il")|[Ff]("ALSE"|"alse"))
 NAME	[A-Za-z_\xC2-\xF4][A-Za-z0-9_\x80-\xBF\xC2-\xF4]*
 VAR	$([A-SU-Za-z]|[A-Za-z_\xC2-\xF4][A-Za-z0-9_\x80-\xBF\xC2-\xF4]+)
 PTRVAR	[\*&]+([A-SU-Za-z]|[A-Za-z_\xC2-\xF4][A-Za-z0-9_\x80-\xBF\xC2-\xF4]+)
-NUMBER	[0-9]+
-SIGNED	-[0-9]+
+NUMBER	-?[0-9]+
 FLOAT	-?([0-9]+)?\.[0-9]+
 NANTOK	(-?[Ii]("NFINITY"|"nfinity")|[Nn][Aa][Nn])
 HEX	("0x")[0-9a-fA-F]+
@@ -102,13 +101,12 @@ FI	[Ff][Ii]
 {NAME}	yyval.string = strdup(yytext);return(NAME);
 {VAR}	yyval.string = strdup(&(yytext[1]));return(VAR);
 {PTRVAR}	yyval.string = strdup(yytext);return(VAR);
-{NUMBER}	yyval.number = strtoul(yytext,NULL,10);return(NUMBER);
-{SIGNED}	yyval.number = atoi(yytext);return(SIGNED);
+{NUMBER}	yyval.number = atoi(yytext);return(NUMBER);
 {FLOAT}	yyval.dval = atof(yytext);return(FLOAT);
 {NANTOK}	yyval.dval = atof(yytext);return(NANTOK);
-{HEX}	yyval.number = strtoul(yytext,NULL,16);return(RAW);
-{OCTAL}	yyval.number = strtoul(yytext,NULL,8);return(RAW);
-{BOOLEAN}	yyval.number = !(strcmp(yytext,"T") || strcmp(toupper(yytext),"TRUE"));return(BOOLEAN);
+{HEX}	yyval.deadbeef = strtoul(yytext,NULL,16);return(RAW);
+{OCTAL}	yyval.deadbeef = strtoul(yytext,NULL,8);return(RAW);
+{BOOLEAN}	yyval.boolean = !(strcmp(yytext,"T") || strcmp(toupper(yytext),"TRUE"));return(BOOLEAN);
 {ERRVAL}	yyval.number = -(!(strcmp(toupper(yytext),"ERR"))));return(ERRVAL);
 {NULLTOK}	return(NULLTOK);
 "+"	return '+';
@@ -136,6 +134,7 @@ FI	[Ff][Ii]
 {APPROX}	return(APPROX);
 {BITNOR}	return(BITNOR);
 "~"	return '~';
+"¬"	return "~";
 {LOGAND}	return(LOGAND);
 "&"	return '&';
 {LOGOR}	return(LOGOR);

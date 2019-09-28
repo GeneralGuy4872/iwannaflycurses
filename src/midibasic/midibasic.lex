@@ -1,63 +1,76 @@
-NOTE [A-G][0-9][#%b]?
-KEYSIG ([#]{1,9}|[b]{1,9}|[A-G][#%b]?)?
+NOTE	[A-G][0-9]
+CHORD	([Mm]|"maj"|"min"|"sus"|"dim"|"aug"|"!7")
 
-NUMBER [0-9]+
-HEX ("0x"|"$")[0-9a-fA-F]+
-OCTAL @[0-7]+
+NUMBER	[0-9]+
+HEX	("0x"|"$")[0-9a-fA-F]+
+OCTAL	@[0-7]+
 
-INDENT ^[ \t]+
-SPACE [ \t]
+INDENT	^[\t\x1C- ]+
+SPACE	[\t\x1C- ]
+NEWLINE	[\n\r\f\v]+
 
-SPEEDTOK "SPEED"
-KEYTOK "KEY"
-DETUNETOK "DETUNE"
-NOTETOK "NOTE"
-CUTTOK "CUT"
-INSTTOK "INSTRUMENT"
-VOLTOK "VOLUME"
-MUTETOK "MUTE"
-FORTETOK "FORTE"
-ONTOK "ON"
-OFFTOK "OFF"
-SUSTOK "SUSTAIN"
-WAITTOK "WAIT"
-ENDTOK "END"
-LOOPTOK "LOOP"
-REPEATTOK "REPEAT"
-RAWTOK "RAW"
+LOUD	("LOUD"|"FORTE")
+SUSTAIN	("SUSTAIN"|"DAMPER")
+WAIT	("WAIT"|"REST")
+DOUBLESHARP	("*"|"x"|"##")
 
 %{
 #include <stdio.h>
 #include <string.h>
 #include "y.tab.h"
+short accum;
 %}
+
+%s KEYCOND CORDCOND
 %%
 {INDENT};
 {SPACE};
-"\n"	return '\n';
+{NEWLINE}	return '\n';
+<KEYCOND>{NEWLINE}	yyval.number = accum;accum = 0;BEGIN(0);return(KEYBREAK);
 
-{NOTE}	yyval.string = strdup(yytext);return(NOTE);
-{KEY}	yyval.string = strdup(yytext);return(KEY);
+{NOTE}	yyval.twovals.quot = yytext[0];yyval.twovals.rem = atoi(yytext);return(NOTE);
+<KEYCOND>{NOTE}	yyval.twovals.quot = yytext[0];yyval.twovals.rem = atoi(yytext);accum = 0;BEGIN(0);return(NOTE);
 
 {NUMBER}	yyval.number = atoi(yytext);return(NUMBER);
-{HEX}	yyval.number = strtoul(yytext,NULL,16);return(HEX);
-{OCTAL}	yyval.number = strtoul(yytext,NULL,8);return(OCTAL);
+{HEX}	yyval.number = strtoul(&(yytext[1]),NULL,16);return(NUMBER);
+{OCTAL}	yyval.number = strtoul(yytext,NULL,8);return(NUMBER);
 
-SPEEDTOK "SPEED"	return(SPEEDTOK);
-KEYTOK "KEY"	return(KEYTOK);
-DETUNETOK "DETUNE"	return(DETUNETOK);
-NOTETOK "NOTE"	return(NOTETOK);
-CUTTOK "CUT"	return(CUTTOK);
-INSTTOK "INSTRUMENT"	return(INSTTOK);
-VOLTOK "VOLUME"	return(VOLTOK);
-MUTETOK "MUTE"	return(MUTETOK);
-FORTETOK "FORTE"	return(FORTETOK);
-ONTOK "ON"	return(ONTOK);
-OFFTOK "OFF"	return(OFFTOK);
-SUSTOK "SUSTAIN"	return(SUSTOK);
-WAITTOK "WAIT"	return(WAITTOK);
-ENDTOK "END"	return(ENDTOK);
-LOOPTOK "LOOP"	return(LOOPTOK);
-REPEATTOK "REPEAT"	return(REPEATTOK);
-RAWTOK "RAW"	return(RAWTOK);
+"SPEED"	return(SPEEDTOK);
+"KEY"	BEGIN(KEYCOND);return(KEYTOK);
+"DETUNE"	return(DETUNETOK);
+"NOTE"	return(NOTETOK);
+"CUT"	return(CUTTOK);
+"INSTRUMENT"	return(INSTTOK);
+"BANK"	return(BANKTOK);
+"VOLUME"	return(VOLTOK);
+"MUTE"	return(MUTETOK);
+{LOUD}	return(LOUDTOK);
+"ON"	return(ONTOK);
+"OFF"	return(OFFTOK);
+{SUSTAIN}	return(SUSTOK);
+"PORTAMENTO"	return(PORTTOK);
+"SOSTENUTO"	return(SOSTTOK);
+"SOFT"	return(SOFTTOK);
+{WAIT}	return(WAITTOK);
+"END"	return(ENDTOK);
+"[:"	return(LOOPSTART);
+":]"	return(LOOPEND);
+"RAW"	return(RAWTOK);
+
+<KEYCOND>"#"	accum++;
+<KEYCOND>"b"	accum--;
+"#"	yyval.number = 1;return(SIGN);
+{DOUBLESHARP}	yyval.number = 2;return(SIGN);
+"%"	yyval.number = 0;return(SIGN);
+"b"	yyval.number = -1;return(SIGN);
+"bb"	yyval.number = -2;return(SIGN);
+
+"++"	return(INCR);
+"--"	retunr(DECR);
+"("	return '(';
+")"	return ')';
+","	return ',';
+"\""	BEGIN(CORDCOND);
+<CORDCOND>{CHORD}	yyval.string = strcpy(yytext);return(CHORDTOK);
+<CORDCOND>"\""	BEGIN(0);
 %%

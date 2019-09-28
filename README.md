@@ -48,25 +48,23 @@ Depends (libraries by header):
 - <CODE>\<string.h\></CODE>
 - <CODE>\<ctype.h\></CODE>
 - <CODE>\<uchar.h\></CODE>
-
 - <CODE>\<dlfcn.h\></CODE>
 - <CODE>\<unistd.h\></CODE>
 - <CODE>\<signal.h\></CODE>
 - <CODE>\<locale.h\></CODE>
-- <CODE>\<regex.h\></CODE>
-- <CODE>\<glob.h\></CODE>
-- <CODE>\<sys/types.h\></CODE>
-- <CODE>\<sys/ioctl.h\></CODE>
-- <CODE>\<fcntl.h\></CODE>
-- <CODE>\<sys/stat.h\></CODE>
-
+- <CODE>\<regex.h\></CODE> probably
+- <CODE>\<glob.h\></CODE> probably
+- <CODE>\<sys/types.h\></CODE> maybe?
+- <CODE>\<sys/ioctl.h\></CODE> maybe?
+- <CODE>\<fcntl.h\></CODE> probably
+- <CODE>\<sys/stat.h\></CODE> probably
+- <CODE>\<errno.h\><\CODE> maybe?
 - <CODE>\<libtar.h\></CODE>
 - <CODE>\<zlib.h\></CODE>
 - <CODE>\<libbz2.h\></CODE>
-
 - <CODE>\<ncursesw/ncurses.h\></CODE>
-- <CODE>\<menu.h\></CODE>
-- <CODE>\<forms.h\></CODE>
+- <CODE>\<menu.h\></CODE> maybe?
+- <CODE>\<forms.h\></CODE> maybe?
 
 Recommends:
 - <CODE>xterm</CODE>, unicode, color
@@ -83,8 +81,9 @@ Doc Depends:
 - <CODE>man</CODE>
 - <CODE>info</CODE>
 
-Doc Meta-depends:
+Doc Build Deps:
 - <CODE>mandb</CODE>
+- <CODE>makeinfo</CODE>
 - <CODE>install-info</CODE>
 - <CODE>cp</CODE>
 
