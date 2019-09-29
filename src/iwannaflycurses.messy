@@ -2151,11 +2151,12 @@ eventdata data
 struct eventtyp:
 (self) *prev
 (self) *next
-const char* requires	//path to a shared object, or NULL
 eventdata eventdatavals
 triggertyp whenthis
-int(short,short,char,char,char,eventdata)* ifthis
-int(short,short,char,char,char,eventdata)* dothis
+const char* ifthis
+div_t ifargs
+const char* dothis
+div_t doargs
 const char* name
 cylinder dim
 umint duration
