@@ -39,4 +39,7 @@ pre {
 .basic {
 	background-color: mediumslateblue;
 	color: snow;
+}	
+.oxturn {
+	transform: scale(-1, 1);
 }

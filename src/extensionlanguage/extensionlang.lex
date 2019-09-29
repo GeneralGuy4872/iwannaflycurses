@@ -12,7 +12,7 @@ ENDQUOTE	[^\\]"
 ENDPRIME	[^\\]'
 TEXT	[.]+
 CHAR	[\0-\x7F]
-UTF8	("\xC0\x80"|[\xC2-\xDF][\x80-\xBF]|[\x70-\x7F][\x80-\xBF][\x80-\xBF]|[\xF0-\xF7][\x80-\xBF][\x80-\xBF][\x80-\xBF]|[\xF8-\xFB][\x80-\xBF][\x80-\xBF][\x80-\xBF][\x80-\xBF]|[\xFC\xFD][\x80-\xBF][\x80-\xBF][\x80-\xBF][\x80-\xBF][\x80-\xBF])
+UTF8	("\xC0\x80"|[\xC2-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF][\x80-\xBF]|[\xF0-\xF4][\x80-\xBF][\x80-\xBF][\x80-\xBF]|
 ERRVAL	([Oo][Kk]("AY"|"ay")?|[Ee]("RR"|"rr")) 
 
 STRUCTPTR	("->"|"→")
@@ -39,6 +39,7 @@ ASSIGN	(":="|"←")
 WHITESPACE	[\a\t-\r\034- ]+
 NULLTOK	[Nn]("ULL"|"ull")
 
+FLIP	[Ff]("LIP"|"lip")
 SWITCH	[Ss]("WITCH"|witch")
 CASE	[Cc]("ASE"|"ase")
 IF	[Ii][Ff]
@@ -114,6 +115,8 @@ FI	[Ff][Ii]
 "-"	return '-';
 "*"	return '*';
 "/"	return '/';
+"D%"	return 'D';
+"d%"	return 'd';
 "%"	return '%';
 {BITLEFT}	return(BITLEFT);
 {LOGIFF}	return(LOGIFF);
@@ -147,7 +150,8 @@ FI	[Ff][Ii]
 ";"	return ';';
 ","	return ',';
 "\\"	return '\\';
-{SWITCH}	return(SWITCH)
+{FLIP}	return(FLIP);
+{SWITCH}	return(SWITCH);
 {CASE}	return(CASE);
 {IF}	return(IF);
 {THEN}	return(THEN);

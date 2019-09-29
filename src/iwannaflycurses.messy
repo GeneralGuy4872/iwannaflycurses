@@ -1902,6 +1902,7 @@ lightyp *lamp_ptr
  */
 
 /* dat file format:
+ * BOM ESC ! @ IWannaFLyCurses DataFile NUL = Magic Cookie (no spaces)
  * SOH name STX string ETX SEPERATOR = a text field
  * SOH name DLE 16bit_length raw_data SEPERATOR = a numeric field
  * SOH name ACK SEPERATOR = a boolean field that is true

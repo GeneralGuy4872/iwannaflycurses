@@ -1,4 +1,4 @@
-%token LSTRUCT STRUCTPTR BITLEFT LE BITRIGHT GE LOGAND LOGOR LOGNAND LOGNOR LOGIFF LOGXOR EQ EQUALS APPROX BITNOR NE ASSIGN NULLTOK HUP SWITCH CASE IF THEN ELSE WHILE UNTIL FOR FOREVER DO AFTER BREAK RETURN FI BEGIN END
+%token LSTRUCT STRUCTPTR BITLEFT LE BITRIGHT GE LOGAND LOGOR LOGNAND LOGNOR LOGIFF LOGXOR EQ EQUALS APPROX BITNOR NE ASSIGN NULLTOK FLIP SWITCH CASE IF THEN ELSE WHILE UNTIL FOR FOREVER DO AFTER BREAK RETURN FI BEGIN END
 %token <number> NUMBER ERRVAL
 %token <deadbeef> RAW
 %token <boolean> BOOLEAN
@@ -16,7 +16,7 @@
 	int number;
 	char* string;
 	double dval;
-	intptr_t deadbeef;
+	uintptr_t deadbeef;
 	void* ptr;
 }
 
@@ -146,6 +146,9 @@ literalexpression
 	|	'!' literalexpression	{$$ = !($2)}
 	|	literalexpression '!'	{$$ = util__factorial($1)}
 	|	literalexpression optsp '?' optsp literalexpression optsp ':' optsp literalexpression	{$$ = $1 ? $5 : $9}
+	|	literalexpression 'D' literalexpression	{$$ = util__roll($1,$2,true)}
+	|	literalexpression 'd' literalexpression	{$$ = util__roll($1,$2,false)}
+	|	FLIP	{$$ = util__flip}
 	;
 	/* more later
 	 * these are the reducibles
@@ -239,6 +242,8 @@ function
 	|	'-' '-' variable	{$$ = runtime__queue_decr_pre($3)}
 	|	variable '+' '+'	{$$ = runtime__queue_incr_post($1)}
 	|	variable '-' '-'	{$$ = runtime__queue_decr_post($1)}
+	|	anything 'D' anything	{$$ = runtime__roll($1,$2,true)}
+	|	anything 'd' anything	{$$ = runtime__roll($1,$2,false)}
 	;
 	/* section complete! */
 
