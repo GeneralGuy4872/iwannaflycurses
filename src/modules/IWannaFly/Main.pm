@@ -6,6 +6,10 @@ use warnings;
 use IWannaFly::Struct;
 use IWannaFly'Macro;
 use IWannaFly'Null;
+require Exporter;
+our @ISA = qw(Exporter);
+our @EXPORT;
+
 <!--keep track of what's where in local modules
 with :: for directories and ' for files-->
 
@@ -50,7 +54,7 @@ with :: for directories and ' for files-->
 # ♯bar  is a bitfield or boolean
 # ‽$bar is the refaddr function
 # 
-# all these extra sigils except ‰ and ‽ are processed to $ by
+# all these extra sigils except ‽ are processed to $ by
 # Filter::Simple in IWannaFly::Macro. they mearly provide
 # disambiguation of special scalars/fields while inspecting code.
 # since THEY ARE ALL INTERCHANGEABLE WITH EACHOTHER AND $, their usage
@@ -89,17 +93,18 @@ with :: for directories and ' for files-->
 <!--This is a comment. comments are comments-->
 
 sub MAX($$) {return ($_[0] ≥ $_[1] ? $_[0] : $_[1])}
-bless MAX, NIL;
+push(@EXPORT,'MAX');
 
 sub MIN($$) {return ($_[0] ≤ $_[1] ? $_[0] : $_[1])}
-bless MIN, NIL;
+push(@EXPORT,'MIN');
 
 sub SGN($) {$_ <=> 0}
-bless SGN, NIL;
+push(@EXPORT,'SGN');
 
 sub INTVL($$$) {return MIN( MAX( $_[0],$_[1] ) ,$_[2] )}
-bless INTVL, NIL;
+push(@EXPORT,'INTVL');
 
+<!-- MOVE THIS
 sub DLLIST_NOCIRC_PUSH(€€) {
 	my (€HEAD,€PUSHY) = @_;
 	€PUSHY->prev = €HEAD->prev;
@@ -134,5 +139,4 @@ sub DLLIST_NOCIRC_FREE(€€) {
 		}
 	free(€DEAD);
 	}
-
-
+-->
