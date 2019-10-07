@@ -11,7 +11,7 @@ core.autocrlf=false
 *.hh = linguist-language=C++
 *.m = linguist-language=Objective-C
 *.mm = linguist-language=Objective-C++
-# *.xs = linguist-language=XS
+*.xs = linguist-language=XS
 # *.m4 = linguist-language=M4
 # *.gpp = linguist-language=GPP
 # *.pas = linguist-language=Pascal
@@ -21,11 +21,12 @@ core.autocrlf=false
 # *.icn = linguist-language=icon
 # *.u = linguist-language=unicon
 # *.awk = linguist-language=Awk
-# *.pl = linguist-language=Perl
-# *.pm = linguist-language=Perl
-# *.PL = linguist-language=Perl
+*.pl = linguist-language=Perl
+*.pm = linguist-language=Perl
+*.PL = linguist-language=Perl
+*.pod = linguist-language=Pod
 # *.cl = linguist-language=Lisp
-*.clp = linguist-language=Lisp
+# *.clp = linguist-language=Lisp
 # *.scm = linguist-language=Scheme
 # *.sno = linguist-language=SNOBOL4
 # *.bas = linguist-language=BASIC
@@ -40,6 +41,8 @@ core.autocrlf=false
 # *.y = linguist-language=Yacc
 *.yp = linguist-language=Yacc
 make = linguist-language=makefile
+makefile = linguist-language=makefile
+Makefile = linguist-language=makefile
 # *.mk = linguist-language=makefile
 # *.cmake = linguist-language=CMake
 # CMakeLists.txt = linguist-language=CMake

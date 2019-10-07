@@ -30,6 +30,7 @@ Build Deps:
 - Command <CODE>flex</CODE>
 - Command <CODE>byacc</CODE>
 - Command <CODE>make</CODE>
+- Perl module <CODE>Module::Build</CODE>
 - Perl module <CODE>ExtUtils::MakeMaker</CODE>
 
 Build Recommends:
@@ -99,26 +100,31 @@ Recommends:
 Doc Depends:
 - Command <CODE>man</CODE>
 - Command <CODE>info</CODE>
+- Command <CODE>perldoc</CODE>
 
 Doc Build Deps:
 - Command <CODE>mandb</CODE>
 - Command <CODE>makeinfo</CODE>
 - Command <CODE>install-info</CODE>
+- Command <CODE>make</CODE>
+- Command <CODE>perl</CODE>
 - Command <CODE>cp</CODE>
+- Perl module <CODE>Module::Build<CODE>
 
 Doc Recommends:
 - Command <CODE>xdvi</CODE>
+- Command <CODE>texi2dvi</CODE>
 
 NEWS (and Olds)
 ---------------
 
 During Alpha, the project will be optemized for Devuan Linux, however,
 there are (theoretically) no distro-dependent elements, and the code should
+run on ANY *nix with properly fufilled dependancies by configuring paths.h
 
-Dependencies:
+Manpages will be provided in Linux's ROFF-man and BSD's ROFF-mdoc;
+the documentation installed will be determined by uname.
+Extended documentation will be provided in plaintext, POD, Texinfo, and HTML
 
-Build Deps:
-- Command <CODE>cp</CODE>
-- Command <CODE>ls</CODE>
-- Command <CODE>sh</CODE>
-- Command <CODE>cc</CODE>
+Lore can be found at my Neocities site:
+https://generalguy4872.neocities.org/Games/
