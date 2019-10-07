@@ -35,8 +35,6 @@ FILTER_ONLY
 FILTER_ONLY
 	code => sub { s/♯/\$/g };
 FILTER_ONLY
-	code => sub { s/¶/\$/g };
-FILTER_ONLY
 	code => sub { s/‽(\()?/refaddr$1 /g };
 FILTER_ONLY
 	code => sub { s/OK(AY)?/0/g };

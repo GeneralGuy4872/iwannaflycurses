@@ -18,7 +18,7 @@ sub calloc {
 sub new($) {
 	my $self = shift;
 	£struct = IWannaFly::Types::Struct::classtyp'xs::iwfperl_new_struct_classtyp;
-	£struct->{sync} = IWannaFly::Types::classtyp'xs::iwfperl_sync_struct_classtype(£struct->{Ptr});
+	£struct->{SYNC} = IWannaFly::Types::classtyp'xs::iwfperl_sync_struct_classtype(£struct->{Ptr});
 	lock_keys(%£struct);
 	bless £struct, $self;
 	}

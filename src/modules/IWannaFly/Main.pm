@@ -32,9 +32,8 @@ with :: for directories and ' for files-->
 # €foo is a doubly, half-circularly linked list object
 # §foo is a doubly, circularly linked list object
 #
-# any struct pointer fields are converted to tied hash objects,
-# and a Ptr field will be added to these objects to hold the heap
-# pointer that values are tied to. the DESTROY routine is
+# any struct pointer fields are converted to hash objects.
+# a Ptr field and a SYNC method will be added to these objects.
 #
 # Similarly, prev, next, or other pointer fields may be NULL
 # (a Filter::Simple macro in IWannaFly'Null, which wrapps the C NULL),
@@ -49,7 +48,6 @@ with :: for directories and ' for files-->
 # ¤bar  is a reference
 # °bar  is a C pointer
 # ♯bar  is a bitfield or boolean
-# ¶bar  is a string
 # ‽$bar is the refaddr function
 # 
 # all these extra sigils except ‰ and ‽ are processed to $ by
