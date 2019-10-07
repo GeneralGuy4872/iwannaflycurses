@@ -27,7 +27,7 @@ core.autocrlf=false
 *.pod = linguist-language=Pod
 # *.cl = linguist-language=Lisp
 # *.clp = linguist-language=Lisp
-# *.scm = linguist-language=Scheme
+*.scm = linguist-language=Scheme
 # *.sno = linguist-language=SNOBOL4
 # *.bas = linguist-language=BASIC
 # *.apl = linguist-language=APL

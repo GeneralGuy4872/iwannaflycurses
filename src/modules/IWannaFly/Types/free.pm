@@ -1,3 +1,4 @@
+package IWannaFly::Types::free
 use warnings;
 use strict;
 use IWannaFly'Macro;

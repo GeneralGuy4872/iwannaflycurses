@@ -14,7 +14,7 @@
 
 Iwannafly
 =========
-*roguelike game library written in C and Perl with extension interface useing minimal external propagating dependencies*
+*roguelike game library written in C, Perl, and Guile, with extension interface useing minimal external propagating dependencies*
 
 Dependencies:
 
@@ -71,8 +71,8 @@ Depends:
 - C library <CODE>\<perl.h\></CODE>
 - C library <CODE>"XSUB.h"</CODE>
 - C library <CODE>"INLINE.h"</CODE>
+- C library <CODE>\<libguile.h\></CODE>
 - Perl feature <CODE>"switch"</CODE>
-- Perl module <CODE>Safe</CODE>
 - Perl module <CODE>boolean</CODE>
 - Perl module <CODE>Exporter</CODE>
 - Perl module <CODE>optimize::int</CODE>

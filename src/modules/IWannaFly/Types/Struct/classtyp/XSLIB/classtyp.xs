@@ -51,10 +51,20 @@
 	iwfperl_sync_struct_classtype(input)
 			HV* input
 		CODE:
-			struct classtyp* ptr = hv_fetch(input,"Ptr",3,0);
+			SV** = hv_fetch(input,"Ptr",3,0);
 			if (ptr != NULL) {
-			((struct classtyp*)SvIV(*ptr))->role = hv_fetch(foo,"role",4,0);
-			((struct classtyp*)SvIV(*ptr))->class = hv_fetch(foo,"class",5,0);
-			((struct classtyp*)SvIV(*ptr))->align = hv_fetch(foo,"align",5,0);
-			((struct classtyp*)SvIV(*ptr))->charismatic = hv_fetch(foo,"charismatic",11,0);
-			((struct classtyp*)SvIV(*ptr))->scorned = hv_fetch(foo,"scorned",7,0);
+				if (hv_fetch(foo,"role",4,0) != NULL) {
+					((struct classtyp*)SvIV(*ptr))->role = SvIV(*hv_fetch(foo,"role",4,0));
+					}
+				if (hv_fetch(foo,"role",4,0) != NULL) {
+					((struct classtyp*)SvIV(*ptr))->class = SvIV(*hv_fetch(foo,"class",5,0));
+					}
+				if (hv_fetch(foo,"align",5,0) != NULL) {
+					((struct classtyp*)SvIV(*ptr))->align = SvIV(*hv_fetch(foo,"align",5,0));
+					}
+				if (hv_fetch(foo,"charismatic",11,0) != NULL) {
+					((struct classtyp*)SvIV(*ptr))->charismatic = SvIV(*hv_fetch(foo,"charismatic",11,0));
+					}
+				if (hv_fetch(foo,"scorned",7,0) != NULL) {
+					((struct classtyp*)SvIV(*ptr))->scorned = SvIV(*hv_fetch(foo,"scorned",7,0));
+					}
