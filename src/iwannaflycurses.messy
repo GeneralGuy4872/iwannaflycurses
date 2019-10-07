@@ -995,19 +995,6 @@ latlontyp latlon
 coord3 pos
 }
 
-struct cylinder:
-uchar r : 7
-uchar norm : 2
-uchar h : 4
-bool up : 1
-bool down : 1
-bool show : 1
- /* cylinders, (the shape, not this datatype) are used extensively.
-  * players move in cylindrical coordinate space.
-  * event areas are specified as cylinders
-  * monster aggro ranges are a cylinder
-  */
-
 struct moneytyp {
 ushort gp : 17
 uchar cp : 7
@@ -1074,16 +1061,16 @@ char* psystabs[8] = {"detect alignment","charm","hold","sleep","mind blast","pas
 uchar id
 //switch case for each psionic ability
 
-typedef multiclasstyp:
+struct multiclasstyp:
 (self) *prev
 (self) *next
 classtyp class
 
-typedef classobjtyp:
+struct classobjtyp:
 classtyp class
 magictyp element
 
-typedef classtyp {
+struct classtyp {
 uchar role : 2
 uchar class : 3
 ushort align : 9
@@ -1915,11 +1902,11 @@ starfield tube
 xiter = MAX_X / 8
 for (uchar n = MAX_Y;n;n--) {
 	for (uchar x = 0;x < xiter;x++) {
-		tube[n][m] = tube[n-1][m]
+		tube[n][x] = tube[n-1][x]
 		}
 	}
 for (uchar x = 0;x < xiter;x++) {
-	tube[0][m] = starfield_generator()
+	tube[0][x] = starfield_generator()
 	}
 
 typedef tilemeta* tileset[128]
@@ -2101,15 +2088,11 @@ div_t ifargs
 const char* dothis
 div_t doargs
 const char* name
-cylinder dim
+bool language : 1 // 0 = guile, 1 = perl
+uchar radius : 7
+uchar up : 4
+uchar down : 4
 umint duration
-/* events call raw C functions, without any sort of restrictions on what they have
- * access to beyond what the program can give it. the idea is to provide a full
- * turing-complete interface by which the game's world can be altered according
- * to actions taken by the player. another use would be to show a cutscene rendered
- * with raw curses calls; an elaborate example of curses used in that manner
- * will be found in the game's introduction cutscene.
- */
 
 enum triggerenum {ALWAYS_FLAG,ILLUM_FLAG,LOOK_FLAG,FARLOOK_FLAG,BUMP_FLAG,HIT_FLAG,FIRST_FLAG,NEW_FLAG,DAY_FLAG,TIME_FLAG,MORN_FLAG,NOON_FLAG,EVE_FLAG,MIDNITE_FLAG,DAY_FLAG,NIGHT_FLAG}
 
