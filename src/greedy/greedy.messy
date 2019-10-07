@@ -51,16 +51,16 @@ uchar downstair_x downstair_y upstair_x upstair_y ceiling home_x home_y home_z
 tileset *hightiles
 {
 metaroomtyp* output = malloc(sizeof(metaroomtyp))
-output→tiledata = calloc((ceiling + 1) * MAX_Y * MAX_X,sizeof(schar))
-output→downstair→x = downstair_x
-output→downstair→y = downstair_y
-output→upstair→x = upstair_x
-output→upstair→y = upstair_y
-output→home→x = home_x
-output→home→y = home_y
-output→home→z = home_z
-output→do_downstair = do_downstair
-output→do_upstair = do_upstair
+output->tiledata = calloc((ceiling + 1) * MAX_Y * MAX_X,sizeof(schar))
+output->downstair->x = downstair_x
+output->downstair->y = downstair_y
+output->upstair->x = upstair_x
+output->upstair->y = upstair_y
+output->home->x = home_x
+output->home->y = home_y
+output->home->z = home_z
+output->do_downstair = do_downstair
+output->do_upstair = do_upstair
 }
 
 pathfinderdata makepathgrid(xcoord,ycoord,zcoord,parent)
@@ -68,8 +68,8 @@ uchar xcoord ycoord zcoord
 metaroomtyp* parent
 {
 pathfinderdata output
-setpathnode* pathgrid = calloc((parent→ceiling + 1) * MAX_Y * MAX_X,sizeof(pathfinderdata))
-for (uchar z;z ≤ parent→ceiling;z++) {
+setpathnode* pathgrid = calloc((parent->ceiling + 1) * MAX_Y * MAX_X,sizeof(pathfinderdata))
+for (uchar z;z ≤ parent->ceiling;z++) {
 	for (uchar y;y < MAX_Y;y++) {
 		for (uchar x;x < MAX_X;x++) {
 			pathgrid[COORDSUB(z,y,x)].runningdist = -1
@@ -78,11 +78,11 @@ for (uchar z;z ≤ parent→ceiling;z++) {
 		}
 	}
 setcoord3* urhydra = malloc(sizeof(setcoord3))
-urhydra→prev = urhydra
-urhydra→next = urhydra
-urhydra→x = xcoord
-urhydra→y = ycoord
-urhydra→z = zcoord
+urhydra->prev = urhydra
+urhydra->next = urhydra
+urhydra->x = xcoord
+urhydra->y = ycoord
+urhydra->z = zcoord
 output.grid = pathgrid
 output.hydra_ptr = urhydra
 return output
@@ -100,11 +100,11 @@ for (uchar y;y < MAX_Y;y++) {
 		}
 	}
 setcoord3* urhydra = malloc(sizeof(setcoord3))
-urhydra→prev = urhydra
-urhydra→next = urhydra
-urhydra→x = xcoord
-urhydra→y = ycoord
-urhydra→z = 0
+urhydra->prev = urhydra
+urhydra->next = urhydra
+urhydra->x = xcoord
+urhydra->y = ycoord
+urhydra->z = 0
 output.grid = pathgrid
 output.hydra_ptr = urhydra
 return output
@@ -120,8 +120,8 @@ uchar xcoord ycoord zcoord
 metaroomtyp* parent
 {
 dijkstradata output
-setpathnode* pathgrid = calloc((parent→ceiling + 1) * MAX_Y * MAX_X,sizeof(dijkstradata))
-for (uchar z;z ≤ parent→ceiling;z++) {
+setpathnode* pathgrid = calloc((parent->ceiling + 1) * MAX_Y * MAX_X,sizeof(dijkstradata))
+for (uchar z;z ≤ parent->ceiling;z++) {
 	for (uchar y;y < MAX_Y;y++) {
 		for (uchar x;x < MAX_X;x++) {
 			pathgrid[COORDSUB(z,y,x)].runningdist = -1
@@ -129,11 +129,11 @@ for (uchar z;z ≤ parent→ceiling;z++) {
 		}
 	}
 setcoord3* urhydra = malloc(sizeof(setcoord3))
-urhydra→prev = urhydra
-urhydra→next = urhydra
-urhydra→x = xcoord
-urhydra→y = ycoord
-urhydra→z = zcoord
+urhydra->prev = urhydra
+urhydra->next = urhydra
+urhydra->x = xcoord
+urhydra->y = ycoord
+urhydra->z = zcoord
 output.grid = pathgrid
 output.hydra_ptr = urhydra
 return output
@@ -150,11 +150,11 @@ for (uchar y;y < MAX_Y;y++) {
 		}
 	}
 setcoord3* urhydra = malloc(sizeof(setcoord3))
-urhydra→prev = urhydra
-urhydra→next = urhydra
-urhydra→x = xcoord
-urhydra→y = ycoord
-urhydra→z = 0
+urhydra->prev = urhydra
+urhydra->next = urhydra
+urhydra->x = xcoord
+urhydra->y = ycoord
+urhydra->z = 0
 output.grid = pathgrid
 output.hydra_ptr = urhydra
 return output
@@ -195,12 +195,12 @@ return (ushort) (abs(xrel) + abs(yrel) + abs(zrel));
 
 /*pseudocode*/mapgenunderground
 rooms:
-for 0→50 do
-	roll <FOOdBAR> → index
+for 0->50 do
+	roll <FOOdBAR> -> index
 	rotateby 1d4
-	roll 1d(MAX_Y-subrooms[index].dim.y) → posY
-	roll 1d(MAX_X-subrooms[index].dim.x) → posX
-	roll 1d(8-subrooms[index].dim.z) → posZ
+	roll 1d(MAX_Y-subrooms[index].dim.y) -> posY
+	roll 1d(MAX_X-subrooms[index].dim.x) -> posX
+	roll 1d(8-subrooms[index].dim.z) -> posZ
 	try put subrooms[index] at (posX,posY,posZ)
 	if !overlapping
 		draw room
@@ -330,7 +330,7 @@ setcoord3* sollin(pathfindargs args,setedge *forest,metaroomtyp* activeroom)
 	 * for an edge with non-zero membership that has a pointa or pointb
 	 * which matches either the pointa or pointb of the current edge
 	 *
-	 * node iteration→tree iteration ; shortest first
+	 * node iteration->tree iteration ; shortest first
 	 */
 
 setcoord3* makemaze(uchar gridspacing,uchar floorspacing,mazealignparamtyp maze,metaroomtyp* activeroom)	//sets basic aspects of the room, generates a grid of points, puts upstair, downstair, and home on that grid.
@@ -340,21 +340,21 @@ shadowmask* walltrace(schar tile,uchar height,metaroomtyp* activeroom)	//outline
 shadowmask* attractor(bool replace,schar tile,setcoord *coordlist,uchar iterations,bool invert,metaroomtyp* activeroom)
 	/* uchar xcoord = roll 1dMAX_X
 	 * uchar ycoord = roll 1dMAX_Y
-	 * uchar zcoord = roll 1d(activeroom→ceiling + 1)
+	 * uchar zcoord = roll 1d(activeroom->ceiling + 1)
 	 *
 	 * uint rotate = random()
-	 * for (;rotate;rotate--) {coordlist = coordlist→next}
-	 * xcoord = (xcoord + list→x) / 2
-	 * ycoord = (ycoord + list→y) / 2
-	 * zcoord = (zcoord + list→z) / 2
+	 * for (;rotate;rotate--) {coordlist = coordlist->next}
+	 * xcoord = (xcoord + list->x) / 2
+	 * ycoord = (ycoord + list->y) / 2
+	 * zcoord = (zcoord + list->z) / 2
 	 * if ( (!tile(xcoord,ycoord,zcoord) || (replace) ) {put tile (xcoord,ycoord,zcoord)}
 	 *
 	 * for (;iterations;iterations--) {
 	 * 	uint rotate = random()
-	 * 	for (;rotate;rotate--) {coordlist = coordlist→next}
-	 * 	xcoord = (xcoord + list→x) / 2
-	 * 	ycoord = (ycoord + list→y) / 2
-	 * 	zcoord = (zcoord + list→z) / 2
+	 * 	for (;rotate;rotate--) {coordlist = coordlist->next}
+	 * 	xcoord = (xcoord + list->x) / 2
+	 * 	ycoord = (ycoord + list->y) / 2
+	 * 	zcoord = (zcoord + list->z) / 2
 	 * 	if ( (!tile(xcoord,ycoord,zcoord) || (replace) ) {put tile(xcoord,ycoord,zcoord)}
 	 *	}
 	 */
@@ -367,7 +367,7 @@ shadowmask* spikenoise(replace,tile,floor or ceiling,metaroomtyp* activeroom)
 	 */
 
 shadowmask* hailofdice(replace,tile,number,metaroomtyp* activeroom)
-	//while number { roll(1dMAX_X,1dMAX_Y,1d(activeroom→ceiling + 1)); put tile; number--; }
+	//while number { roll(1dMAX_X,1dMAX_Y,1d(activeroom->ceiling + 1)); put tile; number--; }
 
 tiles_cubefill(bool overwrite,schar tile,coord3 pointa,coord3 pointb,metaroomtyp* activeroom)
 tiles_cubeshell(bool overwrite,bool blank,schar tile,coord3 pointa,coord3 pointb,metaroomtyp* activeroom)

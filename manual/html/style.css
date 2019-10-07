@@ -30,16 +30,30 @@ pre {
 	display: block;
 	white-space: pre-wrap;
 	border-style: solid;
+}
+strong {
+	display: block;
+	background-color: salmon;
+	border-style: dashed;
+	border-color: red;
 	border-width: 1px 1px 1px 1px;
 }
-.greenscreen {
+kbd {
+	display: inline;
+	font-family: monospace;
+	border-style: outset;
+	border-width: 2px 3px 3px 3px;
+}
+tt {
+	display: block;
+	white-space: pre-wrap;
+	border-style: solid;
 	background-color: black;
 	color: lime;
+	border-color: beige;
+	border-style: solid;
+	border-width: 2px 3px 2px 3px;
 }
-.basic {
-	background-color: mediumslateblue;
-	color: snow;
-}	
 .oxturn {
 	transform: scale(-1, 1);
 }

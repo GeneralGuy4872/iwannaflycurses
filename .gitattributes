@@ -11,31 +11,38 @@ core.autocrlf=false
 *.hh = linguist-language=C++
 *.m = linguist-language=Objective-C
 *.mm = linguist-language=Objective-C++
-*.m4 = linguist-language=M4
+# *.xs = linguist-language=XS
+# *.m4 = linguist-language=M4
+# *.gpp = linguist-language=GPP
 # *.pas = linguist-language=Pascal
 # *.p = linguist-language=Pascal
 # *.pp = linguist-language=Pascal
-*.a68 = linguist-language=Algol
-*.icn = linguist-language=icon
-*.u = linguist-language=unicon
+# *.a68 = linguist-language=Algol
+# *.icn = linguist-language=icon
+# *.u = linguist-language=unicon
 # *.awk = linguist-language=Awk
-*.pl = linguist-language=Perl
-*.cl = linguist-language=Lisp
-*.scm = linguist-language=Scheme
-*.sno = linguist-language=SNOBOL4
+# *.pl = linguist-language=Perl
+# *.pm = linguist-language=Perl
+# *.PL = linguist-language=Perl
+# *.cl = linguist-language=Lisp
+*.clp = linguist-language=Lisp
+# *.scm = linguist-language=Scheme
+# *.sno = linguist-language=SNOBOL4
 # *.bas = linguist-language=BASIC
-*.apl = linguist-language=APL
+# *.apl = linguist-language=APL
 # *.fth = linguist-language=forth 
-*.asm = linguist-language=assembly
+# *.asm = linguist-language=assembly
 # *.lua = linguist-language=lua
 # *.py = linguist-language=python
 # *.js = linguist-language=javascript
 # *.sh = linguist-language=Shell
 # *.lex = linguist-language=Lex
 # *.y = linguist-language=Yacc
+*.yp = linguist-language=Yacc
 make = linguist-language=makefile
-*.cmake = linguist-language=CMake
-CMakeLists.txt = linguist-language=CMake
+# *.mk = linguist-language=makefile
+# *.cmake = linguist-language=CMake
+# CMakeLists.txt = linguist-language=CMake
 # *.ini = linguist-language=INI
 # *.tab = linguist-language=tsv
 # *.tsv = linguist-language=tsv
@@ -49,7 +56,7 @@ CMakeLists.txt = linguist-language=CMake
 # *.html = linguist-language=HTML
 # *.css = linguist-language=CSS
 # *.sgml = linguist-language=SGML
-*.sgml.* = linguist-language=SGML
+# *.sgml.* = linguist-language=SGML
 *.txt = linguist-language=text
 *.hex = binary diff
 *.bin = binary diff
@@ -60,7 +67,6 @@ CMakeLists.txt = linguist-language=CMake
 *.tar = binary diff
 *.tar.* = binary diff
 *.midi = binary diff
-*.nfo = binary linguist-language=text linguist-vendored=false linguist-documentation=false linguist-detectable=true diff
+*.nfo = binary linguist-language=text diff
 *.dump = linguist-language=unknown
-*.iwfcext = linguist-language=unknown
 *.midibas = linguist-language=unknown

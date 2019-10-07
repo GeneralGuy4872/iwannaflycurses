@@ -28,3 +28,5 @@
 	//where non-game executables are installed
 #define DOT_PATH "~/.iwannaflycurses/"
 	//where the config files are found
+#define PERL_PATH "/usr/lib/i386-linux-gnu/perl/5.24.1/CORE/"
+	//where the perl headers are hiding

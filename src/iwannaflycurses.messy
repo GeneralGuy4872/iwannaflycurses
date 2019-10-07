@@ -192,11 +192,19 @@
 //#include <fcntl.h>
 //#include <sys/stat.h>
 //#include <errno.h>
+#include <rpc/rpc.h>
 
 /**compression libraries**/
 #include <libtar.h>
 #include <zlib.h>
 #include <libbz2.h>
+
+/**perl libraries**/
+#define PERL_NO_GET_CONTEXT
+#include <EXTERN.h>
+#include <perl.h>
+#include "XSUB.h"
+
 
 /**ncurses libraries**/
 #include <ncursesw/ncurses.h>
@@ -205,28 +213,6 @@
 //#include <forms.h>
 
 // need to find a MIDI library.
-
-#ifndef OK
-#define OK 0
-#endif
-
-#ifndef ERR
-#define ERR -1
-#endif
-
-#ifndef EOF
-#error now you're just TRYING to break stuff...
-#endif
-
-#ifndef NULL
-#warning ... ...wh ... ... how??
-#define NULL ((void*)0)
-#endif
-
-#define TRUE true
-#define FALSE false
-#define T true
-#define NIL ((intptr_t)0)	/*should be false and NULL equivilant, might be kept even if the others are purged*/
 
 mvaddch16(int x,int y,char16_t raw) {
 const wchar_t wch = raw;
@@ -251,52 +237,9 @@ addnwstr(&wch,1);
  */
 
 /*ENVIROMENTALS*/
-#define BUFFER_MAX 512
-#define FLOPPYSIZE 1474560
-#define DRUMSIZE 16384
-#define BGCOLORS 8
-#define FGCOLORS 8
 char16_t TILDEWIDE
-#define BLINKY "\033[5m_\033[25m"
 char* TERM
 
-/*VERSION*/
-#define ENGINE_VERSION "Prealpha"
-#define RULES_VERSION "Prealpha"
-#define API_VERSION "Prealpha"
-#ifndef SAVE_VERSION
-#define SAVE_VERSION "MISSING"
-#endif
-#ifndef EXT_PARS_VERSION
-#define EXT_PARSE_VERSION "MISSING"
-#endif
-#ifndef RUNCOM_VERSION
-#define RUNCOM_VERSION "MISSING"
-#endif
-#ifndef MIDIBAS_VERSION
-#define MIDIBAS_VERSION "MISSING"
-#endif
-#ifndef MIDI_TYPE
-#define MIDI_TYPE "MISSING"
-#endif
-
-/*FUNCTION MACROS*/
-#define BACKGROUND 010
-#define MAX(A,B) (A > B ? A : B)
-#define MIN(A,B) (A < B ? A : B)
-#define INTERVAL(A,N,B) MIN(MAX(A,N),B)
-#define COORDSUB(Z,Y,X) ((MAX_Y * Z) + (MAX_X * Y) + X)
-
-// kludge so that stdio and ncurses play nice together
-#define RESET "\033c\033[2J\033[0H"
-#define BREAKCURSES clear();refresh();endwin();printf(RESET);fflush(stdout);
-#define FIXCURSES printf(RESET);fflush(stdout);initialize();while (fgetc(stdin) != '\n');refresh;
-
-// prettify the tokens my eyes don't parse
-#define ≥ >=
-#define ≤ <=
-#define → ->
-#define forever for (;;)
 /* ɛ̩̍ will be used for "and", the conjunction, in comments where logical && would give a meaning that
  * could be validly, but incompatibly, interpreted as compleatly different from what is intended.
  * if confusion arises from or, similar mesures will be implemented for it, too.
@@ -336,9 +279,9 @@ void* drumalloc (ptr,amount)
 struct drum ptr
 size_t amount
 {
-if ((ptr→top + amount) ≤ (DRUMSIZE)) {
-	void* output = ptr→data[ptr→top]
-	ptr→top += amount
+if ((ptr->top + amount) ≤ (DRUMSIZE)) {
+	void* output = ptr->data[ptr->top]
+	ptr->top += amount
 	return output
 	}
 else {return NULL}
@@ -348,7 +291,7 @@ drumpop (ptr,amount)
 struct drum ptr
 size_t amount
 {
-ptr→top = MAX(ptr→top - amount,0)
+ptr->top = MAX(ptr->top - amount,0)
 }
 
 setlocale(LC_ALL, "");
@@ -628,7 +571,7 @@ roomtyp* ROOM
 #define MAX_X 64
 #define MAX_Y 24	//MAX_X ≥ MAX_Y ≥ MAX_Z
 #define MAX_Z 16
-#define CEILING ROOM→ceiling
+#define CEILING ROOM->ceiling
 #define ROOF 201	//it is decreed: mortals shall fly no higher. (this means you!)
 #define EQUATOR 360	//the number of rooms in the circumfrence of the sphere
 int(latlontyp)* ROOMGENCALL[ROOF + 1][EQUATOR/2 + 1][EQUATOR]
@@ -642,7 +585,7 @@ uchar ROOMTURN
 ullong KILLS
 char* SAVEPATH
 followtype *FOLLOW_ptr	//pursuers, i.e. paid assasins, ninjas, the reaper...
-eventtyp *EVNT_ptr	//FOO_ptr refers to the doubly linked list's head. the tail is FOO_ptr→prev
+eventtyp *EVNT_ptr	//FOO_ptr refers to the doubly linked list's head. the tail is FOO_ptr->prev
 placetyp *PLACE_ptr
 stringlistyp *HINT_ptr
 eventstringtyp *HEYLISTEN_ptr
@@ -820,9 +763,9 @@ forever {
 	if ((ch > UCHAR_MAX) || (ch < 0)) {
 		switch ch : {
 			case KEY_ENTER : goto(fin);
-			case KEY_BACKSPACE : subscript = INTERVAL(0,subscript-1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
-			case KEY_LEFT : subscript = INTERVAL(0,subscript-1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
-			case KEY_RIGHT : subscript = INTERVAL(0,subscript+1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			case KEY_BACKSPACE : subscript = INTVL(0,subscript-1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			case KEY_LEFT : subscript = INTVL(0,subscript-1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			case KEY_RIGHT : subscript = INTVL(0,subscript+1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
 			case KEY_HOME : subscript = 0; offset = subscript < 4 ? subscript-4 : subscript-3; break;
 			case KEY_SLEFT : subscript = 0; offset = subscript < 4 ? subscript-4 : subscript-3; break;
 			case KEY_HOME : subscript = 7; offset = subscript < 4 ? subscript-4 : subscript-3; break;
@@ -833,9 +776,9 @@ forever {
 	else {
 		switch ch : {
 			case '\n' : goto(fin);
-			case '\b' : subscript = INTERVAL(0,subscript-1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
-			case ' ' : subscript = INTERVAL(0,subscript+1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
-			default: if (isxdigit(ch)) {hexbuffer[subscript] = ch; printw(ch);}; subscript = INTERVAL(0,subscript+1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			case '\b' : subscript = INTVL(0,subscript-1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			case ' ' : subscript = INTVL(0,subscript+1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			default: if (isxdigit(ch)) {hexbuffer[subscript] = ch; printw(ch);}; subscript = INTVL(0,subscript+1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
 			}
 		}
 	move(y,x+offset);
@@ -889,7 +832,7 @@ DAY = ((6 ≤ DATE.hour) && (DATE.hour < 18))
 NIGHT = ((DATE.hour < 6) || (18 ≤ DATE.hour))
 }
 
-//cartesian projection, →x ↓y ↑z (+y=-z)
+//cartesian projection, ->x ↓y ↑z (+y=-z)
 
 struct coord3:
 uchar x
@@ -1336,42 +1279,42 @@ int itemswap (item1,item2)
 heldobjtyp *item1
 heldobjtyp *item2
 {
-heldobjtyp *prev1 = item1→prev
-heldobjtyp *prev2 = item2→prev
-heldobjtyp *next1 = item1→next
-heldobjtyp *next2 = item2→next
-if (item1→next = item2) {
-	prev1→next = item2
-	item2→prev = prev1
+heldobjtyp *prev1 = item1->prev
+heldobjtyp *prev2 = item2->prev
+heldobjtyp *next1 = item1->next
+heldobjtyp *next2 = item2->next
+if (item1->next = item2) {
+	prev1->next = item2
+	item2->prev = prev1
 
-	item2→next = item1
-	item1→prev = item2
+	item2->next = item1
+	item1->prev = item2
 
-	next2→prev = item1
-	item1→next = next2
+	next2->prev = item1
+	item1->next = next2
 	}
-if (item2→next = item1) {
-	prev2→next = item1
-	item1→prev = prev2
+if (item2->next = item1) {
+	prev2->next = item1
+	item1->prev = prev2
 
-	item1→next = item2
-	item2→prev = item1
+	item1->next = item2
+	item2->prev = item1
 
-	next1→prev = item2
-	item2→next = next1
+	next1->prev = item2
+	item2->next = next1
 	}
 else {
-	prev1→next = item2
-	item2→prev = prev1
+	prev1->next = item2
+	item2->prev = prev1
 
-	next1→prev = item2
-	item2→next = next1
+	next1->prev = item2
+	item2->next = next1
 
-	prev2→next = item1
-	item1→prev = prev2
+	prev2->next = item1
+	item1->prev = prev2
 
-	next2→prev = item1
-	item1→next = next2
+	next2->prev = item1
+	item1->next = next2
 	}
 }
 
@@ -1823,14 +1766,14 @@ uchar subject : 2 //0 = cooking, 1 = weapons, 2 = language, 3 = spellcraft
 uchar uses : 6
 *void contents
 
-char* wandmaterials[16] = {"oak","ash","yew","honeylocust","silver","bronze","iron","orichalcum","marble","bone","dragon fang","unicorn horn","glass","lead crystal","adamantine","stardust"} //stoning → marble
+char* wandmaterials[16] = {"oak","ash","yew","honeylocust","silver","bronze","iron","orichalcum","marble","bone","dragon fang","unicorn horn","glass","lead crystal","adamantine","stardust"} //stoning -> marble
 
 wandtyp:
 uchar matter : 4
 uchar uses : 4
 symtabref bound : 8
 
-char* baubmaterials[8] = {"yew","bronze","silver","gold","soapstone","ivory","obsidian","stardust"} //stoning → soapstone
+char* baubmaterials[8] = {"yew","bronze","silver","gold","soapstone","ivory","obsidian","stardust"} //stoning -> soapstone
 
 baubtype :
 schar type : 2 //0=ring, 1=bracelet, -1=amulet, -2=tiara
@@ -1897,7 +1840,6 @@ lightyp *lamp_ptr
  *    .dump : a debugger data dump, with a format somwhere between JSON, INI, and C-like pseudocode. essentialy a dat file in readable (and non-raw) format.
  *
  * if the following new extensions collide with anything, I will change them. I specifically chose ones that were not a TLA or EFLA to try and avoid this, because there have been TDMTLA since before I came along.
- * .iwfcext : a plugin. "iwfc" should be replaced with the abbiviation of the final name.
  * .midibas : midiBASIC, to be parsed by the midi generator into a .h file. Represents a different subset of general midi than regular midi files, but does so in a human readable format.
  */
 
@@ -2657,66 +2599,66 @@ roomtyp* roomptr
 {
 if (roomptr == NULL) {roomptr = ROOM}
 	{
-	encontyp* current = roomptr→encon_ptr→prev
-	encontyp* previous = roomptr→encon_ptr→prev→prev
-	roomptr→encon_ptr→prev→next = NULL
-	roomptr→encon_ptr→prev = NULL
+	encontyp* current = roomptr->encon_ptr->prev
+	encontyp* previous = roomptr->encon_ptr->prev->prev
+	roomptr->encon_ptr->prev->next = NULL
+	roomptr->encon_ptr->prev = NULL
 	while (previous != NULL) {
 		free(current)
 		current = previous
-		previous = previous→prev
+		previous = previous->prev
 		}
 	free(current)
 	current = NULL
 	}
 	{
-	setcoord3* current = roomptr→encon_ptr→prev
-	setcoord3* previous = roomptr→encon_ptr→prev→prev
-	roomptr→encon_ptr→prev→next = NULL
-	roomptr→encon_ptr→prev = NULL
+	setcoord3* current = roomptr->encon_ptr->prev
+	setcoord3* previous = roomptr->encon_ptr->prev->prev
+	roomptr->encon_ptr->prev->next = NULL
+	roomptr->encon_ptr->prev = NULL
 	while (previous != NULL) {
 		free(current)
 		current = previous
-		previous = previous→prev
+		previous = previous->prev
 		}
 	free(current)
 	current = NULL
 	}
 	{
-	enttyp* current = roomptr→encon_ptr→prev
-	enttyp* previous = roomptr→encon_ptr→prev→prev
-	roomptr→encon_ptr→prev→next = NULL
-	roomptr→encon_ptr→prev = NULL
+	enttyp* current = roomptr->encon_ptr->prev
+	enttyp* previous = roomptr->encon_ptr->prev->prev
+	roomptr->encon_ptr->prev->next = NULL
+	roomptr->encon_ptr->prev = NULL
 	while (previous != NULL) {
 		free(current)
 		current = previous
-		previous = previous→prev
+		previous = previous->prev
 		}
 	free(current)
 	current = NULL
 	}
 	{
-	mapobjtyp* current = roomptr→encon_ptr→prev
-	mapobjtyp* previous = roomptr→encon_ptr→prev→prev
-	roomptr→encon_ptr→prev→next = NULL
-	roomptr→encon_ptr→prev = NULL
+	mapobjtyp* current = roomptr->encon_ptr->prev
+	mapobjtyp* previous = roomptr->encon_ptr->prev->prev
+	roomptr->encon_ptr->prev->next = NULL
+	roomptr->encon_ptr->prev = NULL
 	while (previous != NULL) {
 		free(current)
 		current = previous
-		previous = previous→prev
+		previous = previous->prev
 		}
 	free(current)
 	current = NULL
 	}
 	{
-	lightyp* current = roomptr→encon_ptr→prev
-	lightyp* previous = roomptr→encon_ptr→prev→prev
-	roomptr→encon_ptr→prev→next = NULL
-	roomptr→encon_ptr→prev = NULL
+	lightyp* current = roomptr->encon_ptr->prev
+	lightyp* previous = roomptr->encon_ptr->prev->prev
+	roomptr->encon_ptr->prev->next = NULL
+	roomptr->encon_ptr->prev = NULL
 	while (previous != NULL) {
 		free(current)
 		current = previous
-		previous = previous→prev
+		previous = previous->prev
 		}
 	free(current)
 	current = NULL
@@ -2881,7 +2823,7 @@ forever {
 <ent|follow>typ* ptr = <head>
 while (ptr != NULL) {
 	<follow|ent>_act(&ptr) //&ptr's turn
-	ptr = ptr→next
+	ptr = ptr->next
 	}
 }
 
@@ -2891,13 +2833,13 @@ uchar tableid
 {
 encontyp *ptr = ROOM.encon_head
 for (;tableid != 0;tableid--) {
-	ptr = ptr→next
+	ptr = ptr->next
 	}
 uchar try;
 for (;count != 0;count--) {
 	try = mainh_roll(10,20,1)
-	if (try > ptr→tobeat) {
-		summonfunc(ptr→spawn)
+	if (try > ptr->tobeat) {
+		summonfunc(ptr->spawn)
 		}
 	}
 }
@@ -3003,23 +2945,23 @@ FILE* list = fopen(path)
 char buffer[BUFFERMAX]
 stringlistyp* output = malloc(sizeof(stringlistyp))
 fgets(buffer,BUFFERMAX - 1,list)
-output→prev = output
-output→next = output
-output→text = calloc(stringlen(buffer),sizeof(char))
-strcpy(output→text,buffer)
+output->prev = output
+output->next = output
+output->text = calloc(stringlen(buffer),sizeof(char))
+strcpy(output->text,buffer)
 
 stringlistyp* new
 while (EOF != fgets(buffer,511,list)) {
 	new = malloc(sizeof(stringlistyp))
 	fgets(buffer,BUFFERMAX - 1,list)
-	output→prev = output
-	output→next = output
-	output→text = calloc(stringlen(buffer),sizeof(char))
-	strcpy(output→text,buffer)
-	output→prev→next = new
-	new→prev = output→prev
-	new→next = output
-	output→prev = new
+	output->prev = output
+	output->next = output
+	output->text = calloc(stringlen(buffer),sizeof(char))
+	strcpy(output->text,buffer)
+	output->prev->next = new
+	new->prev = output->prev
+	new->next = output
+	output->prev = new
 	}
 }
 

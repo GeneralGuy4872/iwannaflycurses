@@ -14,105 +14,111 @@
 
 Iwannafly
 =========
-*roguelike game with plugin interface written in C useing minimal propagating dependencies*
+*roguelike game library written in C and Perl with extension interface useing minimal external propagating dependencies*
 
 Dependencies:
-(listed by file to be distro-independent)
 
 Build Deps:
-- <CODE>cp</CODE>
-- <CODE>ls</CODE>
-- <CODE>sh</CODE>
-- <CODE>cc</CODE>
-- <CODE>ld</CODE>
-- <CODE>sed</CODE> maybe?
-- <CODE>awk</CODE> maybe?
-- <CODE>perl</CODE> maybe?
-- <CODE>flex</CODE>
-- <CODE>byacc</CODE>
-- <CODE>make</CODE>
+- Command <CODE>cp</CODE>
+- Command <CODE>ls</CODE>
+- Command <CODE>sh</CODE>
+- Command <CODE>cc</CODE>
+- Command <CODE>ld</CODE>
+- Command <CODE>sed</CODE>
+- Command <CODE>awk</CODE> (maybe?)
+- Command <CODE>perl</CODE>
+- Command <CODE>flex</CODE>
+- Command <CODE>byacc</CODE>
+- Command <CODE>make</CODE>
+- Perl module <CODE>ExtUtils::MakeMaker</CODE>
 
 Build Recommends:
-- <CODE>uname</CODE>
-- <CODE>grep</CODE>
-- <CODE>sed</CODE>
+- Command <CODE>uname</CODE>
+- Command <CODE>cpan</CODE>
 
-Depends (libraries by header):
-- <CODE>\<stdlib.h\></CODE>
-- <CODE>\<stdio.h\></CODE>
-- <CODE>\<stdbool.h\></CODE>
-- <CODE>\<stdint.h\></CODE>
-- <CODE>\<math.h\></CODE>
-- <CODE>\<limits.h\></CODE>
-- <CODE>\<time.h\></CODE>
-- <CODE>\<string.h\></CODE>
-- <CODE>\<ctype.h\></CODE>
-- <CODE>\<uchar.h\></CODE>
-- <CODE>\<dlfcn.h\></CODE>
-- <CODE>\<unistd.h\></CODE>
-- <CODE>\<signal.h\></CODE>
-- <CODE>\<locale.h\></CODE>
-- <CODE>\<regex.h\></CODE> probably
-- <CODE>\<glob.h\></CODE> probably
-- <CODE>\<sys/types.h\></CODE> maybe?
-- <CODE>\<sys/ioctl.h\></CODE> maybe?
-- <CODE>\<fcntl.h\></CODE> probably
-- <CODE>\<sys/stat.h\></CODE> probably
-- <CODE>\<errno.h\><\CODE> maybe?
-- <CODE>\<libtar.h\></CODE>
-- <CODE>\<zlib.h\></CODE>
-- <CODE>\<libbz2.h\></CODE>
-- <CODE>\<ncursesw/ncurses.h\></CODE>
-- <CODE>\<menu.h\></CODE> maybe?
-- <CODE>\<forms.h\></CODE> maybe?
+Depends:
+- UTF-8 Console Support
+- C library <CODE>\<stdlib.h\></CODE>
+- C library <CODE>\<stdio.h\></CODE>
+- C library <CODE>\<stdbool.h\></CODE>
+- C library <CODE>\<stdint.h\></CODE>
+- C library <CODE>\<math.h\></CODE>
+- C library <CODE>\<limits.h\></CODE>
+- C library <CODE>\<time.h\></CODE>
+- C library <CODE>\<string.h\></CODE>
+- C library <CODE>\<ctype.h\></CODE>
+- C library <CODE>\<uchar.h\></CODE>
+- C library <CODE>\<dlfcn.h\></CODE>
+- C library <CODE>\<unistd.h\></CODE>
+- C library <CODE>\<signal.h\></CODE>
+- C library <CODE>\<locale.h\></CODE>
+- C library <CODE>\<regex.h\></CODE> (probably)
+- C library <CODE>\<glob.h\></CODE> (probably)
+- C library <CODE>\<sys/types.h\></CODE> (maybe?)
+- C library <CODE>\<sys/ioctl.h\></CODE> (maybe?)
+- C library <CODE>\<fcntl.h\></CODE> (probably)
+- C library <CODE>\<sys/stat.h\></CODE> (probably)
+- C library <CODE>\<errno.h\></CODE> (maybe?)
+- C library <CODE>\<rpc/rpc.h\></CODE>
+- C library <CODE>\<libtar.h\></CODE>
+- C library <CODE>\<zlib.h\></CODE>
+- C library <CODE>\<libbz2.h\></CODE>
+- C library <CODE>\<ncursesw/ncurses.h\></CODE>
+- C library <CODE>\<menu.h\></CODE> (maybe?)
+- C library <CODE>\<forms.h\></CODE> (maybe?)
+- C library <CODE>\<EXTERN.h\></CODE>
+- C library <CODE>\<perl.h\></CODE>
+- C library <CODE>"XSUB.h"</CODE>
+- C library <CODE>"INLINE.h"</CODE>
+- Perl feature <CODE>"switch"</CODE>
+- Perl module <CODE>Safe</CODE>
+- Perl module <CODE>boolean</CODE>
+- Perl module <CODE>Exporter</CODE>
+- Perl module <CODE>optimize::int</CODE>
+- Perl module <CODE>Test::Simple</CODE>
+- Perl module <CODE>Test::Type</CODE>
+- Perl module <CODE>Scalar::Util</CODE>
+- Perl module <CODE>Hash::Util</CODE>
+- Perl module <CODE>FastGlob</CODE> (maybe?)
+- Perl module <CODE>goto::file</CODE>
+- Perl module <CODE>JSON</CODE>
+- Perl module <CODE>Config::Tiny</CODE>
+- Perl module <CODE>IO::Pipe</CODE> (maybe?)
+- Perl module <CODE>IO::Pty</CODE> (possibly?)
+- Perl module <CODE>Filter::Simple</CODE>
+- Perl module <CODE>Tie::File</CODE>
+- Perl module (<CODE>XS</CODE>|<CODE>Dyna</CODE>)<CODE>Loader</CODE>
+- Perl module <CODE>Inline</CODE> 'C'
+- Perl module <CODE>POSIX::</CODE>(<CODE>ceil</CODE>|<CODE>floor</CODE>)
+- Perl module <CODE>Acme::don't</CODE> (no-ops during testing)
 
 Recommends:
-- <CODE>xterm</CODE>, unicode, color
-- <CODE>/usr/share/fonts/X11/misc/6x13.\*</CODE>
-	- aka <CODE>-Misc-Fixed-Medium-R-SemiCondensed--13-120-75-75-C-60-ISO10646-1</CODE>
-
-Devkit Suggests:
-- <CODE>m4</CODE>
-- <CODE>gpp</CODE>
-- <CODE>sed</CODE> || <CODE>awk</CODE> || <CODE>perl</CODE>
-- <CODE>emacs</CODE> || <CODE>vim</CODE>
+- Command <CODE>xterm</CODE> (UTF-8, Color)
+- Font <CODE>-Misc-Fixed-Medium-R-SemiCondensed--13-120-75-75-C-60-ISO10646-1</CODE>
 
 Doc Depends:
-- <CODE>man</CODE>
-- <CODE>info</CODE>
+- Command <CODE>man</CODE>
+- Command <CODE>info</CODE>
 
 Doc Build Deps:
-- <CODE>mandb</CODE>
-- <CODE>makeinfo</CODE>
-- <CODE>install-info</CODE>
-- <CODE>cp</CODE>
+- Command <CODE>mandb</CODE>
+- Command <CODE>makeinfo</CODE>
+- Command <CODE>install-info</CODE>
+- Command <CODE>cp</CODE>
 
 Doc Recommends:
-- <CODE>xdvi</CODE>
-
-Obfuscated C
-------------
-
-To save my poor eyes, I'm using the following macros for C builtins:
-
-- <CODE>≥</CODE> means <CODE>\>=</CODE>
-- <CODE>≤</CODE> means <CODE>\<=</CODE>
-- <CODE>→</CODE> means <CODE>-\></CODE>
-- <CODE>forever</CODE> means <CODE>for (;;)</CODE>
-
-I am given to understand that using macros for functions like this
-is called "obfuscated C"
+- Command <CODE>xdvi</CODE>
 
 NEWS (and Olds)
 ---------------
 
 During Alpha, the project will be optemized for Devuan Linux, however,
 there are (theoretically) no distro-dependent elements, and the code should
-run on ANY \*nix with properly fufilled dependancies by configuring paths.h
 
-Manpages will be provided in Linux's ROFF-man and BSD's ROFF-mdoc;
-the documentation installed will be determined by <CODE>uname</CODE>.
-Extended documentation will be provided in plaintext, Texinfo, and HTML
+Dependencies:
 
-
-Lore can be found at my Neocities site: https://generalguy4872.neocities.org/Games/
+Build Deps:
+- Command <CODE>cp</CODE>
+- Command <CODE>ls</CODE>
+- Command <CODE>sh</CODE>
+- Command <CODE>cc</CODE>
