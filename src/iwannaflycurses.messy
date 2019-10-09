@@ -29,29 +29,23 @@
  * other documentation, as well as give a deeper understanding of the
  * program because, ya'know, source code.
  *
- * note to imaginary future packagers: if packaged in binary form, a dummy header might
- * still be required to support the obfuscated C syntax that is recommended for use
- * with this library. if you don't know what "obfuscated" C is, look at the original
- * unix v7 source of ye old bourne shell for the definative example.
+ * The engine provides the C libraries and Perl modules needed to write a game.
  *
- * the engine should be compiled as a shared object, and installed according to the
- * values set in paths.h
- *
- * a game compiled for the engine should obey the following conventions:
- * - it should provide the bulk of it's functions in a shared library in a private
- *	application directory
- * - it should provide special use functions, such as events, as seperate shared objects,
- *	to be dynamically loaded at runtime.
- * - it should provide special use constants likewise
- *	blocks of text, however, should be regular nfo or txt
- * - it should store any dynamic constants in the savefile, as r<wordsize>, hex, tsv, csv, ini, txt, nfo
- * - it should provide at least the following applications (in $PATH) :
- *	- the game itself
- *	- a seperate program for generating a new savefile
- *		- should use (int argc, char *argv[]) to provide bypassing of dotfile,
- *		  path to a non-default dotfile, overrides of race, class, alignment prefs,
- *		  and other flags as desired. parsed by a different parser from the dotfile.
- *	- a savefile editor
+ * a game using the engine should provide the following:
+ * - A newgame initializer perl script
+ * - Any Guile extensions and shared resources needed by events
+ *	the resource files MUST follow the following naming conventions:
+ *	- .hex or .hex## for packed unsigned byte arrays, where ## is a power of 8
+ *	- .bin or .bin## for packed signed byte arrays, where ## is a power of 8
+ *	- .dat for the custom data format
+ *	- .tsv or .tab for tab seperated values
+ *	- .csv for comma seperated values
+ *	- .asc for a plaintext line-seperated record
+ *	- .txt for a plaintext block of text
+ *	- .ans for an ansi escaped line-seperated record
+ *	- .nfo for an ansi escaped block of text
+ * - Guile extensions to generate rooms
+ * - Shared resources used by events
  *
  * enviromental requirements:
  * - UTF-8 terminal of at least 24*80 characters
@@ -1804,48 +1798,51 @@ enttype *ent_ptr
 mapobjtyp *obj_ptr
 lightyp *lamp_ptr
 
-/*      .r8 : binary data that is organized into 8 bit segments
- *     .r16 : binary data that is organized into 16 bit segments
- *     .r32 : binary data that is...you get the picture, right?
- *     .hex : binary data that is unorganized
- *     .csv : UTF-8 text record deliminated with commas and line breaks
- *     .tsv : UTF-8 text record deliminated with tabs and line breaks
- *     .ini : UTF-8 text record of key=value pairs deliminated with line breaks
- *      .so : a shared object. a game may use as many of these as it wants. Placing single-use functions in LD_LOAD_PATH is DISCOURAGED; they should be placed in the game's private files.
- *     .dat : internal data from inside a savefile
- *     .txt : UTF-8 text document. usually stored in the program's static files, which is CAT-ed to provide dialouge; also used in dumps of primatives
- *     .nfo : UTF-8 text document (not CP437) containing SGR sequences. otherwise identical to txt.
- *  .tar.gz : each room is saved as a tar.gz file, as are linked lists and the player
- * .tar.bz2 : each plane is saved as a tar.bz2 file.
- *     .sav : a save file. formatted as a .tar.bz2 file tree
- *   .man.# : a linux manpage
- *  .mdoc.# : a bsd manpage
- *          : documentation
- *    .html : documentation
- * .texinfo : documentation
- *       .d : everything relating to a struct is stored in the same directory, and pointers to structs are stored as subdirectories with the name of that field. the tail element in a linked list has no subdirectory named "next"; "prev" pointers are "../" implicitly.
- *     .*rc : a configuration file, parsed with the runcommander
- *    .dump : a debugger data dump, with a format somwhere between JSON, INI, and C-like pseudocode. essentialy a dat file in readable (and non-raw) format.
+/*     *.bin : signed binary data that is organized into 8 bit segments
+ *    *.bin# : signed binary data that is organized into n bit segments
+ *     *.hex : unsigned binary data that is organized into 8 bit segments
+ *    *.hex# : unsigned binary data that is organized into n bit segments
+ *     *.csv : UTF-8 text record deliminated with commas and line breaks
+ *     *.tsv : UTF-8 text record deliminated with tabs and line breaks
+ *     *.tab : same as tsv
+ *      *.so : a shared object. a game may use as many of these as it wants. Placing single-use functions in LD_LOAD_PATH is DISCOURAGED; they should be placed in the game's private files.
+ *     *.dat : internal data from inside a savefile
+ *    *.json : a less compact container format that does not allow linking
+ *     *.asc : UTF-8 text record delimenated by newline.
+ *     *.txt : UTF-8 text document. usually stored in the program's static files, which is CAT-ed to provide dialouge; also used in dumps of primatives
+ *     *.ans : UTF-8 text record containing SGR sequences deleminated by newline.
+ *     *.nfo : UTF-8 text document (not CP437) containing SGR sequences. otherwise identical to asc.
+ *  *.tar.gz : each room is saved as a tar.gz file, as are linked lists and the player
+ * *.tar.bz2 : each plane is saved as a tar.bz2 file.
+ *     *.sav : a save file. formatted as a .tar.bz2 file tree
+ *   *.man.# : a linux manpage
+ *  *.mdoc.# : a bsd manpage
+ *         * : documentation
+ *    *.html : documentation
+ * *.texinfo : documentation
+ *     *.pod : perl documentation
+ *       *.d : everything relating to a struct is stored in the same directory, and pointers to structs are stored as subdirectories with the name of that field. the tail element in a linked list has no subdirectory named "next"; "prev" pointers are "../" implicitly.
+ *    *.conf : a configuration file, parsed with perl.
+ *     *.*rc : a user's configuration file.
+ *    *.dump : a debugger data dump, with a format somwhere between JSON, INI, and C-like pseudocode. essentialy a dat file in readable (and non-raw) format.
  *
  * if the following new extensions collide with anything, I will change them. I specifically chose ones that were not a TLA or EFLA to try and avoid this, because there have been TDMTLA since before I came along.
  * .midibas : midiBASIC, to be parsed by the midi generator into a .h file. Represents a different subset of general midi than regular midi files, but does so in a human readable format.
  */
 
 /* dat file format:
- * BOM ESC ! @ IWannaFLyCurses DataFile NUL = Magic Cookie (no spaces)
- * SOH name STX string ETX SEPERATOR = a text field
- * SOH name DLE 16bit_length raw_data SEPERATOR = a numeric field
- * SOH name ACK SEPERATOR = a boolean field that is true
- * SOH name NAK SEPERATOR = a boolean field that is false
- * SOH name XON path XOFF SEPERATOR = a pointer to the data at path
- * SOH name SUB 8bit ... = array dimension
- *	an array will consist of either multiple bodys chained together without SEPERATOR or
- *	SOH name inbetween, or a single pointer to a r# or tsv file
- * SOH name SOH name ... = a struct field
- * EM = end of data
+ * SOH name BEL = struct field key
+ * STX string ETX = an ascii text field
+ * DLE s8bit raw_data = a numeric field, abs(n) bits long. a negative number indicates the field is signed.
+ * ACK = true
+ * NAK = false
+ * NUL = empty string
+ * XON path XOFF = a pointer to the data at path
  * 
- * seperator may be one of FS, GS, RS, or US;
- * lower levels are used to indicate a suboordinate struct
+ * SYN = start an array or add a diminsion to the array
+ * structs are terminated with ETB
+ * arrays may have up to 4 dimensions seperated with FS GS RS and US.
+ * arrays are ended with EM
  */
 
 struct mapgen_bordertyp {
