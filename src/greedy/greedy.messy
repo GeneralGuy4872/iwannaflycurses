@@ -223,7 +223,7 @@ ushort mask[16]
 {
 uchar row = (tile | 0xF0) >> 4
 ushort column
-switch (tile|0x0F) : {
+switch (tile&0x0F) : {
 	case 0x00 : column = 0x8000; break;
 	case 0x01 : column = 0x4000; break;
 	case 0x02 : column = 0x2000; break;

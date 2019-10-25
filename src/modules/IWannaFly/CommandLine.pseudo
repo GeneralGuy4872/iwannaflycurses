@@ -1,0 +1,9 @@
+permit_only(:base_core,rand);
+share_from(IWannaFly'Macro,\@IWannaFly'Macro::EXPORT);
+share_from(IWannaFly'Null,['NULL']);
+share_from(IWannaFly,\@IWannaFly::EXPORT);
+share_from(Math::RPN,'rpn');
+share_from(IWannaFly'Constants,\@IWannaFly'Constants::EXPORT);
+share_from(IWannaFly'Paths,\@IWannaFly'Paths::EXPORT);
+share_from(POSIX,[floor, ceil, strftime]);
+share_from(Data::Dumper,[Dumper]);

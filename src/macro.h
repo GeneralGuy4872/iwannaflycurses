@@ -1,15 +1,22 @@
+/*TYPES*/
+//ensure size names work on all systems
+#define uint unsigned int
+#define sint signed int
+#define uchar uint8_t
+#define schar int8_t
+#define ushort uint16_t
+#define sshort int16_t
+#define umint uint32_t
+#define smint int32_t
+#define ulong unsigned long
+#define slong signed long
+#define ullong uint64_t
+#define sllong int64_t
+
 // prettify the tokens my eyes don't parse
 #define ≥ >=
 #define ≤ <=
 #define forever for (;;)
-
-#ifndef OK
-#define OK 0
-#endif
-
-#ifndef ERR
-#define ERR -1
-#endif
 
 #ifndef EOF
 #error now you're just TRYING to break stuff...
@@ -22,7 +29,6 @@
 
 #define TRUE true
 #define FALSE false
-#define NIL ""
 
 /*ENVIROMENTALS*/
 #define BUFFER_MAX 512
@@ -53,10 +59,10 @@
 
 /*FUNCTION MACROS*/
 #define BACKGROUND 010
-#define MAX(A,B) (A > B ? A : B)
-#define MIN(A,B) (A < B ? A : B)
+#define MAX(A,B) (A ≥ B ? A : B)
+#define MIN(A,B) (A ≤ B ? A : B)
 #define SGN(N) (N < 0 ? 1 : (N > 0 ? -1 : (N == 0 ? 0 : NAN)))
-#define INTVL(A,N,B) MIN(MAX(A,N),B)
+#define CLAMP(A,N,B) MIN(MAX(A,N),B)
 #define COORDSUB(Z,Y,X) ((MAX_Y * Z) + (MAX_X * Y) + X)
 
 // kludge so that stdio and ncurses play nice together

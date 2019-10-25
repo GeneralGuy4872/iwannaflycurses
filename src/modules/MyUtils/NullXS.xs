@@ -3,10 +3,15 @@
 	#include "EXTERN.h"
 	#include "perl.h"
 	#include "XSUB.h"
-	MODULE="IWannaFly::Types::free'xs"	PACKAGE="IWannaFly::Types::free'xs"
+	MODULE="MyUtils::NullXS"	PACKAGE="MyUtils::NullXS"
+
+	void*
+	myperlxs__null()
+		CODE:
+			RETVAL = NULL;
 
 	void
-	iwfperl_free(input)
+	myperlxs__free(input)
 			void* input
 		CODE:
 			free(input);

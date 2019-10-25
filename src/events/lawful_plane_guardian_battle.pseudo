@@ -1,0 +1,12 @@
+#define NACHOS sprintf("That sword does not belong to you...")
+
+if ((PLAYER->weap_left.type == LEGEND_FLAG) &&
+	!strcmp(legendstabs[PLAYER->weap_left.data->metadata],
+	"sword of justice") {
+		free(PLAYER->weap_left.data);
+		PLAYER->weap_left.data = NULL;
+		NACHOS;
+else if ((PLAYER->weap_right.type == WEAP_FLAG) && ...
+else for (iterate iventory yadda yadda yadda...)
+//etc etc etc
+some_func_summon_justice();
