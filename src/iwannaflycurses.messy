@@ -317,67 +317,6 @@ forever {
 	}
 }
 
-/* backslash enters console mode. characters are fetched and printed
- * with ncurses, as well as stored in a temporary file.
- *
- * once the enter key is pressed, the temp file is rewound.
- * a flex-generated parser is used to process the tokens.
- *
- * interpretation mode will change depending on the syntax.
- * invalid commands may produce the response
- * "Don't know how to <command>", amoungst others.
- *
- * a command will be provided to dump objects.
- * text fields will show both their raw value and their text
- * value in the correct encoding. using this comand to get
- * out-of-character information is cheating, but no penalty
- * can be implemented, as it would effect it's functionality.
- *
- * The internal debugger may produce intentional segfaults,
- * which indicate a garbage pointer was dereferenced
- * these should be called "dead canaries" in bugreports.
- * these are useful in tracking down the most illusive of
- * heisenbugs, as even if they cannot be directly observed,
- * their modus operandi can be determined.
- *
- * only a number of expected variables may be dumped this way;
- * true debugging should use GDB.
- */
-
-enum cli_argstypes
-/* used to specify the type of the buffer that tokens are
- * parsed into. types can be:
- *
- * argstype_wish (*heldobjtyp) (*heldobjtyp)[2] (*heldobjtyp)[4]
- * argstyp_ent symtabref argstyp_equip equipenum
- *
- * container types will also allocate suitable contents
- * once objid has been resolved
- */
-
-typedef cli_func *int(*void)
-
-enum commandenum
-cli_func commandtable[256]
-cli_argstypes commandargs[256]
-
-struct argstyp_wish {
-uchar stack
-objid type
-void* data
-}
-
-struct argstyp_ent {
-bool shift
-uchar race
-bool stoned
-}
-
-struct argstyp_equip {
-equipenum slot
-heldobjtyp* item
-}
-
 struct stringlistyp {
 (self) *prev
 (self) *next
@@ -404,18 +343,13 @@ char* text
 }
 // like stringlistyp, but also has a field for eventident
 
-/* typedef struct Rune {
- * umint sym : 24;
- * bool bold : 1;
- * bool italic : 1;
- * bool under : 1;
- * bool strike : 1;
- * bool over : 1;
- * bool reverse : 1;
- * bool blink : 1;
- * bool invis : 1;
- * } Rune; //not needed
- */
+/*blackbox*/loading()
+	/* clears screen
+	 * prints "  LOADING..." on line 13
+	 * prints a hint on line 22.
+	 *   hints are stored in a struct
+	 */
+
 
 uint util__roll (num,side,low)
 uchar num;	//number of dice to roll
@@ -505,6 +439,13 @@ return lines;
  * QAY, AQW, "A:, FUJ. if Q or A are present in this group, they will be [Q]uit ɛ̩̍ [A]bort,
  * swapping places with the other option. otherwise, the quit-abort-option3 order will be kept.
  */
+
+union error_typ {
+void* pointer;
+const char* string;
+intptr_t value;
+}
+
 ERROR_GRAPHIC(string,sign1,num1,sign2,num2,hard)
 char* string
 char sign1 sign2
@@ -513,28 +454,30 @@ bool hard
 {
 char* opt3
 if (hard) {
-	attrset(COLOR_PAIR((BACKGROUND*COLOR_YELLOW)+COLOR_RED)
+	attrset(COLOR_PAIR((BACKGROUND*COLOR_RED)+COLOR_YELLOW+A_BLINK)
 	opt3 = "Restart"
 	}
 else {
-	attrset(COLOR_PAIR(BACKGROUND*COLOR_YELLOW)
+	attrset(COLOR_PAIR((BACKGROUND*COLOR_YELLOW)+COLOR_RED)
 	opt3 = "Continue"
 	}
 
 move(0,0); printw("*┐  Error!")
 move(1,0); printw("▗█▖  \"%s\"",string)
 switch sign1 : {
-case 'u' : {move(2,0); printw("███ N1 = %u",num1);break;}
-case 'i' : {move(2,0); printw("███ N1 = %+i",num1);break;}
-case 'p' : {move(2,0); printw("███ N1 = %p",num1);break;}
-case 'X' : {move(2,0); printw("███ N1 = $%08X",num1);break;}
+case 'u' : {move(2,0); printw("███ N1 = %u",num1.value);break;}
+case 'i' : {move(2,0); printw("███ N1 = %+i",num1.value);break;}
+case 'p' : {move(2,0); printw("███ N1 = %p",num1.pointer);break;}
+case 'X' : {move(2,0); printw("███ N1 = $%08X",num1.value);break;}
+case 's' : {move(2,0); printw("███ %s",num1.string);break;}
 default : {move( 2,0); printw("███");break;}
 }
 switch sign2 : {
-case 'u' : {move(3,0); printw("▝█▘ N2 = %u",num2);break;}
-case 'i' : {move(3,0); printw("▝█▘ N2 = %+i",num2);break;}
-case 'p' : {move(3,0); printw("▝█▘ N2 = %p",num2));break;}
-case 'X' : {move(3,0); printw("▝█▘ N2 = $%08X",num2);break;}
+case 'u' : {move(3,0); printw("▝█▘ N2 = %u",num2.value);break;}
+case 'i' : {move(3,0); printw("▝█▘ N2 = %+i",num2.value);break;}
+case 'p' : {move(3,0); printw("▝█▘ N2 = %p",num2.pointer));break;}
+case 'X' : {move(3,0); printw("▝█▘ N2 = $%08X",num2.value);break;}
+case 's' : {move(3,0); printw("▝█▘ %s",num2.string);break;}
 default : {move( 3,0); printw("▝█▘");break;}
 }
 move( 5,0); printw("File: %s",__FILE__)
@@ -551,10 +494,12 @@ move(10,0); printw("  [Z] %s?",opt3)
 
 /*GLOBALS*/
 playertyp PLAYER
-coord3 PLAYERSHD	//position of player's shadow, for renderer
-latlontyp WORLD
+latlontyp WORLDSWAP[23]
+uchar WORLDSWPIN = 0
+#define WORLD WORLDSWAP[WORLDSWPIN]
+#define CEILING ROOM->ceiling
+roomstackholder ROOM_STACK
 roomtyp* ROOM
-int(latlontyp)* ROOMGENCALL[ROOF + 1][EQUATOR/2 + 1][EQUATOR]
 shadowmask SHADOWKNOWS
 shadowmask SHINEALIGHT
 ullong TURN
@@ -565,7 +510,7 @@ uchar ROOMTURN
 ullong KILLS
 char* SAVEPATH
 followtype *FOLLOW_ptr	//pursuers, i.e. paid assasins, ninjas, the reaper...
-eventtyp *EVNT_ptr	//FOO_ptr refers to the doubly linked list's head. the tail is FOO_ptr->prev
+eventtyp *EVNT_ptr	//FOO_ptr refers to the doubly linked list's head. the tail is FOO_ptr->prev. FOO_ptr->prev->next is always NULL.
 placetyp *PLACE_ptr
 stringlistyp *HINT_ptr
 eventstringtyp *HEYLISTEN_ptr
@@ -580,146 +525,9 @@ bitfield globools
 #define EVE globools.y
 #define MIDNIT globools.z
 
-/* buffered room loading for future implementation:
- * roomtyp* ROOMARRAY[3][3][3]
- * #define ROOM ROOMARRAY[1][1][1]
- * #define ROOM_NORTH ROOMARRAY[1][0][1]
- * #define ROOM_NE ROOMARRAY[1][0][2])
- * #define ROOM_EAST ROOMARRAY[1][1][2]
- * #define ROOM_SE ROOMARRAY[1][2][2]
- * #define ROOM_SOUTH ROOMARRAY[1][2][1]
- * #define ROOM_SW ROOMARRAY[1][2][0]
- * #define ROOM_WEST ROOMARRAY[1][1][0]
- * #define ROOM_NW ROOMARRAY[1][0][0]
- * #define ROOM_UP ROOMARRAY[0][1][1]
- * #define ROOM_UP_NORTH ROOMARRAY[0][0][1]
- * #define ROOM_UP_NE ROOMARRAY[0][0][2]
- * #define ROOM_UP_EAST ROOMARRAY[0][1][2]
- * #define ROOM_UP_SE ROOMARRAY[0][2][2]
- * #define ROOM_UP_SOUTH ROOMARRAY[0][2][1]
- * #define ROOM_UP_SW ROOMARRAY[0][2][0]
- * #define ROOM_UP_WEST ROOMARRAY[0][1][0]
- * #define ROOM_UP_NW ROOMARRAY[0][0][0]
- * #define ROOM_DOWN ROOMARRAY[2][1][1]
- * #define ROOM_DOWN_NORTH ROOMARRAY[2][0][1]
- * #define ROOM_DOWN_NE ROOMARRAY[2][0][2]
- * #define ROOM_DOWN_EAST ROOMARRAY[2][1][2]
- * #define ROOM_DOWN_SE ROOMARRAY[2][2][2]
- * #define ROOM_DOWN_SOUTH ROOMARRAY[2][2][1]
- * #define ROOM_DOWN_SW ROOMARRAY[2][2][0]
- * #define ROOM_DOWN_WEST ROOMARRAY[2][1][0]
- * #define ROOM_DOWN_NW ROOMARRAY[2][0][0]
- * 
- * masks to select rooms
- * #define UP_ROOMS_MASK ((umint) 0xFF400000)
- * #define DOWN_ROOMS_MASK ((umint) 0x000002FF)
- * #define NORTH_ROOMS_MASK ((umint) 0xC10C10C1)
- * #define SOUTH_ROOMS_MASK ((umint) 0x1C01C01C)
- * #define EAST_ROOMS_MASK ((umint) 0x70070070)
- * #define WEST_ROOMS_MASK ((umint) 0x07007007)
- * #define ALL_ROOMS_MASK ((umint) 0xFF4FF2FF)
- * 
- * #define ROOM_NORTH_MASKBIT ((umint) 0x00080000)
- * #define ROOM_NE_MASKBIT ((umint) 0x00040000)
- * #define ROOM_EAST_MASKBIT ((umint) 0x00020000)
- * #define ROOM_SE_MASKBIT ((umint) 0x00010000)
- * #define ROOM_SOUTH_MASKBIT ((umint) 0x00008000)
- * #define ROOM_SW_MASKBIT ((umint) 0x00004000)
- * #define ROOM_WEST_MASKBIT ((umint) 0x00002000)
- * #define ROOM_NW_MASKBIT ((umint) 0x00001000)
- * #define ROOM_UP_MASKBIT ((umint) 0x00400000)
- * #define ROOM_UP_NORTH_MASKBIT ((umint) 0x80000000)
- * #define ROOM_UP_NE_MASKBIT ((umint) 0x40000000)
- * #define ROOM_UP_EAST_MASKBIT ((umint) 0x20000000)
- * #define ROOM_UP_SE_MASKBIT ((umint) 0x10000000)
- * #define ROOM_UP_SOUTH_MASKBIT ((umint) 0x08000000)
- * #define ROOM_UP_SW_MASKBIT ((umint) 0x04000000)
- * #define ROOM_UP_WEST_MASKBIT ((umint) 0x02000000)
- * #define ROOM_UP_NW_MASKBIT ((umint) 0x01000000)
- * #define ROOM_DOWN_MASKBIT ((umint) 0x00000200)
- * #define ROOM_DOWN_NORTH_MASKBIT ((umint) 0x00000080)
- * #define ROOM_DOWN_NE_MASKBIT ((umint) 0x00000040)
- * #define ROOM_DOWN_EAST_MASKBIT ((umint) 0x00000020)
- * #define ROOM_DOWN_SE_MASKBIT ((umint) 0x00000010)
- * #define ROOM_DOWN_SOUTH_MASKBIT ((umint) 0x00000008)
- * #define ROOM_DOWN_SW_MASKBIT ((umint) 0x00000004)
- * #define ROOM_DOWN_WEST_MASKBIT ((umint) 0x00000002)
- * #define ROOM_DOWN_NW_MASKBIT ((umint) 0x00000001)
- */
-
 /*end GLOBALS*/
 
-getlinebuffer (y,x)
-uchar y x
-{
-char* LINEBUFFER = calloc(BUFFER_MAX,sizeof(char))
-move(y,x)
-int ch
-forever {
-	ch = getch();
-	if ((ch > UCHAR_MAX) || (ch < 0)) {
-		switch ch : {
-			case KEY_ENTER : move(y,x); fputc('\n',LINEBUFFER); rewind(LINEBUFFER); return 0;
-			case KEY_BACKSPACE : move(y,x); rewind(LINEBUFFER); return 4;
-			case KEY_HOME : move(y,x); rewind(LINEBUFFER); break;
-			case KEY_LEFT : move(y,x); rewind(LINEBUFFER); break;
-			case KEY_SLEFT : move(y,x); rewind(LINEBUFFER); break;
-			default : break;
-			} break;
-		}
-	else if (ch < ' ') {
-		switch ch : {
-			case 0x17 : move(y,x); rewind(LINEBUFFER); return 4;
-			case '\n' : move(y,x); fputc('\n',LINEBUFFER); rewind(LINEBUFFER); return 0;
-			case '\b' : move(y,x); rewind(LINEBUFFER); return 4;
-			default: break;
-			}
-		}
-	else {
-		fputc(ch,LINEBUFFER);
-		printw(ch);
-		}
-	}
-free(LINEBUFFER)
-}
 
-umint getsixteen (y,x)
-uchar y x
-{
-char hexbuffer[8] = "00000000"
-move(y,x-5);printw("[    -    ]");
-int ch
-uchar subscript = 0
-schar offset = subscript < 4 ? subscript-4 : subscript-3
-bool exiterr
-forever {
-	ch = getch();
-	if ((ch > UCHAR_MAX) || (ch < 0)) {
-		switch ch : {
-			case KEY_ENTER : goto(fin);
-			case KEY_BACKSPACE : subscript = INTVL(0,subscript-1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
-			case KEY_LEFT : subscript = INTVL(0,subscript-1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
-			case KEY_RIGHT : subscript = INTVL(0,subscript+1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
-			case KEY_HOME : subscript = 0; offset = subscript < 4 ? subscript-4 : subscript-3; break;
-			case KEY_SLEFT : subscript = 0; offset = subscript < 4 ? subscript-4 : subscript-3; break;
-			case KEY_HOME : subscript = 7; offset = subscript < 4 ? subscript-4 : subscript-3; break;
-			case KEY_SRIGHT : subscript = 7; offset = subscript < 4 ? subscript-4 : subscript-3; break;
-			default : break;
-			} break;
-		}
-	else {
-		switch ch : {
-			case '\n' : goto(fin);
-			case '\b' : subscript = INTVL(0,subscript-1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
-			case ' ' : subscript = INTVL(0,subscript+1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
-			default: if (isxdigit(ch)) {hexbuffer[subscript] = ch; printw(ch);}; subscript = INTVL(0,subscript+1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
-			}
-		}
-	move(y,x+offset);
-	}
-fin:
-return (umint) strtoul(hexbuffer,NULL,16);
-}
 
 struct turntyp:
 uchar sec : 6
@@ -766,7 +574,7 @@ DAY = ((6 ≤ DATE.hour) && (DATE.hour < 18))
 NIGHT = ((DATE.hour < 6) || (18 ≤ DATE.hour))
 }
 
-//cartesian projection, ->x ↓y ↑z (+y=-z)
+//projection, →x ↓y ↑z
 
 struct coord3:
 uchar x
@@ -886,14 +694,17 @@ struct latlontyp {
 uchar dep : 8	//0 ≤ dep ≤ 201
 schar lat : 8	//-90 ≤ lat ≤ 90
 sshort lon : 9	//-180 ≤ lon < 179
-bool shift : 1	//are you plane shifted?
-bool moon : 1	//are you on the moon?
-uchar az : 3	//azimuth on a plane chart
+uchar shift : 2	//are you plane shifted?
+uchar az : 3
 schar el : 2
 }
 /* in-game altitude is given as the distance from layer 100
  *
- * when combined with shift, moon becomes outer planes
+ * shift 0 is the prime plane
+ * shift 1 are the elemental planes
+ * shift 2 are afterlives
+ * shift 3 can be used for areas that are meant to not show up on a map.
+ *				(said map is WIP)
  *
  * az	elemental	afterlife	corrilation
  * 0	water		neutral good	nurturer
@@ -917,6 +728,22 @@ schar el : 2
  * errors related to this section may generate one of 2 errors:
  * "fell off the edge of the world", N1=±lat,N2=±lon
  * "froze to death on pluto", N1=+az,N2=±el
+ *
+ * a room stack exists that keeps a number of rooms loaded
+ * if a room is not on the stack, it is loaded from the save file and
+ * pushed to the stack. this may cause the stack to intentionally drop
+ * the room at the bottom to prevent eating too much ram. if the file
+ * does not yet exist, the room is generated by perl according to a
+ * dispatch table or a similarly supplied lookup method. if no constructor
+ * exists, an error occurs. if the constructor is actually a death call,
+ * you die.
+ *
+ * a swap array keeps track of gating between the 23 major planes,
+ * saving the player's position, but not keeping the room loaded.
+ *
+ * connectivity of rooms is in 7 directions: the 6 euclidian directions
+ * and a room which can be accessed by a 180° phase shift. if NULL,
+ * scrolling in that direction is blocked.
  */
 
 struct placetyp {
@@ -932,9 +759,6 @@ struct moneytyp {
 ushort gp : 17
 uchar cp : 7
 }
-
-#define GOLDMAX = 130999
-#define COPPERMAX = 99
 
 struct aligntyp:
 good : b1
@@ -1031,8 +855,6 @@ ptrtab mon1table
  * if you become polylocked to a non-player race, your class will be removed.
  * becoming polylocked to one of the C0 entrys has no negative effects.
  * commands can change your base race without negative side effects
- *
- * polymorph autocomplete is implemented using switches.
  *
  * entities can only be polymorphed into things in their own table.
  * this is due to a software limitation that will not be fixed,
@@ -1683,7 +1505,7 @@ bool multiuse : 1
 bool scroll : 1
 uchar subject : 2 //0 = cooking, 1 = weapons, 2 = language, 3 = spellcraft
 uchar uses : 6
-*void contents
+void* contents
 
 char* wandmaterials[16] = {"oak","ash","yew","honeylocust","silver","bronze","iron","orichalcum","marble","bone","dragon fang","unicorn horn","glass","lead crystal","adamantine","stardust"} //stoning -> marble
 
@@ -1700,11 +1522,44 @@ uchar matter : 3
 uchar color : 3
 paffectyp enchnt
 
+struct roomneighbors {
+bool north
+bool south
+bool east
+bool west
+bool up
+bool down
+bool upstair
+bool downstair
+latlontyp north
+latlontyp south
+latlontyp east
+latlontyp west
+latlontyp up
+latlontyp down
+latlontyp mirror
+}
+
+struct roomstack {
+struct roomstack* prev;
+struct roomstack* next;
+latlontyp key;
+roomtyp* value;
+}
+
+struct roomstackholder {
+struct roomstack* bottom;
+struct roomstack* top;
+ushort depth;
+}
+
 struct roomtyp: //top-down display of a 3d space
 latlontyp latlon
 tileset *hightiles
 schar* tiledata[][MAX_Y][MAX_X]
-uchar ceiling
+uchar ceiling : 4
+uchar floorcolor : 3
+bool visited : 1
 shadowmask seen
 encontyp *encon_ptr
 enttyp *ent_ptr
@@ -1715,13 +1570,7 @@ setcoord3 *path_ptr
 coord2 downstair
 coord2 upstair
 coord3 home
-bool do_upstair : 1
-bool do_downstair : 1
-bool visited : 1
-bool blank : 1
-bool shadefloor : 1
-uchar floorcolor : 3
-uchar meta //may be used by events
+struct roomneighbors neighborhood
 /* if invalid coords are given for a warp (typically {$FF,$FF}),
  * then the player is dumped at the location indicated by home.
  *
@@ -1766,7 +1615,7 @@ lightyp *lamp_ptr
  *       *.d : everything relating to a struct is stored in the same directory, and pointers to structs are stored as subdirectories with the name of that field. the tail element in a linked list has no subdirectory named "next"; "prev" pointers are "../" implicitly.
  *    *.conf : a configuration file, parsed with perl.
  *     *.*rc : a user's configuration file.
- *    *.dump : a debugger data dump, with a format somwhere between JSON, INI, and C-like pseudocode. essentialy a dat file in readable (and non-raw) format.
+ *  *.dumper : a debugger data dump, with a format somwhere between JSON, INI, and C-like pseudocode. essentialy a dat file in readable (and non-raw) format.
  *
  * if the following new extensions collide with anything, I will change them. I specifically chose ones that were not a TLA or EFLA to try and avoid this, because there have been TDMTLA since before I came along.
  * *.midibas : midiBASIC, to be parsed by the midi generator into a .h file. Represents a different subset of general midi than regular midi files, but does so in a human readable format.
@@ -2196,15 +2045,15 @@ an UNDERLINE is a shadow
 note: unicode symbols are (mostly) used be their appearence, not by their meaning
 ) is a sword or dagger. ⍏ are polearms. \ is a staff. ¦ is a club. : is a mace. ℓ is a whip. ( is a bow. ⇤ is an arrow. ⍖ is a writing instrument.
 ⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves. % is meat. ⊞ is food (don't shoot it). $ is gold. ¢ is copper.
-? is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♫ is a lyre. ƒ is a violin. ♪ is a different music instrument.
+⌘ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♫ is a lyre. ƒ is a violin. ♪ is a different music instrument.
 ¿ are potions (fragile). ∫ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet. ^ is a crown.
 / is a wand. ♮ is a ladder. ⋎ is a fountain or gyser. ⍾ is a bell. ⎋ is a clockface. ♠ ♣ ‡ are trees. ⋏ is fire. ♜ is a pedestal.
 ≋ is deep liquid's surface. ∬ is a waterfall. ≈ is a shallow liquid's surface, or a deep liquid below surface. ~ (centered) is a puddle. ≣ is a staircase. 
 ⌁ is electricity. * is ice. ⎈ spider web. ⌬ beehive. ↥ are spikes. ⎙ ⍝ ⎍ ∎ ⎅ are tombstones or signs. ␥ is glass.
 ! is trouble. ☀ is a light source. ⌸ is a door. ⍯ is a locked door. ⎕ is an open door. = is a gate. ≠ is a locked gate. ∷ is an open gate.
 • is a boulder. . is a rock. ⁂ is a rockslide. ◇ is a gemstone. ◊ is a giant magic crystal. ⑆ are footprints.
-∪ is a sink. ⏍ is a chest. ↯ is the thunderbolt. ∅ is a spacetime anomaly (do not touch). < > are level stairs. ⌘ is home.
-← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are ballistae. ✪ is a rune. ː ⍽ are traps.
+∪ is a sink. ⏍ is a chest. ↯ is the thunderbolt. ∅ is a spacetime anomaly (do not touch). < > are level stairs.
+← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are ballistae. ✪ is a rune. ː ⍽ are traps. ? is somone wearing a cloak.
 # █ ▓ ▒ ░ ▞ ▚ (etc) are thick walls or floor. ≎ ☈ are clouds (do not walk on them; keep your head out of them).
 ˜ ␣ are holes. ' is a stalagtite or icicle. , is a plant. ; is a grain or sunflower (impassable).
 box drawings are low walls or columns. ⑉ ⋮ are iron bars. · is an ember or star. ` ´ are flower petals.
@@ -2326,34 +2175,6 @@ jelly* jam* preserves* peanutbutter
 icecube snow ember blacksoup
 broth* stew* ration mistake
 
-/*ROTTEN pseudocode*/playermove(xmove,ymove,zmove)
-schar xmove
-schar ymove
-schar zmove
-{
-velocitycheck()
-xymovecheck(xmove,ymove)
-zmovecheck(zmove)
-
-PLAYER.pos.x += xmove
-if (PLAYER.pos.x < 0) {
-	PLAYER.pos.x = mapscroll(-1,0).x
-	
-	}
-else if (PLAYER.pos.x ≥ MAX_X) {
-	PLAYER.pos.x = mapscroll(1,0).x
-	}
-
-PLAYER.pos.y += ymove
-if (PLAYER.pos.y < 0) {
-	PLAYER.pos.y = mapscroll(0,-1).y
-	}
-else if (PLAYER.pos.y ≥ MAX_Y) {
-	PLAYER.pos.y = mapscroll(0,1).y
-	}
-
-PLAYER.pos.z += zmove
-}
 
 /*blackbox*/playervelocitycheck() velocitycheck(*entity)
 	/* if you have a nonzero velocity vector, when you try to move
@@ -2389,130 +2210,17 @@ PLAYER.pos.z += zmove
 	- if you are, adds {-xmove,-ymove,-zmove} to your velocity
 	  (half this value in liquids)
 
-/*rotten pseudocode*/mapwarp(destination,tocoord)
-latlontyp destination
-coord3 tocoord
+roomscroll(direction,stairs)
+uchar direction
+bool stairs
 {
-saveroom()
+switch (direction) : {
+	case 0 : break;
+	case ROOM_UP : saveroom(NULL);WORLD = touchroom(ROOM->neighborhood->up);
 
-WORLD = destination
+roomwarp(latlontyp)
 
-mapscroll(NOSCROLL)
-
-loadroom(WORLD)
-
-if ((tocoord.x > MAX_X) || (tocoord.y > MAX_Y) || (tocoord.z ≥ CEILING)) {
-	PLAYER.pos.x = ROOM.home.x
-	PLAYER.pos.y = ROOM.home.y
-	PLAYER.pos.z = ROOM.home.z
-	}
-else {
-	PLAYER.pos.x = tocoord.x
-	PLAYER.pos.y = tocoord.y
-	PLAYER.pos.z = tocoord.z
-	}
-}
-
-/*blackbox*/loading()
-	/* clears screen
-	 * prints "  LOADING..." on line 13
-	 * prints a hint on line 22.
-	 *   hints are stored in a struct
-	 */
-
-struct mapscrollargs {
-schar latmove : 2
-schar lonmove : 2
-schar depmove : 2
-bool stair : 1
-bool home : 1
-}
-
-mapscrollargs NOSCROLL = {0,0,0,false,false}
-
-/*implicit*/mapscroll(args)
-mapscrollargs args
-{
-BREAKCURSES
-if (IS_XTERM) {printf("\033]2;IWannaFlyCurses - %s: loading...\033\\",GAMENAME);}
-printf("loading...");
-fflush(stdout);
-FIXCURSES
-saveroom(NULL)
-freeroom(NULL)
-WORLD.coord.lat += args.latmove
-if (WORLD.coord.lat > EQUATOR/4) {
-	WORLD.coord.lat = EQUATOR/2 - WORLD.coord.lat
-	WORLD.coord.lon += EQUATOR/2
-	if (WORLD.coord.lon > EQUATOR/2) {
-		WORLD.coord.lon += -EQUATOR
-		}
-	}
-else if (WORLD.coord.lat < -EQUATOR/4) {
-	WORLD.coord.lat = -EQUATOR/2 - WORLD.coord.lat
-	WORLD.coord.lon += EQUATOR/2
-	if (WORLD.coord.lon > EQUATOR/2) {
-		WORLD.coord.lon += -EQUATOR
-		}
-	}
-
-WORLD.coord.lon += args.lonmove
-if (WORLD.coord.lon ≥ EQUATOR/2) {
-	WORLD.coord.lon += -EQUATOR
-	}
-else if (WORLD.coord.lon < -EQUATOR/2) {
-	WORLD.coord.lon += EQUATOR
-	}
-
-if ((args.depmove < 0) && (WORLD.coord.dep = 0)) {
-	depmove = 1
-	WORLD.coord.lat = -WORLD.coord.lat
-	if (WORLD.coord.lon == -EQUATOR/2) {WORLD.coord.lon = 0}
-	else {WORLD.coord.lon = -WORLD.coord.lon}
-	}
-else if ((args.depmove > 0) && (WORLD.coord.dep = ROOF)) {
-	/* death message (one of the following):
-	 * flew too close to the sun
-	 * was smited for rising too high
-	 * grew too proud
-	 * passed out in space and burned up on reentry
-	 * froze to death in outer space
-	 * became lost...in...spaaace!
-	 */
-	}
-WORLD.coord.dep += args.depmove
-if (depmove ≥ 0) : {
-	if (home) {
-		PLAYER.pos.x = ROOM.home.x
-		PLAYER.pos.y = ROOM.home.y
-	else if (stair) {
-		PLAYER.pos.x = ROOM.downstair.x
-		PLAYER.pos.y = ROOM.downstair.y
-		}
-	PLAYER.pos.z = 0
-	}
-else {
-	if (home) {
-		PLAYER.pos.x = ROOM.home.x
-		PLAYER.pos.y = ROOM.home.y
-	else if (stair) {
-		PLAYER.pos.x = ROOM.upstair.x
-		PLAYER.pos.y = ROOM.upstair.y
-		}
-	PLAYER.pos.z = CEILING
-	}
-
-ROOM = loadroom(WORLD)
-
-NEW = true
-FIRST = !(visited)
-ROOM.visited = true
-
-BREAKCURSES
-if (IS_XTERM) {printf("\033]2;IWannaFlyCurses - %s: %i°%c, %i°%c, %i\033\\",GAMENAME,abs(WORLD.lat),WORLD.lat > 0 ? 'N' : (WORLD.lat < 0 ? 'S' : ' '),WORLD.lon > 0 ? 'E' : ((WORLD.lon < 0) && !(WORLD.lon == -180) ? 'W' : ' '),WORLD.dep - 100);
-FIXCURSES
-render();
-}
+coordjump(coordx,coordy,coordz)
 
 /*blackbox*/saveroom(roomtyp*)
 //saves the room pointed to, or the current room if NULL
@@ -2592,9 +2300,95 @@ if (roomptr == NULL) {roomptr = ROOM}
 roomtyp* loadroom(latlontyp)
 //loads room indicated by WORLD
 
-/*blackbox*/saveworld()
-/*blackbox*/loadworld()
-//sync and load the files for planes
+swaproom(dest)
+struct latlontyp dest;
+{
+if (!(dest.shift || dest.az || dest.el)) {WORLDSWPIN = 0}
+else {switch dest.shift : {
+	case 0 : return ERR;
+	case 1 : if (!(dest.el)) {
+		switch dest.az : {
+			case 0 : ROOMSWPIN = 1; return OK;
+			case 01 : ROOMSWPIN = 2; return OK;
+			case 02 : ROOMSWPIN = 3; return OK;
+			case 03 : ROOMSWPIN = 4; return OK;
+			case 04 : ROOMSWPIN = 5; return OK;
+			case 05 : ROOMSWPIN = 6; return OK;
+			case 06 : ROOMSWPIN = 7; return OK;
+			case 07 : ROOMSWPIN = 8; return OK;
+			default : ERROR_GRAPHIC("Struct Field Overflow",'X',dest.az,'s',"too big for expected three bit field",true);
+		}
+		else if (dest.el && !(dest.az)) {
+			case 1 : ROOMSWPIN = 9; return OK;
+			case -1 : ROOMSWPIN = 10; return OK;
+			case -2 : ROOMSWPIN = 11; return OK;
+			default : ERROR_GRAPHIC("Struct Field Overflow",'X',dest.el,'s',"too big for expected three bit field",true);
+		}
+		break;
+	case 2 : if (dest.az && !(dest.el)) {
+		switch dest.az : {
+			case 0 : ROOMSWPIN = 12; return OK;
+			case 01 : ROOMSWPIN = 13; return OK;
+			case 02 : ROOMSWPIN = 14; return OK;
+			case 03 : ROOMSWPIN = 15; return OK;
+			case 04 : ROOMSWPIN = 16; return OK;
+			case 05 : ROOMSWPIN = 17; return OK;
+			case 06 : ROOMSWPIN = 18; return OK;
+			case 07 : ROOMSWPIN = 19; return OK;
+			default : ERROR_GRAPHIC("Struct Field Overflow",'X',dest.az,'s',"too big for expected three bit field",true);
+		}
+		else if (dest.el && !(dest.az)) {
+			case 1 : ROOMSWPIN = 20; return OK;
+			case -1 : ROOMSWPIN = 21; return OK;
+			case -2 : ROOMSWPIN = 22; return OK;
+			default : ERROR_GRAPHIC("Struct Field Overflow",'X',dest.el,'s',"too big for expected three bit field",true);
+		}
+		break;
+	default : return ERR;
+	}}
+
+roomstackpush(newkey,newval)
+latlontyp newkey
+roomtyp* newval
+{
+struct roomstack* newnode = malloc(sizeof(struct roomstack));
+newnode->key = newkey;
+newnode->value = newval;
+newnode->prev = ROOM_STACK->top;
+newnode->next = NULL;
+ROOM_STACK.top->next = newnode;
+ROOM_STACK.top = ROOM_STACK.top->next;
+ROOM_STACK.depth++;
+if (ROOM_STACK.depth > ROOM_STACK_MAX) {
+	roomstackshift();
+	ROOM_STACK--;
+	}
+}
+
+roomstackpop()
+roomstackshift()
+roomstacksearch(latlontyp)
+roomstackpunt(roomstack*)
+room_p(latlontyp)
+roomgen(latlontyp)
+
+roomtyp* touchroom(query)
+latlontyp query
+{
+roomstack* answer = roomstacksearch(query);
+if (answer != NULL) {
+	roomstackpunt(answer);
+	return ROOM_STACK.top.value;
+	}
+else if (room_p(query)) {
+	roomstackpush(query,loadroom(query));
+	return ROOM_STACK.top.value;
+	}
+else {
+	roomstackpush(query,roomgen(query));
+	return ROOM_STACK.top.value;
+	}
+}
 
 /*blackbox*/loadgame()
 /*blackbox*/savegame()

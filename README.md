@@ -14,7 +14,7 @@
 
 Iwannafly
 =========
-*roguelike game library written in C, Perl, and Guile, with extension interface useing minimal external propagating dependencies*
+*roguelike game library written in C and Perl with extension interface useing minimal external propagating dependencies*
 
 Dependencies:
 
@@ -32,6 +32,7 @@ Build Deps:
 - Command <CODE>make</CODE>
 - Perl module <CODE>Module::Build</CODE>
 - Perl module <CODE>ExtUtils::MakeMaker</CODE>
+- Perl module <CODE>Parse::Yapp</CODE>
 
 Build Recommends:
 - Command <CODE>uname</CODE>
@@ -71,27 +72,23 @@ Depends:
 - C library <CODE>\<perl.h\></CODE>
 - C library <CODE>"XSUB.h"</CODE>
 - C library <CODE>"INLINE.h"</CODE>
-- C library <CODE>\<libguile.h\></CODE>
 - Perl feature <CODE>"switch"</CODE>
 - Perl module <CODE>boolean</CODE>
 - Perl module <CODE>Exporter</CODE>
-- Perl module <CODE>optimize::int</CODE>
-- Perl module <CODE>Test::Simple</CODE>
-- Perl module <CODE>Test::Type</CODE>
 - Perl module <CODE>Scalar::Util</CODE>
 - Perl module <CODE>Hash::Util</CODE>
 - Perl module <CODE>FastGlob</CODE> (maybe?)
 - Perl module <CODE>goto::file</CODE>
+- Perl module <CODE>Data::Dumper</CODE>
 - Perl module <CODE>JSON</CODE>
 - Perl module <CODE>Config::Tiny</CODE>
-- Perl module <CODE>IO::Pipe</CODE> (maybe?)
-- Perl module <CODE>IO::Pty</CODE> (possibly?)
 - Perl module <CODE>Filter::Simple</CODE>
+- Perl module <CODE>Math::RPN</CODE>
 - Perl module <CODE>Tie::File</CODE>
 - Perl module (<CODE>XS</CODE>|<CODE>Dyna</CODE>)<CODE>Loader</CODE>
-- Perl module <CODE>Inline</CODE> 'C'
-- Perl module <CODE>POSIX::</CODE>(<CODE>ceil</CODE>|<CODE>floor</CODE>)
+- Perl module <CODE>POSIX::</CODE>(<CODE>ceil</CODE>|<CODE>floor</CODE>|<CODE>strfdate</CODE>)
 - Perl module <CODE>Acme::don't</CODE> (no-ops during testing)
+- Perl module <CODE>Acme::Comment</CODE>
 
 Recommends:
 - Command <CODE>xterm</CODE> (UTF-8, Color)
@@ -109,7 +106,7 @@ Doc Build Deps:
 - Command <CODE>make</CODE>
 - Command <CODE>perl</CODE>
 - Command <CODE>cp</CODE>
-- Perl module <CODE>Module::Build<CODE>
+- Perl module <CODE>Module::Build</CODE>
 
 Doc Recommends:
 - Command <CODE>xdvi</CODE>
@@ -117,6 +114,14 @@ Doc Recommends:
 
 NEWS (and Olds)
 ---------------
+
+As of 28/10/2019, major changes to some of the oldest portions of the
+outline are underway. these changes need to be propogated through the
+entire project, and will result in major inconsistancies until finished.
+once they are, work will begin twords the renderer, then a shakedown test
+program for the camera, movement, and srolling. once the shakedown test
+program begins the debug-compile-debug phase, dev state will be advanced
+to Prealpha proper.
 
 During Alpha, the project will be optemized for Devuan Linux, however,
 there are (theoretically) no distro-dependent elements, and the code should

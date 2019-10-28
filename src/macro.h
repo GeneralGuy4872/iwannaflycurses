@@ -18,6 +18,11 @@
 #define ≤ <=
 #define forever for (;;)
 
+/* syntactic sugar for macros that are actually tailcalls
+ * such macros contain a return or this macro
+ */
+#define tailcall(X) X
+
 #ifndef EOF
 #error now you're just TRYING to break stuff...
 #endif
@@ -92,7 +97,7 @@
 		DEADBEEF->prev->next = DEADBEEF->next;\
 		}\
 	free(DEADBEEF);\
-	}\		
+	}\
 
 #define MACRO__DLLIST_INSERT(PREV,NEW) {\
 	NEW->prev = PREV;\

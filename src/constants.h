@@ -12,8 +12,6 @@
 #define MAX_X 64
 #define MAX_Y 24	//MAX_X ≥ MAX_Y ≥ MAX_Z
 #define MAX_Z 16
-#define CEILING ROOM->ceiling
-#define ROOF 201	//it is decreed: mortals shall fly no higher. (this means you!)
 #define EQUATOR 360	//the number of rooms in the circumfrence of the sphere
 
 #define GOOD_MASK 0700
@@ -61,3 +59,18 @@
 #define LIGHT_BIT 04
 #define DARK_BIT 02
 #define ENTROPY_BIT 01
+
+#define GOLDMAX 130999
+#define COPPERMAX 99
+
+#define ROOM_STACK_MAX 40
+
+#define ROOM_UP 02
+#define ROOM_DOWN 03
+#define ROOM_NORTH 04
+#define ROOM_SOUTH 05
+#define ROOM_EAST 06
+#define ROOM_WEST 07
+#define ROOM_UPSTAIR 012
+#define ROOM_DOWNSTAIR 013
+#define ROOM_MIRROR 01

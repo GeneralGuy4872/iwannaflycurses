@@ -1,0 +1,362 @@
+/* buffered room loading for future implementation:
+ * roomtyp* ROOMARRAY[3][3][3]
+ * #define ROOM ROOMARRAY[1][1][1]
+ * #define ROOM_NORTH ROOMARRAY[1][0][1]
+ * #define ROOM_NE ROOMARRAY[1][0][2])
+ * #define ROOM_EAST ROOMARRAY[1][1][2]
+ * #define ROOM_SE ROOMARRAY[1][2][2]
+ * #define ROOM_SOUTH ROOMARRAY[1][2][1]
+ * #define ROOM_SW ROOMARRAY[1][2][0]
+ * #define ROOM_WEST ROOMARRAY[1][1][0]
+ * #define ROOM_NW ROOMARRAY[1][0][0]
+ * #define ROOM_UP ROOMARRAY[0][1][1]
+ * #define ROOM_UP_NORTH ROOMARRAY[0][0][1]
+ * #define ROOM_UP_NE ROOMARRAY[0][0][2]
+ * #define ROOM_UP_EAST ROOMARRAY[0][1][2]
+ * #define ROOM_UP_SE ROOMARRAY[0][2][2]
+ * #define ROOM_UP_SOUTH ROOMARRAY[0][2][1]
+ * #define ROOM_UP_SW ROOMARRAY[0][2][0]
+ * #define ROOM_UP_WEST ROOMARRAY[0][1][0]
+ * #define ROOM_UP_NW ROOMARRAY[0][0][0]
+ * #define ROOM_DOWN ROOMARRAY[2][1][1]
+ * #define ROOM_DOWN_NORTH ROOMARRAY[2][0][1]
+ * #define ROOM_DOWN_NE ROOMARRAY[2][0][2]
+ * #define ROOM_DOWN_EAST ROOMARRAY[2][1][2]
+ * #define ROOM_DOWN_SE ROOMARRAY[2][2][2]
+ * #define ROOM_DOWN_SOUTH ROOMARRAY[2][2][1]
+ * #define ROOM_DOWN_SW ROOMARRAY[2][2][0]
+ * #define ROOM_DOWN_WEST ROOMARRAY[2][1][0]
+ * #define ROOM_DOWN_NW ROOMARRAY[2][0][0]
+ * 
+ * masks to select rooms
+ * #define UP_ROOMS_MASK ((umint) 0xFF400000)
+ * #define DOWN_ROOMS_MASK ((umint) 0x000002FF)
+ * #define NORTH_ROOMS_MASK ((umint) 0xC10C10C1)
+ * #define SOUTH_ROOMS_MASK ((umint) 0x1C01C01C)
+ * #define EAST_ROOMS_MASK ((umint) 0x70070070)
+ * #define WEST_ROOMS_MASK ((umint) 0x07007007)
+ * #define ALL_ROOMS_MASK ((umint) 0xFF4FF2FF)
+ * 
+ * #define ROOM_NORTH_MASKBIT ((umint) 0x00080000)
+ * #define ROOM_NE_MASKBIT ((umint) 0x00040000)
+ * #define ROOM_EAST_MASKBIT ((umint) 0x00020000)
+ * #define ROOM_SE_MASKBIT ((umint) 0x00010000)
+ * #define ROOM_SOUTH_MASKBIT ((umint) 0x00008000)
+ * #define ROOM_SW_MASKBIT ((umint) 0x00004000)
+ * #define ROOM_WEST_MASKBIT ((umint) 0x00002000)
+ * #define ROOM_NW_MASKBIT ((umint) 0x00001000)
+ * #define ROOM_UP_MASKBIT ((umint) 0x00400000)
+ * #define ROOM_UP_NORTH_MASKBIT ((umint) 0x80000000)
+ * #define ROOM_UP_NE_MASKBIT ((umint) 0x40000000)
+ * #define ROOM_UP_EAST_MASKBIT ((umint) 0x20000000)
+ * #define ROOM_UP_SE_MASKBIT ((umint) 0x10000000)
+ * #define ROOM_UP_SOUTH_MASKBIT ((umint) 0x08000000)
+ * #define ROOM_UP_SW_MASKBIT ((umint) 0x04000000)
+ * #define ROOM_UP_WEST_MASKBIT ((umint) 0x02000000)
+ * #define ROOM_UP_NW_MASKBIT ((umint) 0x01000000)
+ * #define ROOM_DOWN_MASKBIT ((umint) 0x00000200)
+ * #define ROOM_DOWN_NORTH_MASKBIT ((umint) 0x00000080)
+ * #define ROOM_DOWN_NE_MASKBIT ((umint) 0x00000040)
+ * #define ROOM_DOWN_EAST_MASKBIT ((umint) 0x00000020)
+ * #define ROOM_DOWN_SE_MASKBIT ((umint) 0x00000010)
+ * #define ROOM_DOWN_SOUTH_MASKBIT ((umint) 0x00000008)
+ * #define ROOM_DOWN_SW_MASKBIT ((umint) 0x00000004)
+ * #define ROOM_DOWN_WEST_MASKBIT ((umint) 0x00000002)
+ * #define ROOM_DOWN_NW_MASKBIT ((umint) 0x00000001)
+ */
+
+getlinebuffer (y,x)
+uchar y x
+{
+char* LINEBUFFER = calloc(BUFFER_MAX,sizeof(char))
+move(y,x)
+int ch
+forever {
+	ch = getch();
+	if ((ch > UCHAR_MAX) || (ch < 0)) {
+		switch ch : {
+			case KEY_ENTER : move(y,x); fputc('\n',LINEBUFFER); rewind(LINEBUFFER); return 0;
+			case KEY_BACKSPACE : move(y,x); rewind(LINEBUFFER); return 4;
+			case KEY_HOME : move(y,x); rewind(LINEBUFFER); break;
+			case KEY_LEFT : move(y,x); rewind(LINEBUFFER); break;
+			case KEY_SLEFT : move(y,x); rewind(LINEBUFFER); break;
+			default : break;
+			} break;
+		}
+	else if (ch < ' ') {
+		switch ch : {
+			case 0x17 : move(y,x); rewind(LINEBUFFER); return 4;
+			case '\n' : move(y,x); fputc('\n',LINEBUFFER); rewind(LINEBUFFER); return 0;
+			case '\b' : move(y,x); rewind(LINEBUFFER); return 4;
+			default: break;
+			}
+		}
+	else {
+		fputc(ch,LINEBUFFER);
+		printw(ch);
+		}
+	}
+free(LINEBUFFER)
+}
+
+umint getsixteen (y,x)
+uchar y x
+{
+char hexbuffer[8] = "00000000"
+move(y,x-5);printw("[    -    ]");
+int ch
+uchar subscript = 0
+schar offset = subscript < 4 ? subscript-4 : subscript-3
+bool exiterr
+forever {
+	ch = getch();
+	if ((ch > UCHAR_MAX) || (ch < 0)) {
+		switch ch : {
+			case KEY_ENTER : goto(fin);
+			case KEY_BACKSPACE : subscript = INTVL(0,subscript-1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			case KEY_LEFT : subscript = INTVL(0,subscript-1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			case KEY_RIGHT : subscript = INTVL(0,subscript+1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			case KEY_HOME : subscript = 0; offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			case KEY_SLEFT : subscript = 0; offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			case KEY_HOME : subscript = 7; offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			case KEY_SRIGHT : subscript = 7; offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			default : break;
+			} break;
+		}
+	else {
+		switch ch : {
+			case '\n' : goto(fin);
+			case '\b' : subscript = INTVL(0,subscript-1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			case ' ' : subscript = INTVL(0,subscript+1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			default: if (isxdigit(ch)) {hexbuffer[subscript] = ch; printw(ch);}; subscript = INTVL(0,subscript+1,7); offset = subscript < 4 ? subscript-4 : subscript-3; break;
+			}
+		}
+	move(y,x+offset);
+	}
+fin:
+return (umint) strtoul(hexbuffer,NULL,16);
+}
+
+/*rotten pseudocode*/mapwarp(destination,tocoord)
+latlontyp destination
+coord3 tocoord
+{
+saveroom()
+
+WORLD = destination
+
+mapscroll(NOSCROLL)
+
+loadroom(WORLD)
+
+if ((tocoord.x > MAX_X) || (tocoord.y > MAX_Y) || (tocoord.z ≥ CEILING)) {
+	PLAYER.pos.x = ROOM.home.x
+	PLAYER.pos.y = ROOM.home.y
+	PLAYER.pos.z = ROOM.home.z
+	}
+else {
+	PLAYER.pos.x = tocoord.x
+	PLAYER.pos.y = tocoord.y
+	PLAYER.pos.z = tocoord.z
+	}
+}
+
+/* typedef struct Rune {
+ * umint sym : 24;
+ * bool bold : 1;
+ * bool italic : 1;
+ * bool under : 1;
+ * bool strike : 1;
+ * bool over : 1;
+ * bool reverse : 1;
+ * bool blink : 1;
+ * bool invis : 1;
+ * } Rune; //not needed
+ */
+
+struct mapscrollargs {
+schar latmove : 2
+schar lonmove : 2
+schar depmove : 2
+bool stair : 1
+bool home : 1
+}
+
+mapscrollargs NOSCROLL = {0,0,0,false,false}
+
+/*implicit*/mapscroll(args)
+mapscrollargs args
+{
+BREAKCURSES
+if (IS_XTERM) {printf("\033]2;IWannaFlyCurses - %s: loading...\033\\",GAMENAME);}
+printf("loading...");
+fflush(stdout);
+FIXCURSES
+saveroom(NULL)
+freeroom(NULL)
+WORLD.coord.lat += args.latmove
+if (WORLD.coord.lat > EQUATOR/4) {
+	WORLD.coord.lat = EQUATOR/2 - WORLD.coord.lat
+	WORLD.coord.lon += EQUATOR/2
+	if (WORLD.coord.lon > EQUATOR/2) {
+		WORLD.coord.lon += -EQUATOR
+		}
+	}
+else if (WORLD.coord.lat < -EQUATOR/4) {
+	WORLD.coord.lat = -EQUATOR/2 - WORLD.coord.lat
+	WORLD.coord.lon += EQUATOR/2
+	if (WORLD.coord.lon > EQUATOR/2) {
+		WORLD.coord.lon += -EQUATOR
+		}
+	}
+
+WORLD.coord.lon += args.lonmove
+if (WORLD.coord.lon ≥ EQUATOR/2) {
+	WORLD.coord.lon += -EQUATOR
+	}
+else if (WORLD.coord.lon < -EQUATOR/2) {
+	WORLD.coord.lon += EQUATOR
+	}
+
+if ((args.depmove < 0) && (WORLD.coord.dep = 0)) {
+	depmove = 1
+	WORLD.coord.lat = -WORLD.coord.lat
+	if (WORLD.coord.lon == -EQUATOR/2) {WORLD.coord.lon = 0}
+	else {WORLD.coord.lon = -WORLD.coord.lon}
+	}
+else if ((args.depmove > 0) && (WORLD.coord.dep = ROOF)) {
+	/* death message (one of the following):
+	 * flew too close to the sun
+	 * was smited for rising too high
+	 * grew too proud
+	 * passed out in space and burned up on reentry
+	 * froze to death in outer space
+	 * became lost...in...spaaace!
+	 */
+	}
+WORLD.coord.dep += args.depmove
+if (depmove ≥ 0) : {
+	if (home) {
+		PLAYER.pos.x = ROOM.home.x
+		PLAYER.pos.y = ROOM.home.y
+	else if (stair) {
+		PLAYER.pos.x = ROOM.downstair.x
+		PLAYER.pos.y = ROOM.downstair.y
+		}
+	PLAYER.pos.z = 0
+	}
+else {
+	if (home) {
+		PLAYER.pos.x = ROOM.home.x
+		PLAYER.pos.y = ROOM.home.y
+	else if (stair) {
+		PLAYER.pos.x = ROOM.upstair.x
+		PLAYER.pos.y = ROOM.upstair.y
+		}
+	PLAYER.pos.z = CEILING
+	}
+
+ROOM = loadroom(WORLD)
+
+NEW = true
+FIRST = !(visited)
+ROOM.visited = true
+
+BREAKCURSES
+if (IS_XTERM) {printf("\033]2;IWannaFlyCurses - %s: %i°%c, %i°%c, %i\033\\",GAMENAME,abs(WORLD.lat),WORLD.lat > 0 ? 'N' : (WORLD.lat < 0 ? 'S' : ' '),WORLD.lon > 0 ? 'E' : ((WORLD.lon < 0) && !(WORLD.lon == -180) ? 'W' : ' '),WORLD.dep - 100);
+FIXCURSES
+render();
+}
+
+/*ROTTEN pseudocode*/playermove(xmove,ymove,zmove)
+schar xmove
+schar ymove
+schar zmove
+{
+velocitycheck()
+xymovecheck(xmove,ymove)
+zmovecheck(zmove)
+
+PLAYER.pos.x += xmove
+if (PLAYER.pos.x < 0) {
+	PLAYER.pos.x = mapscroll(-1,0).x
+	
+	}
+else if (PLAYER.pos.x ≥ MAX_X) {
+	PLAYER.pos.x = mapscroll(1,0).x
+	}
+
+PLAYER.pos.y += ymove
+if (PLAYER.pos.y < 0) {
+	PLAYER.pos.y = mapscroll(0,-1).y
+	}
+else if (PLAYER.pos.y ≥ MAX_Y) {
+	PLAYER.pos.y = mapscroll(0,1).y
+	}
+
+PLAYER.pos.z += zmove
+}
+
+
+/* backslash enters console mode. characters are fetched and printed
+ * with ncurses, as well as stored in a temporary file.
+ *
+ * once the enter key is pressed, the temp file is rewound.
+ * a flex-generated parser is used to process the tokens.
+ *
+ * interpretation mode will change depending on the syntax.
+ * invalid commands may produce the response
+ * "Don't know how to <command>", amoungst others.
+ *
+ * a command will be provided to dump objects.
+ * text fields will show both their raw value and their text
+ * value in the correct encoding. using this comand to get
+ * out-of-character information is cheating, but no penalty
+ * can be implemented, as it would effect it's functionality.
+ *
+ * The internal debugger may produce intentional segfaults,
+ * which indicate a garbage pointer was dereferenced
+ * these should be called "dead canaries" in bugreports.
+ * these are useful in tracking down the most illusive of
+ * heisenbugs, as even if they cannot be directly observed,
+ * their modus operandi can be determined.
+ *
+ * only a number of expected variables may be dumped this way;
+ * true debugging should use GDB, perl -d, and possibly hexdump.
+ */
+
+enum cli_argstypes
+/* used to specify the type of the buffer that tokens are
+ * parsed into. types can be:
+ *
+ * argstype_wish (*heldobjtyp) (*heldobjtyp)[2] (*heldobjtyp)[4]
+ * argstyp_ent symtabref argstyp_equip equipenum
+ *
+ * container types will also allocate suitable contents
+ * once objid has been resolved
+ */
+
+typedef cli_func *int(*void)
+
+enum commandenum
+cli_func commandtable[256]
+cli_argstypes commandargs[256]
+
+struct argstyp_wish {
+uchar stack
+objid type
+void* data
+}
+
+struct argstyp_ent {
+bool shift
+uchar race
+bool stoned
+}
+
+struct argstyp_equip {
+equipenum slot
+heldobjtyp* item
+}
+
+

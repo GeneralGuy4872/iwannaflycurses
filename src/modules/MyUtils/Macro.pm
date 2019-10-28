@@ -22,15 +22,10 @@ sub CLAMP($$$) {return MIN( MAX( $_[0],$_[1] ),$_[2] )}
 FILTER_ONLY
 	code_no_comments => sub { s/≤/<=/g },
 	code_no_comments => sub { s/≥/>=/g },
-	code_no_comments => sub { s/‰/\$/g },
-	code_no_comments => sub { s/°/\$/g },
 	code_no_comments => sub { s/¤/\$/g },
-	code_no_comments => sub { s/¢/\$/g },
-	code_no_comments => sub { s/♮/\$/g },
 	code_no_comments => sub { s/£/\$/g },
-	code_no_comments => sub { s/€/\$/g },
 	code_no_comments => sub { s/§/\$/g },
 	code_no_comments => sub { s/¶/\$/g },
 	code_no_comments => sub { s/T(?:rue|RUE)/true/g },
 	code_no_comments => sub { s/F(?:alse|ALSE)/false/g },
-	code_no_comments => sub { s/(?:^|(?<=[\{]))((?:[\w]+[:])?[\s]*)forever/$1for (;;)/gm };
+	code_no_comments => sub { s/forever/for (;;)/gm };
