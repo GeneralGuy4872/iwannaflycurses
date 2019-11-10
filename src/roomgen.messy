@@ -1,11 +1,11 @@
 typedef void* mapgendispatchtyp[256][256][512][2];
 typedef struct roomneighbors mapgeneighborstyp[256][256][512];
 
-typedef void (*mapgencall)(struct latlontyp,struct roomneighbors)
+typedef void (*mapgencall)(struct latlontyp,struct roomneighbors);
 typedef void (*mapgenconstructor)(mapgendispatchtyp,mapgeneighbortyp);
 
 mapgentoplevel (latlon)
-struct latlontyp latlon
+struct latlontyp latlon;
 {
 struct planetyp plane = getplanetyp(latlon);
 if (PLANESTACK::planep(plane)) {
@@ -19,7 +19,7 @@ else {
 	}
 
 char symbol[15] = sprintf("r%02u_az%03u_el%02u",latlon.shift,latlon.el,((latlon.el < 0) ? latlon.el : (abs(latlon.el) + 1)) )
-void* handle = dlopen(LIB_GAMES_PATH GAME_NAME_PATH "/mapgen.so");
+void* handle = dlopen(LIB_GAMES_PATH GAME_NAME_PATH "/mapgen.so",RTLD_NOW);
 mapgendispatchtyp mapgendispatch;
 mapgeneighborstyp mapgeneighbors;
 mapgenconstructor constructor = dlsym(handle,symbol);
