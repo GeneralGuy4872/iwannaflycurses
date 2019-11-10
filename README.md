@@ -86,8 +86,7 @@ Depends:
 - Perl module <CODE>Math::RPN</CODE>
 - Perl module <CODE>Tie::File</CODE>
 - Perl module (<CODE>XS</CODE>|<CODE>Dyna</CODE>)<CODE>Loader</CODE>
-- Perl module <CODE>POSIX::</CODE>(<CODE>ceil</CODE>|<CODE>floor</CODE>|<CODE>strfdate</CODE>)
-- Perl module <CODE>Acme::don't</CODE> (no-ops during testing)
+- Perl module <CODE>POSIX qw(ceil floor strfdate)</CODE>
 - Perl module <CODE>Acme::Comment</CODE>
 
 Recommends:

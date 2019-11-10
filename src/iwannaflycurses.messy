@@ -12,6 +12,10 @@
  * write real code bottom-up
  * structs are made both top-down (specific) and bottom-up (generic)
  * changes must be propogated both down and up
+ *
+ * C++ is considered for providing aspects of the program from time
+ * to time, but the limitations of Extern 'C' have so far procluded
+ * it's use.
  */
 
 /******************************
@@ -43,12 +47,11 @@
  *	- .r8 for a room's tilemap
  *	- .dat for the custom data format
  *	- .json for a JSON file
- *	- .pl.dump for a Data::Dumper file
+ *	- .dumper for a Data::Dumper file
  *	- .tsv or .tab for tab seperated values
- *	- .csv for comma seperated values
- *	- .asc for a plaintext line-seperated record
+ *	- .csv for comma seperated values (structs)
+ *	- .ans for a line-seperated record
  *	- .txt for a plaintext block of text
- *	- .ans for an ansi escaped line-seperated record
  *	- .nfo for an ansi escaped block of text
  *
  * enviromental requirements:
@@ -78,21 +81,27 @@
  * Controls:
  * - number keys move in xy
  * - + or - followed by a number move in xyz
- * - < and > move in z
- * - arrow keys, page up, and page down render a flat orthographic projection looking in that direction (free action)
+ * - < > strafe
+ * - backspace retreats
+ * - spacebar advances
+ * - ? turns around
+ * - tab lunges
+ * - arrow keys, page up, page down, render a flat orthographic projection looking in that direction (free action)
  *	When in multiview mode:
  *	only visable tiles are rendered, other tiles are skipped instead of rendered blinky.
  *	- number keys are indexed to camera, i.e. if facing west, 8 moves west and 2 moves east.
- *	- F5 moves the near cullplane just in front of the player (free action)
  *	- : look at a tile.
  * - home renders a top-down perspective at a -45 degree angle from the z axis,
  *	culling the first layer which obstructs the player from view and above (free action)
  * - end renders only the plane including the player (free action)
- * - spacebar or 5 idle
- * - F1 shows or hides sense trouble. (free action)
- * - F2 shows or hides sense alignment. (free action)
- * - F3 shows or hides see invisible. (free action)
- * - F4 moves the near cull plane just behind or above the player. (free action)
+ * - insert zooms in (free action)
+ * - delete zooms out (free action)
+ * - 5 idles
+ * - F1 shows sense trouble. (free action)
+ * - F2 shows sense alignment. (free action)
+ * - F3 shows see invisible. (free action)
+ * - F4 shows the direction entities are facing (free action)
+ * - F5 hides all effects (free action)
  * - . pick up items
  * - \ initiates command entry. free action itself, but most commands are not.
  * more tbd
@@ -153,6 +162,24 @@
  *	compression libraries of the build enviroment are changed from expectations,
  *	but is a good start.
  *
+ * the goal of all things regarding RNG will not be cryptographic security;
+ * contrarawise, an option to manually seed will be added so that
+ * an exact game may be repeated. when perl is called, C's rand will
+ * be used as the argument to perl's srand via XS.
+ *
+ * At present, communication between Perl and C is expected to use
+ * controlled heap leaks, via xs. This has a potential to create real
+ * memory leaks and is less than ideal, but is a quick kludge solution
+ * to bypass C scope and thread safety in order to emulate a memory
+ * structure more ideal for the scope of the game, namely the flat layouts
+ * of ancient video game consoles. the Perl-side API has all the same
+ * tools given to it as are required by the C-side API, including malloc
+ * and free, to facilitate this. A side effect of this memory organization
+ * choice is that YOU MUST COLLECT (most of) YOUR OWN GARBAGE with free().
+ * in Perl, free may or may not be eventually implemented as a method as
+ * well as a first-class sub. if C++ is ever involved, this will
+ * certainly be the case.
+ *
  * a nonstructured language will be provided for defining midi streams
  * in a human readable format.
  *
@@ -212,6 +239,11 @@
 
 // need to find a MIDI library.
 
+#ifndef __GNUC__
+#warning WARNING - for best results, please use a compiler that supports GNU C.
+#define __attribute__(X) /**/
+#endif
+
 /**local libraries**/
 #include "macro.h"
 #include "constants.h"
@@ -242,7 +274,7 @@ addnwstr(&wch,1);
 char16_t TILDEWIDE
 char* TERM
 
-/* ɛ̩̍ will be used for "and", the conjunction, in comments where logical && would give a meaning that
+/* ɛ⃓ will be used for "and", the conjunction, in comments where logical && would give a meaning that
  * could be validly, but incompatibly, interpreted as compleatly different from what is intended.
  * if confusion arises from or, similar mesures will be implemented for it, too.
  */
@@ -259,7 +291,7 @@ char* TERM
 //anonomous pointers, could be anything. they're anonomous.
 struct drum {
 	char data[DRUMSIZE]
-	sshort top
+	short top
 	}
 
 void* drumalloc (ptr,amount)
@@ -348,10 +380,12 @@ char* text
 	 * prints "  LOADING..." on line 13
 	 * prints a hint on line 22.
 	 *   hints are stored in a struct
+	 * rotates the hints wheel by 1 node
 	 */
 
+void noop() {}
 
-uint util__roll (num,side,low)
+uint util:/:roll (num,side,low)
 uchar num;	//number of dice to roll
 uchar side;	//sides on each die
 bool low;	//low number on each die
@@ -366,11 +400,11 @@ return accum;
 }
 //XdN is (X,N,0), XDN is (X,N,1)
 
-sshort util__bonus (num)
+short util:/:bonus (num)
 uchar num;
 {
-sshort accum;
-schar tmp;
+short accum;
+char tmp;
 for (uchar n = 0;n<num;n++) {
 	tmp = (rand() % 3) - 1;
 	accum += tmp;
@@ -380,16 +414,13 @@ return accum;
 
 #define util__flip (rand() % 2)
 
-#define MISSING_FILE(F) fprintf(stderr,"File \"%s\" not found",F); move(22,2); attrset(COLOR_PAIR((BACKGROUND*COLOR_RED)+COLOR_WHITE); printw("File Error : \"%s\"",F); attroff(COLOR_PAIR((BACKGROUND*COLOR_RED)+COLOR_WHITE);
-
 /*implicit*/file_cat (path)
 const char *path;
 {
 FILE *openfile = fopen(path,"r");
 int lines;
 if (openfile == NULL) {
-	MISSING_FILE(path);
-	ERROR_GRAPHIC("File not found",0,0,0,0,false);
+	ERRORGRAPHIC(OK,1,sizeof(char*),"Could not open file: %s",path);
 	return ERR;
 	}
 char tmpbuffer[BUFFER_MAX];
@@ -407,107 +438,47 @@ fclose(openfile);
 return lines;
 }
 
-/*implicit*/file_cat_nocurses (path)
-const char *path;
-{
-FILE *openfile = fopen(path,"r");
-int lines;
-if (openfile == NULL) {
-	MISSING_FILE(path);
-	ERROR_GRAPHIC("File not found",0,0,0,0,false);
-	return ERR;
-	}
-char tmpbuffer[BUFFER_MAX];
-for (bool n = true;n;noop()) {
-	if (fgets(tmpbuffer,BUFFER_MAX,openfile) == NULL) {
-		n = false;
-		} else {
-		printf(tmpbuffer);fflush(stdout);
-		lines++;
-		}
-	}
-fclose(openfile);
-return lines;
-}
-
-
-/* should also output __FILE__ ɛ̩̍ __LINE__, which will likely be the program's version of
+/* should also output __FILE__ ɛ⃓ __LINE__, which will likely be the program's version of
  * undecipherable hex codes to anyone not extreamly fammiliar with the source. less severe
  * errors will prompt for [Q]uit, [A]bort, or [Z] continue. more severe ones will prompt
  * [Q]uit, [A]bort, [Z] restart. When other keyboard layout options are supported, QAZ will
  * be replaced with the left column of letters (under 1). replacements for QAZ might be:
- * QAY, AQW, "A:, FUJ. if Q or A are present in this group, they will be [Q]uit ɛ̩̍ [A]bort,
+ * QAY, AQW, "A:, FUJ. if Q or A are present in this group, they will be [Q]uit ɛ⃓ [A]bort,
  * swapping places with the other option. otherwise, the quit-abort-option3 order will be kept.
  */
 
-union error_typ {
+union unitype {
 void* pointer;
 const char* string;
 intptr_t value;
 }
 
-ERROR_GRAPHIC(string,sign1,num1,sign2,num2,hard)
-char* string
-char sign1 sign2
-intptr_t num1 num2
-bool hard
-{
-char* opt3
-if (hard) {
-	attrset(COLOR_PAIR((BACKGROUND*COLOR_RED)+COLOR_YELLOW+A_BLINK)
-	opt3 = "Restart"
-	}
-else {
-	attrset(COLOR_PAIR((BACKGROUND*COLOR_YELLOW)+COLOR_RED)
-	opt3 = "Continue"
-	}
+/**GLOBALS**/
 
-move(0,0); printw("*┐  Error!")
-move(1,0); printw("▗█▖  \"%s\"",string)
-switch sign1 : {
-case 'u' : {move(2,0); printw("███ N1 = %u",num1.value);break;}
-case 'i' : {move(2,0); printw("███ N1 = %+i",num1.value);break;}
-case 'p' : {move(2,0); printw("███ N1 = %p",num1.pointer);break;}
-case 'X' : {move(2,0); printw("███ N1 = $%08X",num1.value);break;}
-case 's' : {move(2,0); printw("███ %s",num1.string);break;}
-default : {move( 2,0); printw("███");break;}
-}
-switch sign2 : {
-case 'u' : {move(3,0); printw("▝█▘ N2 = %u",num2.value);break;}
-case 'i' : {move(3,0); printw("▝█▘ N2 = %+i",num2.value);break;}
-case 'p' : {move(3,0); printw("▝█▘ N2 = %p",num2.pointer));break;}
-case 'X' : {move(3,0); printw("▝█▘ N2 = $%08X",num2.value);break;}
-case 's' : {move(3,0); printw("▝█▘ %s",num2.string);break;}
-default : {move( 3,0); printw("▝█▘");break;}
-}
-move( 5,0); printw("File: %s",__FILE__)
-move( 6,0); printw("Line: %i",__LINE__)
-
-move( 8,0); printw("[Q]uit?")
-move( 9,0); printw(" [A]bort?")
-move(10,0); printw("  [Z] %s?",opt3)
-
-/* keytrap stuff here
- * if hard, SIGTRAP
+/* globals also include various stacks and queues used by the engine.
+ * such organization is infeasable using lexically-scoped garbage
+ * collection, hence the elements are placed in heap
+ * (dynamically allocated).
  */
-}
 
-/*GLOBALS*/
-playertyp PLAYER
-latlontyp WORLDSWAP[23]
+playertyp PLAYER __attribute__((hot))
+latlontyp WORLDSWP[23]
 uchar WORLDSWPIN = 0
 #define WORLD WORLDSWAP[WORLDSWPIN]
 #define CEILING ROOM->ceiling
-roomstackholder ROOM_STACK
-roomtyp* ROOM
+roomstackholder ROOMSTACK
+planestackholder PLANESTACK
+#define ROOM ROOMSTACK.top
 shadowmask SHADOWKNOWS
 shadowmask SHINEALIGHT
-ullong TURN
-nibbles TIMER
-schar ALARM = -1
-turntyp DATE
-uchar ROOMTURN
-ullong KILLS
+uint64_t TURN __attribute__((hot))
+nibbles TIMER __attribute__((hot))
+char ALARM = -1 __attribute__((hot))
+turntyp DATE __attribute__((hot))
+uchar ROOMTURN __attribute__((hot))
+uchar ELECOLLECT[8]	//elemental collectibles
+uchar QUESTCOLLECT[3]	//light/dark/entropy collectibles
+uint64_t KILLS
 char* SAVEPATH
 followtype *FOLLOW_ptr	//pursuers, i.e. paid assasins, ninjas, the reaper...
 eventtyp *EVNT_ptr	//FOO_ptr refers to the doubly linked list's head. the tail is FOO_ptr->prev. FOO_ptr->prev->next is always NULL.
@@ -515,7 +486,7 @@ placetyp *PLACE_ptr
 stringlistyp *HINT_ptr
 eventstringtyp *HEYLISTEN_ptr
 eventdatobj* EVENTDATA_ptr
-bitfield globools
+bitfield globools __attribute__((hot))
 #define NEW globools.a
 #define FIRST globools.b
 #define DAY globools.c
@@ -527,8 +498,6 @@ bitfield globools
 
 /*end GLOBALS*/
 
-
-
 struct turntyp:
 uchar sec : 6
 uchar min : 6
@@ -538,7 +507,7 @@ uchar weekday : 3
 uchar month : 4
 ushort year : 11
 
-bool ticktock() {
+bool ticktock() __attribute__((hot)) {
 TURN++;
 TIMER.lo++;
 if ((TIMER.lo == TIMER.hi) && (ALARM ≥ 0)) {ALARM++}
@@ -561,6 +530,8 @@ if (DATE.sec ≥ 60) {
 				if (DATE.month ≥ 12) {
 					DATE.month = 0;
 					DATE.year++;
+					if (!(DATE.year)) {return true}
+					else {return false}
 				}
 			}
 		}
@@ -586,13 +557,13 @@ uchar x
 uchar y
 
 struct scoord3:
-schar x
-schar y
-schar z
+char x
+char y
+char z
 
 struct scoord2:
-schar x
-schar y
+char x
+char y
 
 struct mapcoord3:
 uchar x : 6
@@ -603,6 +574,12 @@ bool w : 1
 struct nibbles {
 uchar lo : 4
 uchar hi : 4
+}
+
+struct racetyp {
+_8bitPtr race : 8
+uchar table : 4
+uchar meta : 4
 }
 
 struct vector2:
@@ -623,8 +600,8 @@ float z
 
 struct polar {
 uchar az : 3	//azimuth
-schar el : 2	//elevation
-schar slope : 3	//negative is inverse slope, most negative is undefined. defines a cone.
+char el : 2	//elevation
+char slope : 3	//negative is inverse slope, most negative is undefined. defines a cone.
 uchar r : 5	//radius
 bool omni : 1	//omnidirectional
 bool not : 1	//invert the mask defined by slope
@@ -646,35 +623,21 @@ bool behind : 1	//EQUATOR/2 degrees are added to azimuth
  * -1
  */
 
-notetyp {
-(self) next
-uchar evnt : 4
-uchar chan : 4
-uchar note : 8
-uchar velo : 8
-clock_t delay
-}
-/* for interfacing with a raw midi library
+/*
+ * notetyp {
+ * (self) next
+ * uchar evnt : 4
+ * uchar chan : 4
+ * uchar note : 8
+ * uchar velo : 8
+ * clock_t delay
+ * }
+ * for interfacing with a raw midi library
  *
  * delay is not part of the midi data, rather,
  * it tells how long to wait until sending the
  * next packet. set to 0 to send immidiately.
  */
-
-blittyp {
-(self) next
-uchar x : 7
-uchar y : 5
-uchar fg : 3
-uchar bg : 3
-bool dim
-bool bold
-bool italic
-bool under
-bool reverse
-bool blink
-clock_t delay
-}
 
 struct setcoord3:
 (self) *prev
@@ -690,13 +653,20 @@ uchar num : 3
 uchar side : 5
 uchar tobeat : 8
 
+struct planetyp {
+uchar shift : 2
+uchar az : 3
+char el : 2
+char : 0
+}
+
 struct latlontyp {
-uchar dep : 8	//0 ≤ dep ≤ 201
-schar lat : 8	//-90 ≤ lat ≤ 90
-sshort lon : 9	//-180 ≤ lon < 179
+uchar dep : 8
+uchar lat : 8
+ushort lon : 9
 uchar shift : 2	//are you plane shifted?
 uchar az : 3
-schar el : 2
+char el : 2
 }
 /* in-game altitude is given as the distance from layer 100
  *
@@ -733,10 +703,11 @@ schar el : 2
  * if a room is not on the stack, it is loaded from the save file and
  * pushed to the stack. this may cause the stack to intentionally drop
  * the room at the bottom to prevent eating too much ram. if the file
- * does not yet exist, the room is generated by perl according to a
- * dispatch table or a similarly supplied lookup method. if no constructor
- * exists, an error occurs. if the constructor is actually a death call,
- * you die.
+ * does not yet exist, the room is generated according to a dispatch table
+ * in a shared object. if the function and file are both NULL and the
+ * room is being entered, a lost in space death is called. if only the
+ * function is NULL, the file is executed in perl. if only the file is
+ * NULL, no shared objects are loaded before the function is called. 
  *
  * a swap array keeps track of gating between the 23 major planes,
  * saving the player's position, but not keeping the room loaded.
@@ -787,21 +758,12 @@ x : 1
 y : 1
 z : 1
 
-typedef char* stabs[256] //symbol table strings
-typedef uchar symtabref //beware of missingno glitches!
-
-enum item_enum
-enum spell_enum
-enum weap_enum
-enum arm_enum
-enum shld_enum
-enum baub_enum
-stabs itemstabs //stuff that doesn't go anywhere else; i.e. arrows, keys, quest items
-stabs spellstabs //spells
-stabs weapstabs //weapons
-stabs armstabs //armor
-stabs shldstabs //shield, cannon, greeves
-stabs baubstabs //rings, amulets, bracelets, tiaras
+char* itemstabs[256] //stuff that doesn't go anywhere else; i.e. arrows, keys, quest items
+char* spellstabs[256] //spells
+char* weapstabs[256] //weapons
+char* armstabs[256] //armor
+char* shldstabs[256] //shield, cannon, greeves
+char* baubstabs[256] //rings, amulets, bracelets, tiaras
 miscitembasetyp* itemtable[256]
 basespelltyp* spelltable[256]
 baseweaptyp* weaptable[256]
@@ -810,7 +772,7 @@ baseshldtyp* shldtable[256]
 baubtyp* baubtable[256]
 
 char* legendstabs[20] = {"truthseeker","sword of justice","excalibur","thunderbolt"/*torch of smiting*/,"sickle of chaos"/*+drain*/,"stormbringer"/*+drain*/,"devilfork"/*+fire*/,"partisen of tyrants","deathscyth"/*+drain*/,"sunray"/*spear + solar flare*/,"nightedge"/*sword + moonbeam*/,"staff of merlin"/*staff of magic missile*/,"firebrand"/*sword + fireball*/,"tesla's mace"/*+spark*/,"stormgale"/*bow*/,"frostpike"/*+frostbite*/,"trident of the seas"/*+tsunami*/,"staff of the forest"/*staff of animante kudzu*/,"groundshaker"/*+earthquake*/,"imperial baton"/*staff of antagonizing*/};
-legendtyp legendtable[20];
+legendtyp* legendtable[20];
 
 char* psystabs[8] = {"detect alignment","charm","hold","sleep","mind blast","passify","unhinge","terrify"}
 
@@ -831,8 +793,8 @@ struct classtyp {
 uchar role : 2
 uchar class : 3
 ushort align : 9
-bool charismatic : 1
-bool scorned : 1
+uchar mastery : 2
+}
 
 char* roguestabs[8] = {"changeling","rogue","thief","pirate","ninja","assasin","tourist","ronan"}
 char* fighterstabs[8] = {"fighter","knight","paladin","valkyrie","viking","samuri","ranger","monk"}
@@ -841,13 +803,27 @@ char* healerstabs[8] = {"healer","cleric","priest","druid","alchemist","scholar"
 
 paffect	classtable[4][8]
 
-enum mon1_enum
-stabs mon1stabs =
-{"human",	"elf",		"dwarf",	"gnome",	"hobbit",	"half elf",	"drow",		/*avian*/,	"half orc",	"half dragon",	/*half celestial*/,	"tiefling",	"half air elemental",		"half water elemental",	"half earth elemental",		"half fire elemental",
-"merfolk",	"seaelf",	"satyr",	"fairy",	"pixie",	"naiad",	"naga",		"dryad",	"orc",		"kobald",	"centaur",		"sphinx",	"half electric elemental",	"half ice elemental",	"half nature elemental",	"half metal elemental",
+struct montableptr {
+char *nametable[256]
+basentyp *ptrtable[256]
+}
+
+struct montableptr montable[16];
+#ifndef __GNUC__
+#pragma startup montable__init
+#endif
+montable__init() __attribute__((constructor)) {
+	montable[0] = {mon1stabs,mon1table};
+	montable[1] = {mon2stabs,mon2table};
+	montable[2] = {mon3stabs,mon3table};
+	END
+
+char* mon1stabs[256] =
+{"human",	"elf",	"dwarf",	"gnome",	"hobbit",	"half elf",	"drow",	"siren",	"half orc",	"half dragon",	/*half celestial*/,	"tiefling",	"half air elemental",	"half water elemental",	"half earth elemental",	"half fire elemental",
+"merfolk",	"seaelf",	"satyr",	"fairy",	"pixie",	"naiad",	"naga",	"dryad",	"orc",	"kobald",	"centaur",	"sphinx",	"half electric elemental",	"half ice elemental",	"half nature elemental",	"half metal elemental",
 ...};
 
-ptrtab mon1table
+basentyp* mon1table[256]
 /* contains all polymorphable monsters, of type BASENTYPE.
  * all C0 controls should be valid starting races, or left empty,
  * any polymorphable race can BECOME your base race...
@@ -855,16 +831,13 @@ ptrtab mon1table
  * if you become polylocked to a non-player race, your class will be removed.
  * becoming polylocked to one of the C0 entrys has no negative effects.
  * commands can change your base race without negative side effects
- *
- * entities can only be polymorphed into things in their own table.
- * this is due to a software limitation that will not be fixed,
- * as it enables species to easily be sorted into polymorphable
- * and non polymorphable by placing them on the low or high tables
  */
-enum mon2_enum
-stabs mon2stabs = {"grue",	...
-/*$FA*/,	"Justice"/*not invincible*/,	"Retribution"/*not invincible*/,	"Justice"/*invincible*/,	"Retribution"/*invincible*/,	"Death"};
-ptrtab mon2table
+
+char *mon2stabs[256] = {"grue",	
+basentyp* mon2table[256]
+
+char *mon3stabs[256] = {"rook",	"raven", "jackdaw", ...}
+basentyp* mon3table[256]
 
 /* MONSTERS BY LETTER
  * &: horned devil, balrog, pit feind, imp, homunculus, jubilix, drider
@@ -872,14 +845,14 @@ ptrtab mon2table
  * A: astral, ætherial, celestial, archon
  * a: newt, salamander, frog, 
  * B: bear, polar bear, bugbear, owlbear,
- * b: mockingbird, parakeet, parrot, macaw, cockatoo, songbird, sparrow, starling,
+ * b: mockingbird, parkeet, parrot, macaw, cockatoo, songbird, sparrow, starling
  * C: satyr, centaur,
  * c: raven, rook, jackdaw, crow, jay, magpie,
  * D: wyrm, great wyrm, (△red,↯copper,◬white,*cyan,▽blue,♠green,⍫brown,$gold,☽black,☼silver,∅purple) dragon, hydra,
  * d: hellhound, wolf, dire wolf, dog, fox, cyote,
  * E: <elementals>, stalker,
  * e: floating eye,
- * F: turkey, rooster, chicken, peacock, duck, goose, swan, albatross, gull, dodo,
+ * F: turkey, rooster, chicken, peacock, duck, goose, swan, albatross, gull, dodo, auk
  * f: panther, lion, tiger, manticore, cat, lynx, bobcat,
  * G: ghost, banshee, revenent, barrow wight,
  * g: gremlin, gargoyle, winged gargoyle,
@@ -896,9 +869,9 @@ ptrtab mon2table
  * M: gorgon,
  * m: <mummies>
  * N: naga,
- * n: merfolk, naiad, dryad,
+ * n: merfolk, naiad, dryad, sea siren
  * O: orc, half orc, uruk-hai, ogre,
- * o: ostrich, emu, moa,
+ * o: ostrich, emu, moa, penguin
  * P: fairy, pixie,
  * p: dolphin, narwhal, orca, beluga,
  * Q: elephant, mammoth, rhino,
@@ -913,7 +886,7 @@ ptrtab mon2table
  * u: unicorn, pegasus, griphon, hippogriph,
  * V: vampire, wolfman,
  * v: bat,
- * W: half dragon, half celestial, tiefling, avian, erinys, harpy, tengu,
+ * W: half dragon, half celestial, tiefling, avian, erinys, kerr, harpy, siren, tengu,
  * w: purple worm, nightcrawler,
  * X: velociraptor, tyrannasaurus,
  * x: monitor, alligator, crocodile, skink,
@@ -943,7 +916,7 @@ wis : 5
 bluff : 5
 
 struct conlangtype:
-symtabref id : 5
+_8bitPtr id : 5
 bool r : 1
 bool w : 1
 bool x : 1	//can be spoken
@@ -954,8 +927,8 @@ char* conlangtab[32] = {"common language","middle elvish","old elvish","dwarvish
 struct playertyp:
 classobjtyp class
 multiclasstyp *MULTICLASS
-symtabref baserace
-symtabref polyrace
+struct racetyp baserace
+struct racetyp polyrace
 shiftertyp polycounter
 coord3 loc
 polar facing
@@ -968,9 +941,9 @@ ushort hp	//they're fun and easy to...wait
 ushort mp
 uchar air
 ushort uptime
-umint xp
+uint32_t xp
 uchar lvl
-sshort food
+short food
 moneytyp gold
 heldobjtyp *lang_ptr
 heldobjtyp *spell_ptr
@@ -1016,50 +989,7 @@ ENUM_WRIST_RIGHT}
 
 /*blackbox*/force_global
 /* forces some queued globals to be loaded. takes a very long time, but can
- * sometimes be necissary if the global buffer is bogged down.
-
-int itemswap (item1,item2)
-heldobjtyp *item1
-heldobjtyp *item2
-{
-heldobjtyp *prev1 = item1->prev
-heldobjtyp *prev2 = item2->prev
-heldobjtyp *next1 = item1->next
-heldobjtyp *next2 = item2->next
-if (item1->next = item2) {
-	prev1->next = item2
-	item2->prev = prev1
-
-	item2->next = item1
-	item1->prev = item2
-
-	next2->prev = item1
-	item1->next = next2
-	}
-if (item2->next = item1) {
-	prev2->next = item1
-	item1->prev = prev2
-
-	item1->next = item2
-	item2->prev = item1
-
-	next1->prev = item2
-	item2->next = next1
-	}
-else {
-	prev1->next = item2
-	item2->prev = prev1
-
-	next1->prev = item2
-	item2->next = next1
-
-	prev2->next = item1
-	item1->prev = prev2
-
-	next2->prev = item1
-	item1->next = next2
-	}
-}
+ * sometimes be necissary if the global buffer is starving the system.
 
 struct basentyp:
 aligntyp alignmask
@@ -1071,17 +1001,17 @@ uchar hplvl
 uchar mplvl
 uchar xplvl
 uchar airmax	//how long you can hold your breath
-symtabref lang0 : 6
-symtabref lang1 : 6
+_8bitPtr lang0 : 6
+_8bitPtr lang1 : 6
 uchar vocal[4]
-symtabref spell[4]
+_8bitPtr spell[4]
 bitfield psyattack
 char16_t unichar
 bool unaligned : 1
 bool keepindark : 1
 bool mindless : 1
 bool incoporeal : 1
-schar size : 2
+char size : 2
 uchar color : 6
 /* entitys of size 1 or -2 cannot use armor.
  * entitys of larger size automaticly win grapples.
@@ -1091,11 +1021,10 @@ uchar color : 6
  */
 
 struct aggrotyp:
-bool shiftable : 1	//nowhere else to put it.
+bool unhinged : 1
 uchar patience : 3
 uchar ai_type : 4
-uchar anger : 7
-bool unhinged : 1
+uchar anger : 8
 
 struct enttyp:
 (self) *prev
@@ -1103,7 +1032,7 @@ struct enttyp:
 char* name
 classobjtyp class
 aggrotyp aggro
-symtabref race
+struct racetyp race
 coord3 loc
 polar facing
 vector3 velo
@@ -1140,7 +1069,7 @@ char* name
 eventdata eventident
 classobjtyp class
 setcoord3* path
-symtabref race
+struct racetyp race
 coord3 loc
 polar facing
 conlangtyp lang
@@ -1154,8 +1083,8 @@ char* name
 eventdata eventident
 classobjtyp class
 aggrotyp aggro
-symtabref baserace
-symtabref polyrace
+struct racetyp baserace
+struct racetyp polyrace
 shiftertyp polycounter
 coord3 loc
 polar facing
@@ -1167,9 +1096,9 @@ scoord2 align
 ushort hp
 ushort mp
 uchar air
-umint xp
+uint32_t xp
 uchar lvl
-sshort food
+short food
 moneytyp gold
 heldobjtyp *spell_ptr
 bitfield psyattack
@@ -1194,7 +1123,7 @@ subobjtyp wristr
 struct spawntyp:
 classobjtyp class
 aggrotyp aggro
-symtabref baserace
+struct racetyp race
 paffectyp paffect
 effectyp effect
 oneobjtyp loot
@@ -1228,12 +1157,12 @@ objid type
 void* data
 
 struct subobjtyp:
-symtabref itemid : 8
+_8bitPtr itemid : 8
 bool cursed : 1
 bool oxide : 1
 bool burned : 1
-schar bonus : 5
-uchar metadata : 8 //secondary symtabref for legendary objects
+char bonus : 5
+uchar metadata : 8 //secondary _8bitPtr for legendary objects
 
 struct magictyp:
 bool fire : 1
@@ -1262,7 +1191,7 @@ bodytyp alterations	//keeps track of changes. if a change becomes permenent, it 
  */
 
 struct spelltyp:
-symtabref itemid
+_8bitPtr itemid
 diceodds odds
 uchar prof
 
@@ -1271,14 +1200,14 @@ bool poly : 1
 bool self : 1
 uchar lvl : 6
 magictyp type : 8
-schar cost_typ : 2 //0 = at will, 1 = gold, -1 = mp, -2 = hp
+char cost_typ : 2 //0 = at will, 1 = gold, -1 = mp, -2 = hp
 uchar cost_amnt : 6
 potiontyp effect
 missiletyp delivery
-symtabref polyref
+_8bitPtr polyref
 
 struct psytyp:
-schar cost_typ : 2 //0 = at will, 1 = gold, -1 = mp, -2 = hp
+char cost_typ : 2 //0 = at will, 1 = gold, -1 = mp, -2 = hp
 uchar cost_amnt : 6
 potiontyp effect
 missiletyp delivery
@@ -1287,7 +1216,7 @@ struct missiletyp:
 bool psion : 1
 bool vamp : 1
 uchar damage : 8
-schar recoil : 7
+char recoil : 7
 uchar spread : 2 //0 = line, 1 = narrow (1:3), 2 = wide (1:2), 3 = very wide (1:1)
 uchar splash : 3 //radius of damage on impact
 bool spz : 1 //spread and splash in the z plane.
@@ -1373,7 +1302,7 @@ bool nolungs : 1	//effects breathing above water
 bool noswim : 1	//effects swimming
 bool atktail : 1	//effects unarmed attacks, swimming, flying
 bool atkwing : 1	//effects unarmed attacks, swimming, flying
-schar atkbite : 2	//effects unarmed attacks; +1 = swallow, -1 = bite, -2 = bite ɛ̩̍ breath
+char atkbite : 2	//effects unarmed attacks; +1 = swallow, -1 = bite, -2 = bite ɛ⃓ breath
 
 struct venomtyp {
 elixtyp claws
@@ -1408,7 +1337,7 @@ invis : b
 struct cursetyp:
 stattyp type
 uchar polytimer
-symtabref poly
+_8bitPtr poly
 
 struct resistyp:
 bool fireproof : 1
@@ -1438,10 +1367,10 @@ resistyp resist
 senstyp sense
 skilltyp skill
 magictyp asp
-schar atk
-schar spatk
-schar def
-schar spdef
+char atk
+char spatk
+char def
+char spdef
 
 struct paffectyp
 the8stats eight
@@ -1452,10 +1381,10 @@ resistyp resist
 senstyp sense
 skilltyp skill
 magictyp asp
-schar atk
-schar spatk
-schar def
-schar spdef
+char atk
+char spatk
+char def
+char spdef
 
 struct potiontyp:
 bodytyp shape
@@ -1463,8 +1392,8 @@ elixtyp ails_ya
 cursetyp curse
 resistyp resist
 senstyp sense
-sshort hp
-sshort mp
+short hp
+short mp
 diceodds odds
 
 struct skilltyp:
@@ -1486,7 +1415,7 @@ uchar fly : 2 //0 = never had wings, 1 = slow falling, 2 = cannot gain altitude,
 
 /* damage = MAX( incoming-defense , 0 )
  *
- * polyshock = -abs(base.hplvl-poly.hplvl) * !util__roll(1,20,0)
+ * polyshock = -abs(base.hplvl-poly.hplvl) * !util:/:roll(1,20,0)
  * ⎧if n < -HPMAX     : Instakill (deathmessage: miscalculated a crucial equivilant-exchange parameter,hath choose...poorly)
  * ⎪if n = -HPMAX     : Stoning
  * ⎨if -HPMAX < n < 0 : abs(n) Damage (deathmessage: could not withstand the cost of transmutation)
@@ -1512,12 +1441,12 @@ char* wandmaterials[16] = {"oak","ash","yew","honeylocust","silver","bronze","ir
 wandtyp:
 uchar matter : 4
 uchar uses : 4
-symtabref bound : 8
+_8bitPtr bound : 8
 
 char* baubmaterials[8] = {"yew","bronze","silver","gold","soapstone","ivory","obsidian","stardust"} //stoning -> soapstone
 
 baubtype :
-schar type : 2 //0=ring, 1=bracelet, -1=amulet, -2=tiara
+char type : 2 //0=ring, 1=bracelet, -1=amulet, -2=tiara
 uchar matter : 3
 uchar color : 3
 paffectyp enchnt
@@ -1540,25 +1469,12 @@ latlontyp down
 latlontyp mirror
 }
 
-struct roomstack {
-struct roomstack* prev;
-struct roomstack* next;
-latlontyp key;
-roomtyp* value;
-}
-
-struct roomstackholder {
-struct roomstack* bottom;
-struct roomstack* top;
-ushort depth;
-}
-
 struct roomtyp: //top-down display of a 3d space
 latlontyp latlon
 tileset *hightiles
-schar* tiledata[][MAX_Y][MAX_X]
+char* tiledata[][MAX_Y][MAX_X]
 uchar ceiling : 4
-uchar floorcolor : 3
+bool bgcolor : 3
 bool visited : 1
 shadowmask seen
 encontyp *encon_ptr
@@ -1578,7 +1494,7 @@ struct roomneighbors neighborhood
  */
 
 struct subroomtyp: //used by mapgen
-schar tiledata[MAX_Z][MAX_Z][MAX_Z]	//cube of MAX_Z
+char tiledata[MAX_Z][MAX_Z][MAX_Z]	//cube of MAX_Z
 coord3 dim
 enttype *ent_ptr
 mapobjtyp *obj_ptr
@@ -1600,9 +1516,8 @@ lightyp *lamp_ptr
  *     *.txt : UTF-8 text document. usually stored in the program's static files, which is CAT-ed to provide dialouge; also used in dumps of primatives
  *     *.ans : UTF-8 text record containing SGR sequences deleminated by newline.
  *     *.nfo : UTF-8 text document (not CP437) containing SGR sequences. otherwise identical to asc.
- *  *.tar.gz : each room is saved as a tar.gz file, as are linked lists and the player
- * *.tar.bz2 : each plane is saved as a tar.bz2 file.
- *     *.sav : a save file. formatted as a .tar.bz2 file tree
+ *  *.tar.gz : each room is saved as a tar.gz file, as are linked lists and the player. rooms are divided into compressed files for each plane. the extra planes are tar.gz files named shift_az_el
+ * *.tar.bz2 : a savefile is a tar.bz2 file. it is named %H_%M_%S__%d_%m_%Y. the 23 main planes are tar.bz files named shift_az_el
  *   *.man.# : a linux manpage
  *  *.mdoc.# : a bsd manpage
  *         * : documentation
@@ -1623,14 +1538,14 @@ lightyp *lamp_ptr
 
 /* dat file format:
  * SOH name BEL = struct field key
- * STX string ETX = an ascii text field
+ * STX string ETX = an ascii text field, can contain ESC
  * DLE s8bit raw_data = a numeric field, abs(n) bits long. a negative number indicates the field is signed.
  * ACK = true
  * NAK = false
  * SUB = -1
  * NUL = empty string
  * XON path XOFF = a pointer to the data at path
- * 
+ * ENQ = is a pointer
  * SYN = start an array or add a diminsion to the array
  * structs are terminated with ETB
  * arrays may have up to 4 dimensions seperated with FS GS RS and US.
@@ -1639,31 +1554,32 @@ lightyp *lamp_ptr
 
 struct mapgen_bordertyp {
 tileset *hightiles_n
-schar north[MAX_Z][MAX_X]
+char north[MAX_Z][MAX_X]
 tileset *hightiles_s
-schar south[MAX_Z][MAX_X]
+char south[MAX_Z][MAX_X]
 tileset *hightiles_e
-schar east[MAX_Z][MAX_Y]
+char east[MAX_Z][MAX_Y]
 tileset *hightiles_w
-schar west[MAX_Z][MAX_Y]
+char west[MAX_Z][MAX_Y]
 tileset *hightiles_ne
-schar northeast[MAX_Z]
+char northeast[MAX_Z]
 tileset *hightiles_nw
-schar northwest[MAX_Z]
+char northwest[MAX_Z]
 tileset *hightiles_se
-schar southeast[MAX_Z]
+char southeast[MAX_Z]
 tileset *hightiles_sw
-schar southwest[MAX_Z]
+char southwest[MAX_Z]
 tileset *hightiles_u
-schar up[MAX_Y][MAX_X]
+char up[MAX_Y][MAX_X]
 tileset *hightiles_d
-schar down[MAX_Y][MAX_X]
+char down[MAX_Y][MAX_X]
 }
 /* only used during mapgen, freed immediatly since it's so huge
  * up and down do not need secondary directions as the map cannot be scrolled that way
  */
 
 typedef ushort shadowmask[MAX_Y][MAX_X]
+typedef ushort seaofholes[MAX_Y][MAX_X/8]
 typedef bitfield starfield[MAX_Y][MAX_X/8]
 
 struct petaltyp {
@@ -1672,7 +1588,7 @@ starfield grave
 }
 
 bitfield starfield_generator() {
-uchar xor_rand = (uchar) (random() ^ (~random() + 1))
+uchar xor_rand = (uchar) (rand() ^ (~rand() + 1))
 bitfield output
 output.a = (bool) (xor_rand | 0x80)
 output.b = (bool) (xor_rand | 0x40)
@@ -1717,9 +1633,9 @@ bool petrif : 1
 bool dig : 1
 bool fence : 1
 
-symtabref freeze : 7
-symtabref melt : 7
-symtabref stone : 7
+_8bitPtr freeze : 7
+_8bitPtr melt : 7
+_8bitPtr stone : 7
 uchar density : 7
 
 bool blink : 1
@@ -1735,10 +1651,10 @@ char16_t unichar : 16
  * if a tile is conductive, then electricity is summoned for the instant
  * that electrical magic strikes it, and propagates through contiguous tiles.
  *
- * if a tile can freeze, it's symtabref is changed to the number indicated by ice.
+ * if a tile can freeze, it's _8bitPtr is changed to the number indicated by ice.
  * when ice magic intersects it.
  *
- * if a tile can melt, it's symtabref is changed to the number indicated by melt
+ * if a tile can melt, it's _8bitPtr is changed to the number indicated by melt
  * when fire or electrical magic intersect it.
  *
  * if a tile can be petrified, it is changed to the tile indicated by stone.
@@ -1873,12 +1789,12 @@ struct eventtyp:
 eventdata eventdatavals
 triggertyp whenthis
 const char* dothis	//object to be loaded. must be a shared object with C linkage; but not necissarily one written in C. if NULL, is a built-in function.
-int (*doit)(int,int,int,int)	//if NULL, then the file at dothis is sent to perl instead of being loaded as an object
+int (*doit)(union unitype,union unitype,union unitype,union unitype)
 uchar radius : 7
 bool show : 1
 uchar up : 4
 uchar down : 4
-umint duration
+uint32_t duration
 
 enum triggerenum {ALWAYS_FLAG,ILLUM_FLAG,LOOK_FLAG,FARLOOK_FLAG,BUMP_FLAG,HIT_FLAG,FIRST_FLAG,NEW_FLAG,DAY_FLAG,TIME_FLAG,MORN_FLAG,NOON_FLAG,EVE_FLAG,MIDNITE_FLAG,DAY_FLAG,NIGHT_FLAG}
 
@@ -1898,7 +1814,7 @@ objid type
 void* data
 
 struct qglobflags {
-race : 8
+struct racetyp race : 16
 race-specific : 1
 role : 2
 class : 3
@@ -1927,8 +1843,8 @@ cursetyp curse
 diceodds odds
 trapflags flags
 senstyp sense
-sshort hp
-sshort mp
+short hp
+short mp
 
 struct trapflags:
 bool fireproof : 1
@@ -1951,7 +1867,7 @@ bool blink : 1
 uchar color : 6
 coord3 loc
 setcoord3 *dest
-sshort duration	//negative are uses, positive are turns
+short duration	//negative are uses, positive are turns
 }
 
 struct warptyp:
@@ -1963,7 +1879,7 @@ latlontyp glob_loc
 coord3 loc
 latlontyp glob_dest
 setcoord3 *dest
-sshort duration
+short duration
 
 char* gemcolors[8] = {"jet","sapphire","emerald","turquoise","ruby","amythest","heliodor","diamond"} //stoning has no effect
 /* cut varys by color:
@@ -1979,14 +1895,14 @@ uchar quality : 2
 uchar cut : 2
 
 struct meattyp:
-symtabref race : 8
+struct racetyp race : 16
 bool hightable : 1
 uchar sellby : 7
 uchar amount : 8
 
 struct foodtyp:
-symtabref itemid
-symtabref metadata
+_8bitPtr itemid
+_8bitPtr metadata
 uchar sellby
 uchar amount
 
@@ -1996,8 +1912,6 @@ diceodds odds
 uchar keepsfor	//0 means non-perishable
 uchar hp
 uchar nutri
-
-bool always(ushort,ushort,ushort,ushort){return true}
 
 enum objid:
 WEAPON_FLAG : contains subobjtyp calling baseweaptyp
@@ -2011,7 +1925,7 @@ SHLD_FLAG : contains subobjtyp calling baseshldtyp
 BAUB_FLAG : contains subobjtyp calling baubtyp
 CONLANG_FLAG : contains conlangtyp
 SPELL_FLAG : contains spelltyp
-MISC_FLAG : contains symtabref
+MISC_FLAG : contains _8bitPtr
 GEM_FLAG : contains gemstonetyp
 TRAP_FLAG : contains traptyp
 EVENT_FLAG : contains eventtyp
@@ -2030,6 +1944,8 @@ SIGN_FLAG : contains signtyp
  * terminating when there is not enough
  * value left to move another whole block.
  * one function won't cover all use cases.
+ * one of these class of functions will be
+ * __attribute__((hot))
  */
 
 each layer is drawn translated +1y for each layer above the player and -1y for each layer below.
@@ -2044,22 +1960,22 @@ an UNDERLINE is a shadow
 
 note: unicode symbols are (mostly) used be their appearence, not by their meaning
 ) is a sword or dagger. ⍏ are polearms. \ is a staff. ¦ is a club. : is a mace. ℓ is a whip. ( is a bow. ⇤ is an arrow. ⍖ is a writing instrument.
-⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves. % is meat. ⊞ is food (don't shoot it). $ is gold. ¢ is copper.
+⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves. ☜☝☞☟ is a gauntlet. % is meat. ⊞ is food (don't shoot it). $ is gold. ¢ is copper.
 ⌘ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♫ is a lyre. ƒ is a violin. ♪ is a different music instrument.
 ¿ are potions (fragile). ∫ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet. ^ is a crown.
 / is a wand. ♮ is a ladder. ⋎ is a fountain or gyser. ⍾ is a bell. ⎋ is a clockface. ♠ ♣ ‡ are trees. ⋏ is fire. ♜ is a pedestal.
 ≋ is deep liquid's surface. ∬ is a waterfall. ≈ is a shallow liquid's surface, or a deep liquid below surface. ~ (centered) is a puddle. ≣ is a staircase. 
 ⌁ is electricity. * is ice. ⎈ spider web. ⌬ beehive. ↥ are spikes. ⎙ ⍝ ⎍ ∎ ⎅ are tombstones or signs. ␥ is glass.
-! is trouble. ☀ is a light source. ⌸ is a door. ⍯ is a locked door. ⎕ is an open door. = is a gate. ≠ is a locked gate. ∷ is an open gate.
-• is a boulder. . is a rock. ⁂ is a rockslide. ◇ is a gemstone. ◊ is a giant magic crystal. ⑆ are footprints.
-∪ is a sink. ⏍ is a chest. ↯ is the thunderbolt. ∅ is a spacetime anomaly (do not touch). < > are level stairs.
-← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are ballistae. ✪ is a rune. ː ⍽ are traps. ? is somone wearing a cloak.
+! is trouble. ☀ is a light source. ⌸ is a door. ⍯ is a locked door. ⎕ is an open door. = is a gate. ≠ is a locked gate. ⑆ is an open gate.
+• is a boulder. . is a rock. ⁂ is a rockslide. ◇ is a gemstone. ◊ is a giant magic crystal. ? is somone wearing a cowled cloak.
+∪ is a sink. ⏍ is a chest. ↯ is the thunderbolt. ∅ is a spacetime anomaly (do not touch). ↸ ⇲ are level stairs.
+← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles, or facing direction. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are ballistae. ✪ is a rune. ː ⍽ are traps.
 # █ ▓ ▒ ░ ▞ ▚ (etc) are thick walls or floor. ≎ ☈ are clouds (do not walk on them; keep your head out of them).
 ˜ ␣ are holes. ' is a stalagtite or icicle. , is a plant. ; is a grain or sunflower (impassable).
-box drawings are low walls or columns. ⑉ ⋮ are iron bars. · is an ember or star. ` ´ are flower petals.
-¬ is stale air (unbreathable). ∽ ⋍ is stagnent water (unbreathable).
-" deliminates text.
-⍰ is a missingno.
+box drawings are low walls or columns. ⋯⋰⋱⋮ are iron bars. · is an ember or star. ` ´ are flower petals.
+¬ is carbon monoxide. ∽ is mud. ≉ is stagnent water (unbreathable).
+" deliminates text. > < is the cursor (selected tile is inbetween)
+⍰ is a missingno (invalid tile id).
 
 the symbol for gemstone and giant crystal has been the source of much headache,
 but any truly monospace font should render their relative sizes correctly;
@@ -2088,7 +2004,7 @@ and will use the full range of ANSI SGR escape codes
 
 rune symbols
 ◬ air, ⍫ earth, △ fire, ▽ water, ⍰ missingno
-※ ice, ☇ electricity, ♤ metal, ♻ nature
+⋇ ice, ☇ electricity, ♤ metal, ♻ nature
 ❖ status effect, ☣ poison, ¤ stoning, ∅ entropy
 ☼ light, ☽ dark, § polymorph, ↹ planer
 ♥ healing
@@ -2103,15 +2019,8 @@ directional symbols:
 ←, ↑, →, ↓, ↖, ↗, ↘, ↙, direction in XY;
 ! far side; ↧, ↥, direction in Z;
 ↹ different plane;
-◬, ⍫, △, ▽, ※, ↯, ♤, ♻, ☼, ☽, ∅, inner planes;
+◬, ⍫, △, ▽, ⋇, ↯, ♤, ♻, ☼, ☽, ∅, inner planes;
 LG, NG, CG, LN, CN, LE, NE, CE, TN, UN, ☠, outer planes;
-
-STYLE GUIDE:
-the following nonstandard punctuation may be used in dialouge (list not exaustive) :  ‽ explosive disbelief  ⸮ rhetorical  .ˢ sarcasm  ♪ playful  ♥ careing  ♩♯ taunt  ↯ explosive anger  ☠ foul oath
-nonstandard punctuation should be established in obvious, unambiguous, context before being used to disambiguate sentence meaning later on.
-monospaced raster fonts presented light-on-dark can be unappealing to the uninitiated, so every opportunity should be taken to make the text more appealing.
-other nonstandard punctuation that is not used to disambiguate meaning (♪, ♥, ♩♯, ↯, ☠) helps to paint the medium, making the dialouge come alive;
-for the same reason, dialouge should be colored and styled as appropriate whenever possible.
 
 foods (* = uses meta)
 hardtak tortilla cornmeal cornbread
@@ -2175,8 +2084,7 @@ jelly* jam* preserves* peanutbutter
 icecube snow ember blacksoup
 broth* stew* ration mistake
 
-
-/*blackbox*/playervelocitycheck() velocitycheck(*entity)
+/*blackbox*/playervelocitycheck() velocitycheck(*entity) __attribute__((hot))
 	/* if you have a nonzero velocity vector, when you try to move
 	 * you travel in a direction determined by the mean vector of
 	 * your move and your velocity. each turn, your velocity reduces
@@ -2184,7 +2092,7 @@ broth* stew* ration mistake
 	 * in a direction if you hit something.
 	 */
 
-/*blackbox*/movecheck(xmove,ymove,zmove)
+/*blackbox*/movecheck(xmove,ymove,zmove) __attribute__((hot))
 	/* if you are flying {
 	 *	checks your flying skill and restricts your movement accordingly
 	 *		if you have no flying skill, grav is added to your -Z velocity
@@ -2222,178 +2130,6 @@ roomwarp(latlontyp)
 
 coordjump(coordx,coordy,coordz)
 
-/*blackbox*/saveroom(roomtyp*)
-//saves the room pointed to, or the current room if NULL
-
-/*implicit*/freeroom(roomptr)
-roomtyp* roomptr
-{
-if (roomptr == NULL) {roomptr = ROOM}
-	{
-	encontyp* current = roomptr->encon_ptr->prev
-	encontyp* previous = roomptr->encon_ptr->prev->prev
-	roomptr->encon_ptr->prev->next = NULL
-	roomptr->encon_ptr->prev = NULL
-	while (previous != NULL) {
-		free(current)
-		current = previous
-		previous = previous->prev
-		}
-	free(current)
-	current = NULL
-	}
-	{
-	setcoord3* current = roomptr->encon_ptr->prev
-	setcoord3* previous = roomptr->encon_ptr->prev->prev
-	roomptr->encon_ptr->prev->next = NULL
-	roomptr->encon_ptr->prev = NULL
-	while (previous != NULL) {
-		free(current)
-		current = previous
-		previous = previous->prev
-		}
-	free(current)
-	current = NULL
-	}
-	{
-	enttyp* current = roomptr->encon_ptr->prev
-	enttyp* previous = roomptr->encon_ptr->prev->prev
-	roomptr->encon_ptr->prev->next = NULL
-	roomptr->encon_ptr->prev = NULL
-	while (previous != NULL) {
-		free(current)
-		current = previous
-		previous = previous->prev
-		}
-	free(current)
-	current = NULL
-	}
-	{
-	mapobjtyp* current = roomptr->encon_ptr->prev
-	mapobjtyp* previous = roomptr->encon_ptr->prev->prev
-	roomptr->encon_ptr->prev->next = NULL
-	roomptr->encon_ptr->prev = NULL
-	while (previous != NULL) {
-		free(current)
-		current = previous
-		previous = previous->prev
-		}
-	free(current)
-	current = NULL
-	}
-	{
-	lightyp* current = roomptr->encon_ptr->prev
-	lightyp* previous = roomptr->encon_ptr->prev->prev
-	roomptr->encon_ptr->prev->next = NULL
-	roomptr->encon_ptr->prev = NULL
-	while (previous != NULL) {
-		free(current)
-		current = previous
-		previous = previous->prev
-		}
-	free(current)
-	current = NULL
-	}
-	return free(roomptr)
-}
-
-roomtyp* loadroom(latlontyp)
-//loads room indicated by WORLD
-
-swaproom(dest)
-struct latlontyp dest;
-{
-if (!(dest.shift || dest.az || dest.el)) {WORLDSWPIN = 0}
-else {switch dest.shift : {
-	case 0 : return ERR;
-	case 1 : if (!(dest.el)) {
-		switch dest.az : {
-			case 0 : ROOMSWPIN = 1; return OK;
-			case 01 : ROOMSWPIN = 2; return OK;
-			case 02 : ROOMSWPIN = 3; return OK;
-			case 03 : ROOMSWPIN = 4; return OK;
-			case 04 : ROOMSWPIN = 5; return OK;
-			case 05 : ROOMSWPIN = 6; return OK;
-			case 06 : ROOMSWPIN = 7; return OK;
-			case 07 : ROOMSWPIN = 8; return OK;
-			default : ERROR_GRAPHIC("Struct Field Overflow",'X',dest.az,'s',"too big for expected three bit field",true);
-		}
-		else if (dest.el && !(dest.az)) {
-			case 1 : ROOMSWPIN = 9; return OK;
-			case -1 : ROOMSWPIN = 10; return OK;
-			case -2 : ROOMSWPIN = 11; return OK;
-			default : ERROR_GRAPHIC("Struct Field Overflow",'X',dest.el,'s',"too big for expected three bit field",true);
-		}
-		break;
-	case 2 : if (dest.az && !(dest.el)) {
-		switch dest.az : {
-			case 0 : ROOMSWPIN = 12; return OK;
-			case 01 : ROOMSWPIN = 13; return OK;
-			case 02 : ROOMSWPIN = 14; return OK;
-			case 03 : ROOMSWPIN = 15; return OK;
-			case 04 : ROOMSWPIN = 16; return OK;
-			case 05 : ROOMSWPIN = 17; return OK;
-			case 06 : ROOMSWPIN = 18; return OK;
-			case 07 : ROOMSWPIN = 19; return OK;
-			default : ERROR_GRAPHIC("Struct Field Overflow",'X',dest.az,'s',"too big for expected three bit field",true);
-		}
-		else if (dest.el && !(dest.az)) {
-			case 1 : ROOMSWPIN = 20; return OK;
-			case -1 : ROOMSWPIN = 21; return OK;
-			case -2 : ROOMSWPIN = 22; return OK;
-			default : ERROR_GRAPHIC("Struct Field Overflow",'X',dest.el,'s',"too big for expected three bit field",true);
-		}
-		break;
-	default : return ERR;
-	}}
-
-roomstackpush(newkey,newval)
-latlontyp newkey
-roomtyp* newval
-{
-struct roomstack* newnode = malloc(sizeof(struct roomstack));
-newnode->key = newkey;
-newnode->value = newval;
-newnode->prev = ROOM_STACK->top;
-newnode->next = NULL;
-ROOM_STACK.top->next = newnode;
-ROOM_STACK.top = ROOM_STACK.top->next;
-ROOM_STACK.depth++;
-if (ROOM_STACK.depth > ROOM_STACK_MAX) {
-	roomstackshift();
-	ROOM_STACK--;
-	}
-}
-
-roomstackpop()
-roomstackshift()
-roomstacksearch(latlontyp)
-roomstackpunt(roomstack*)
-room_p(latlontyp)
-roomgen(latlontyp)
-
-roomtyp* touchroom(query)
-latlontyp query
-{
-roomstack* answer = roomstacksearch(query);
-if (answer != NULL) {
-	roomstackpunt(answer);
-	return ROOM_STACK.top.value;
-	}
-else if (room_p(query)) {
-	roomstackpush(query,loadroom(query));
-	return ROOM_STACK.top.value;
-	}
-else {
-	roomstackpush(query,roomgen(query));
-	return ROOM_STACK.top.value;
-	}
-}
-
-/*blackbox*/loadgame()
-/*blackbox*/savegame()
-//loading and saving of the entire file
-
 /*blackbox implicit*/dump(datatypenum,void*)
 // used by the debugger to dump data.
 
@@ -2424,7 +2160,7 @@ else {
 	return zpos
 	}
 
-bool maskfetch(zcoord,ycoord,xcoord,mask)
+bool maskfetch(zcoord,ycoord,xcoord,mask) __attribute__((pure))
 uchar zcoord
 uchar ycoord
 uchar xcoord
@@ -2500,14 +2236,20 @@ else {
 		default : return ERR;
 		}
 	}
+return ERR;
 }
 
-bool langetx(race,id)
+bool langetx(race,id) __attribute__((pure))
 basentyp race
 uchar id
 {
 div_t tmp = div(id,8)
-if (tmp.quot > 3) {ERROR_GRAPHIC("math: out of bounds",'u',id,'u',31,false); return false}
+if (tmp.quot > 3) {
+	ERRORGRAPHIC(SIGFPE,3,\
+		0,"math: out of bounds",\
+		sizeof(int),"impossible result %i > 3",tmp.quot,\
+		sizeof(uchar),"(perhaps %i > 31)",id);
+	return false}
 switch (tmp.rem) : {
 	case 0 : return (bool) (race.vocal[tmp.quot] & 0x80);
 	case 1 : return (bool) (race.vocal[tmp.quot] & 0x40);
@@ -2517,11 +2259,13 @@ switch (tmp.rem) : {
 	case 5 : return (bool) (race.vocal[tmp.quot] & 0x04);
 	case 6 : return (bool) (race.vocal[tmp.quot] & 0x02);
 	case 7 : return (bool) (race.vocal[tmp.quot] & 0x01);
-	default : ERROR_GRAPHIC("math: invalid remainder",'u',temp.rem,'u',8,true); raise(SIGTRAP);
+	default : ERRORGRAPHIC(SIGFPE,2,\
+		0,"math: invalid remainder",\
+		sizeof(int),"remainder %i from modulo 8",temp.rem);
 	}
 }
 
-engineloop () {
+engineloop () __attribute__((noreturn)) {
 TILDEWIDE = setwidetilde()
 forever {
 	if (NEW) {
@@ -2644,14 +2388,6 @@ void death(path/to/epitaphs)
  * saves
  * exit with atexit
  */
-
-uint stringlen (input)
-char* input
-{
-uint n = 0
-while (input[n] != 0) {n++}
-return n + 1
-}
 
 stringlistyp* loadstringlist(path)
 const char* path

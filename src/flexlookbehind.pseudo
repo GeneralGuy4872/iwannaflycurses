@@ -1,0 +1,7 @@
+int stringlen(char* buffer) {
+int n = 0;
+while (buffer[n]) {n++};
+return n;
+}
+
+lookbehind = yytext[stringlen(yytext)]

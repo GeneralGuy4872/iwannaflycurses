@@ -1,0 +1,17 @@
+square2manifold(planetyp,layer,minlon,maxlon,minlat,maxlat)
+vcylinder2manifold(planetyp,layer,minlon,maxlon,minlat,maxlat)
+hcylinder2manifold(planetyp,layer,minlon,maxlon,minlat,maxlat)
+sphere2manifold(planetyp,layer,minlon,maxlon,minlat,maxlat)
+torus2manifold(planetyp,layer,minlon,maxlon,minlat,maxlat)
+
+cube3manifold(planetyp,minlayer,maxlayer,minlon,maxlon,minlat,maxlat)
+vcylinder3manifold(planetyp,minlayer,maxlayer,minlon,maxlon,minlat,maxlat,do_core)
+hcylinder3manifold(planetyp,minlayer,maxlayer,minlon,maxlon,minlat,maxlat,do_core)
+sphere3manifold(planetyp,minlayer,maxlayer,minlon,maxlon,minlat,maxlat,do_core)
+doughnut3manifold(planetyp,minlayer,maxlayer,minlon,maxlon,minlat,maxlat,do_core)
+
+original game design used an overworld with a sphere3manifold(0,201,-180,179,-90,90,true)
+manifold hard coded into the room scrolling
+primordial game plan used an overworld with a doughnut3manifold(0,127,0,359,-90,90,true)
+manifold hard coded into the room scrolling. these paramaters are now out of bounds.
+at prealpha, the game manifold will be able to be nonflat

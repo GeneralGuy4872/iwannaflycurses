@@ -1,5 +1,5 @@
 #define LIB_PATH "/usr/local/lib/iwannaflycurses/"
-#define SHARE_LIB_PATH "/usr/local/share/lib/iwannaflycurses"
+#define SHARE_LIB_PATH "/usr/local/share/lib/iwannaflycurses/"
 	//the engine's private resources
 #define VAR_PATH "/var/games/iwannaflycurses/"
 	//saved games and high scores

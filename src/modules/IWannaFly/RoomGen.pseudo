@@ -1,0 +1,119 @@
+use warning;
+use strict;
+use Hash::Util;
+use Array::Util;
+use interger;
+
+our @roomgen;
+
+sub makeplanes {
+$#roomgen = 3;
+lock_indexes(@roomgen);
+foreach (0 .. 3) {
+	my $rho = $_;
+	$roomgen[$rho] = [];
+	$roomgen[$rho][#] = 7;
+	lock_indexes($roomgen[$rho]->@*);
+	foreach (0 .. 7) {
+		my $az = $_;
+		$roomgen[$rho][$az] = [];
+		$roomgen[$rho][$az][#] = 3;
+		lock_indexes($roomgen[$rho][$az]->@*);
+		foreach (0 .. 3) {
+			my $el = $_;
+			$roomgen[$rho][$az][$el] = [];
+			}
+		}
+	}
+}
+
+sub makerooms ($$$$$$$$$) {
+my $rho = shift;
+my $az = shift;
+my $el = shift;
+my $min_dep = shift;
+my $max_dep = shift;
+my $min_lat = shift;
+my $max_lat = shift;
+my $min_lon = shift;
+my $max_lon = shift;
+
+while ($rho < 0) {$rho += 4}
+while ($rho > 3) {$rho -= 4}
+if ($rho < 0) {die 'impossible state at $rho'}
+
+while ($az < 0) { $az += 8}
+while ($az > 7) { $az -= 8}
+if ($az < 0) {die 'impossible state at $az'}
+
+while ($el < 0) {$el += 4}
+while ($el > 3) {$el -= 4}
+if ($el < 0) {die 'impossible state at $el'}
+
+while ($min_dep < 0) {$min_dep += 0x100}
+while ($min_dep > 0xFF) {$min_dep -= 0x100}
+if ($min_dep < 0) {die 'impossible state at $min_dep'}
+
+while ($max_dep < 0) {$max_dep += 0x100}
+while ($max_dep > 0xFF) {$max_dep -= 0x100}
+if ($max_dep < 0) {die 'impossible state at $max_dep'}
+
+while ($min_lat < 0) {$min_lat += 0x100}
+while ($min_lat > 0xFF) {$min_lat -= 0x100}
+if ($min_lat < 0) {die 'impossible state at $min_lat'}
+
+while ($max_lat < 0) {$max_lat += 0x100}
+while ($max_lat > 0xFF) {$max_lat -= 0x100}
+if ($min_lat < 0) {die 'impossible state at $max_lat'}
+
+while ($min_lon < 0) {$min_lon += 0x200}
+while ($min_lon > 0x1FF) {$min_lon -= 0x200}
+if ($min_lat < 0) {die 'impossible state at $min_lon'}
+
+while ($max_lon < 0) {$max_lon += 0x200}
+while ($max_lon > 0x1FF) {$max_lon -= 0x200}
+if ($min_lat < 0) {die 'impossible state at $max_lon'}
+
+if ($roomgen[$rho][$az][$el][#] < $max_lon) {
+	$roomgen[$rho][$az][$el][#] = $max_lon;
+	}
+foreach my $lon ($min_lon .. $max_lon) {
+	if ($roomgen[$rho][$az][$el][$lon][#] < $max_lat) {
+		$roomgen[$rho][$az][$el][$lon][#] = $max_lat;
+		}
+	$roomgen[$rho][$az][$el][$lon] = [];
+	foreach my $lat ($min_lat .. $max_lat) {
+		if ($roomgen[$rho][$az][$el][$lon][$lat][#] < $max_dep) {
+			$roomgen[$rho][$az][$el][$lon][$lat][#] = $max_dep;
+			}
+		$roomgen[$rho][$az][$el][$lon][$lat] = [];
+		foreach my $dep ($min_dep .. $max_dep) {
+			$roomgen[$rho][$az][$el][$lon][$lat][$dep] = (
+				north => [],
+				south => [],
+				east => [],
+				west => [],
+				up => [],
+				down => [],
+				mirror => [],
+				function => '';
+				)
+			$roomgen[$rho][$az][$el][$lon][$lat][$dep]{north}[#] = 5;
+			lock_indexes($roomgen[$rho][$az][$el][$lon][$lat][$dep]{north}->@*);
+			$roomgen[$rho][$az][$el][$lon][$lat][$dep]{south}[#] = 5;
+			lock_indexes($roomgen[$rho][$az][$el][$lon][$lat][$dep]{south}->@*);
+			$roomgen[$rho][$az][$el][$lon][$lat][$dep]{east}[#] = 5;
+			lock_indexes($roomgen[$rho][$az][$el][$lon][$lat][$dep]{east}->@*);
+			$roomgen[$rho][$az][$el][$lon][$lat][$dep]{west}[#] = 5;
+			lock_indexes($roomgen[$rho][$az][$el][$lon][$lat][$dep]{west}->@*);
+			$roomgen[$rho][$az][$el][$lon][$lat][$dep]{up}[#] = 5;
+			lock_indexes($roomgen[$rho][$az][$el][$lon][$lat][$dep]{up}->@*);
+			$roomgen[$rho][$az][$el][$lon][$lat][$dep]{down}[#] = 5;
+			lock_indexes($roomgen[$rho][$az][$el][$lon][$lat][$dep]{down}->@*);
+			$roomgen[$rho][$az][$el][$lon][$lat][$dep]{mirror}[#] = 5;
+			lock_indexes($roomgen[$rho][$az][$el][$lon][$lat][$dep]{mirror}->@*);
+			lock_keys($roomgen[$rho][$az][$el][$lon][$lat][$dep]->%*);
+			}
+		}
+	}
+

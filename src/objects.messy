@@ -1,0 +1,210 @@
+/**ROOMSTACK global object
+ **ROOM global object acessor
+ * roomstackele* ROOMSTACK::push(roomtyp)
+ * void ROOMSTACK::shift()
+ * roomstackele* ROOMSTACK::roomp(latlontyp)
+ * implicit ROOMSTACK::pull(roomstackele*)
+ * implicit ROOMSTACK::makecurrent(latlontyp)
+ */
+
+struct roomstackele {
+struct roomstackele* prev;
+struct roomstackele* next;
+roomtyp* room;
+}
+
+struct roomstackholder {
+struct roomstackele* bottom;
+struct roomstackele* top;
+ushort depth;
+}
+
+ROOMSTACK::push(new)
+roomtyp* new
+{
+struct roomstack* newnode = malloc(sizeof(struct roomstackele));
+newnode->room = new;
+newnode->prev = ROOM;
+newnode->next = NULL;
+ROOMSTACK.top->next = newnode;
+ROOMSTACK.top = ROOM->next;
+ROOMSTACK.depth++;
+if (ROOMSTACK.depth > ROOM_STACK_MAX) {
+	ROOMSTACK::shift();
+	ROOMSTACK--;
+	}
+}
+
+roomtyp* ROOMSTACK::makecurrent(query)
+latlontyp query
+{
+if (ROOMSTACK::makecurrent(query) > 0) {
+	continue;
+	}
+else if (roomp(query)) {
+	ROOMSTACK::push(query,loadroom(query));
+	}
+else {
+	ROOMSTACK::push(query,roomgen(query));
+	}
+return ROOMSTACK.top.value;
+}
+
+/**PLANESTACK global object**
+ * planestackele* PLANESTACK::push(planetyp)
+ * uint PLANESTACK::reap()
+ * planestackele* PLANESTACK::planep(planetyp)
+ * int PLANESTACK::inc(planetyp)
+ * int PLANESTACK::dec(planetyp)
+ * implicit PLANESTACK::delete(planetyp)
+ * int PLANESTACK::inc_ptr(planestackele*)
+ * int PLANESTACK::dec_ptr(planestackele*)
+ * implicit PLANESTACK::delete_ptr(planestackele*)
+ * implicit PLANESTACK::pull(planestackele*)
+ * implicit PLANESTACK::makecurrent(planetyp)
+ */
+
+struct planestacktyp {
+struct planeswaptyp* prev
+struct planeswaptyp* next
+planetyp key
+umint value
+}
+
+/**File Operations**
+ * implicit saveroom(roomtyp*)
+ * roomtyp* loadroom(latlontyp)
+ * void freeroom(roomtyp*)
+ * bool roomp(latlontyp)
+ * bool planep(planetyp)
+ * implicit loadplane(planetyp)
+ * implicit saveplane(planetyp)
+ * implicit savegame() __attribute__((cold))
+ */
+
+/*implicit*/freeroom(roomptr)
+roomtyp* roomptr
+{
+if (roomptr == NULL) {roomptr = ROOM}
+	{
+	encontyp* current = roomptr->encon_ptr->prev
+	encontyp* previous = roomptr->encon_ptr->prev->prev
+	roomptr->encon_ptr->prev->next = NULL
+	roomptr->encon_ptr->prev = NULL
+	while (previous != NULL) {
+		free(current)
+		current = previous
+		previous = previous->prev
+		}
+	free(current)
+	current = NULL
+	}
+	{
+	setcoord3* current = roomptr->encon_ptr->prev
+	setcoord3* previous = roomptr->encon_ptr->prev->prev
+	roomptr->encon_ptr->prev->next = NULL
+	roomptr->encon_ptr->prev = NULL
+	while (previous != NULL) {
+		free(current)
+		current = previous
+		previous = previous->prev
+		}
+	free(current)
+	current = NULL
+	}
+	{
+	enttyp* current = roomptr->encon_ptr->prev
+	enttyp* previous = roomptr->encon_ptr->prev->prev
+	roomptr->encon_ptr->prev->next = NULL
+	roomptr->encon_ptr->prev = NULL
+	while (previous != NULL) {
+		free(current)
+		current = previous
+		previous = previous->prev
+		}
+	free(current)
+	current = NULL
+	}
+	{
+	mapobjtyp* current = roomptr->encon_ptr->prev
+	mapobjtyp* previous = roomptr->encon_ptr->prev->prev
+	roomptr->encon_ptr->prev->next = NULL
+	roomptr->encon_ptr->prev = NULL
+	while (previous != NULL) {
+		free(current)
+		current = previous
+		previous = previous->prev
+		}
+	free(current)
+	current = NULL
+	}
+	{
+	lightyp* current = roomptr->encon_ptr->prev
+	lightyp* previous = roomptr->encon_ptr->prev->prev
+	roomptr->encon_ptr->prev->next = NULL
+	roomptr->encon_ptr->prev = NULL
+	while (previous != NULL) {
+		free(current)
+		current = previous
+		previous = previous->prev
+		}
+	free(current)
+	current = NULL
+	}
+	return free(roomptr)
+}
+
+/**WORLDSWP global object
+ **WORLDSWPIN global object index flag
+ **WORLD global object acessor**
+ * implicit WORLD::gate(latlontyp)
+ * implicit WORLD::swap(planetyp)
+ * planetyp getplanetyp(latlontyp)
+ */
+
+swaproom(dest)
+struct latlontyp dest;
+{
+if (!(dest.shift || dest.az || dest.el)) {WORLDSWPIN = 0}
+else {switch dest.shift : {
+	case 0 : return ERR;
+	case 1 : if (!(dest.el)) {
+		switch dest.az : {
+			case 0 : ROOMSWPIN = 1; return OK;
+			case 01 : ROOMSWPIN = 2; return OK;
+			case 02 : ROOMSWPIN = 3; return OK;
+			case 03 : ROOMSWPIN = 4; return OK;
+			case 04 : ROOMSWPIN = 5; return OK;
+			case 05 : ROOMSWPIN = 6; return OK;
+			case 06 : ROOMSWPIN = 7; return OK;
+			case 07 : ROOMSWPIN = 8; return OK;
+			default : ERROR_GRAPHIC("Struct Field Overflow",'X',dest.az,'s',"too big for expected three bit field",true);
+		}
+		else if (dest.el && !(dest.az)) {
+			case 1 : ROOMSWPIN = 9; return OK;
+			case -1 : ROOMSWPIN = 10; return OK;
+			case -2 : ROOMSWPIN = 11; return OK;
+			default : ERROR_GRAPHIC("Struct Field Overflow",'X',dest.el,'s',"too big for expected three bit field",true);
+		}
+		break;
+	case 2 : if (dest.az && !(dest.el)) {
+		switch dest.az : {
+			case 0 : ROOMSWPIN = 12; return OK;
+			case 01 : ROOMSWPIN = 13; return OK;
+			case 02 : ROOMSWPIN = 14; return OK;
+			case 03 : ROOMSWPIN = 15; return OK;
+			case 04 : ROOMSWPIN = 16; return OK;
+			case 05 : ROOMSWPIN = 17; return OK;
+			case 06 : ROOMSWPIN = 18; return OK;
+			case 07 : ROOMSWPIN = 19; return OK;
+			default : ERROR_GRAPHIC("Struct Field Overflow",'X',dest.az,'s',"too big for expected three bit field",true);
+		}
+		else if (dest.el && !(dest.az)) {
+			case 1 : ROOMSWPIN = 20; return OK;
+			case -1 : ROOMSWPIN = 21; return OK;
+			case -2 : ROOMSWPIN = 22; return OK;
+			default : ERROR_GRAPHIC("Struct Field Overflow",'X',dest.el,'s',"too big for expected three bit field",true);
+		}
+		break;
+	default : return ERR;
+	}}
