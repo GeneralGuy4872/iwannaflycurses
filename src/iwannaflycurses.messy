@@ -13,17 +13,16 @@
  * structs are made both top-down (specific) and bottom-up (generic)
  * changes must be propogated both down and up
  *
- * C++ is considered for providing aspects of the program from time
- * to time, but the limitations of Extern 'C' have so far procluded
- * it's use.
+ * optimized for memory footprint. speed is not a concern at the moment.
+ * C++ was considered and partialy implemented, but mangling made it unsuitable
  */
 
 /******************************
  * IWANNAFLY (working title)  *
  * Top-down 3D Rogue-like     *
- * Game engine with C API &   *
- * Custom Extension Language, *
- * using NCurses and MIDI     *
+ * Game engine with C API     *
+ * using NCurses, with        *
+ * extensions in Perl         *
  ******************************/
 
 /* Hey, you. yeah, you. who do you think I'm talking to; the mouse?
@@ -248,13 +247,15 @@
 #include "macro.h"
 #include "constants.h"
 
-mvaddch16(int x,int y,char16_t raw) {
+mvaddch16(int x,int y,char16_t raw,int attrs) {
 const wchar_t wch = raw;
-mvaddnwstr(13,16,&wch,1);
+attrset(attrs);
+mvaddnwstr(x,y,&wch,1);
 }
 
-addch16(char16_t raw) {
+addch16(char16_t raw,int attrs) {
 const wchar_t wch = raw;
+attrset(attrs);
 addnwstr(&wch,1);
 }
 
@@ -385,7 +386,7 @@ char* text
 
 void noop() {}
 
-uint util:/:roll (num,side,low)
+uint util__roll (num,side,low)
 uchar num;	//number of dice to roll
 uchar side;	//sides on each die
 bool low;	//low number on each die
@@ -400,7 +401,7 @@ return accum;
 }
 //XdN is (X,N,0), XDN is (X,N,1)
 
-short util:/:bonus (num)
+short util__bonus (num)
 uchar num;
 {
 short accum;
@@ -461,21 +462,23 @@ intptr_t value;
  * (dynamically allocated).
  */
 
-playertyp PLAYER __attribute__((hot))
-latlontyp WORLDSWP[23]
-uchar WORLDSWPIN = 0
-#define WORLD WORLDSWAP[WORLDSWPIN]
+playertyp PLAYER
+latlontyp WORLDSWP_HI[2][11]
+latlontyp WORLDSWP_LO[8]
+latlontyp WORLDSWP_EXTRA
+latlontyp* WORLDSWPIN
+#define WORLD (*WORLDSWPIN)
 #define CEILING ROOM->ceiling
 roomstackholder ROOMSTACK
 planestackholder PLANESTACK
 #define ROOM ROOMSTACK.top
 shadowmask SHADOWKNOWS
-shadowmask SHINEALIGHT
-uint64_t TURN __attribute__((hot))
-nibbles TIMER __attribute__((hot))
-char ALARM = -1 __attribute__((hot))
-turntyp DATE __attribute__((hot))
-uchar ROOMTURN __attribute__((hot))
+shadowmask LIGHTINGMASK
+uint64_t TURN
+nibbles TIMER
+char ALARM = -1
+turntyp DATE
+uchar ROOMTURN
 uchar ELECOLLECT[8]	//elemental collectibles
 uchar QUESTCOLLECT[3]	//light/dark/entropy collectibles
 uint64_t KILLS
@@ -485,8 +488,8 @@ eventtyp *EVNT_ptr	//FOO_ptr refers to the doubly linked list's head. the tail i
 placetyp *PLACE_ptr
 stringlistyp *HINT_ptr
 eventstringtyp *HEYLISTEN_ptr
-eventdatobj* EVENTDATA_ptr
-bitfield globools __attribute__((hot))
+eventdatyp* EVENTDATA_ptr
+bitfield globools
 #define NEW globools.a
 #define FIRST globools.b
 #define DAY globools.c
@@ -895,12 +898,14 @@ basentyp* mon3table[256]
  * Z: mind flayer,
  * z: <zombies>
  * {: (flesh, straw, clay, stone, glass, paper, leather) golem, (gold, copper) automaton, hungry chest, chest monster,
- * £: justice. (has Beethoven's 5th as a lietmotif. is lawful.)
- * ¶: da fuzz. (are lawful.)
- * ⑄: retribution. (has Summer - Presto as a lietmotif. is chaotic.)
+ * «: bass, trout, salmon, tuna, carp, swordfish, pike, eel,
+ * ÷: cracken, lobster, crab, shrimp,
+ * £: justice. (lawful neutral)
+ * ¶: da fuzz. (lawful neutral)
+ * ⑄: retribution. (chaotic neutral)
  * ∈: <half elementals>
  * ∞: grue.
- * ☠: death. (has Toccata and Fugue in D minor as a lietmotif. is true neutral.)
+ * ☠: death. (true neutral)
  * ♞: quarterhorse, draft horse, miniature horse, zebra, nightmare,
  * ⏍: hungry chest, chest monster,
  */
@@ -1415,7 +1420,7 @@ uchar fly : 2 //0 = never had wings, 1 = slow falling, 2 = cannot gain altitude,
 
 /* damage = MAX( incoming-defense , 0 )
  *
- * polyshock = -abs(base.hplvl-poly.hplvl) * !util:/:roll(1,20,0)
+ * polyshock = base.hplvl - ((poly.hplvl * (util__roll(1,20,1) / 20)) * util__roll(1,3,0))
  * ⎧if n < -HPMAX     : Instakill (deathmessage: miscalculated a crucial equivilant-exchange parameter,hath choose...poorly)
  * ⎪if n = -HPMAX     : Stoning
  * ⎨if -HPMAX < n < 0 : abs(n) Damage (deathmessage: could not withstand the cost of transmutation)
@@ -1474,7 +1479,7 @@ latlontyp latlon
 tileset *hightiles
 char* tiledata[][MAX_Y][MAX_X]
 uchar ceiling : 4
-bool bgcolor : 3
+uchar bgcolor : 3
 bool visited : 1
 shadowmask seen
 encontyp *encon_ptr
@@ -1491,6 +1496,19 @@ struct roomneighbors neighborhood
  * then the player is dumped at the location indicated by home.
  *
  * if the player has invalid coords, then the error string "fell out of terminal",N1=x,N2=y is generated.
+ */
+
+/* the world of the game will be referred to using two different grids of
+ * discreet coordinates. the primary grid is the cell space, which is
+ * interleaved octohedrally with the boundry space, such that if a given
+ * diminsion in cell space has n points, the same dimension in boundry
+ * space has n+1 points. the cell space referes to the cells that are
+ * displayed (the "cells"), while the boundry space referes to their
+ * boundries. exact boundry space coordinates are not expected to be used;
+ * only planes and polytopes are meaningful in boundry space.
+ *
+ * some notable uses of boundry space are in describing the emulated
+ * cull plane of the "camera", and as the boundries of a given room.
  */
 
 struct subroomtyp: //used by mapgen
@@ -1777,7 +1795,7 @@ uchar element : 8
 uchar lde : 3
 }
 
-struct eventdatobj {	//list of events
+struct eventdatyp {	//list of events
 (self)* prev
 (self)* next
 eventdata data
@@ -2371,72 +2389,3 @@ sleep(4);
 FIXCURSES
 do_intro_movie();
 promptload();
-engineloop();
-}
-
-/*blackbox*/exitengine()
-/* at exit:
- * 	prompt save, y: saveworld
- * 	free files
- * 	exit curses
- * register atexit, catch SIGINT and route to safe quit
- */
-
-void death(path/to/epitaphs)
-/* kills player with epitaph from list
- * records high score
- * saves
- * exit with atexit
- */
-
-stringlistyp* loadstringlist(path)
-const char* path
-{
-stringlistyp* newnode
-
-FILE* list = fopen(path)
-char buffer[BUFFERMAX]
-stringlistyp* output = malloc(sizeof(stringlistyp))
-fgets(buffer,BUFFERMAX - 1,list)
-output->prev = output
-output->next = output
-output->text = calloc(stringlen(buffer),sizeof(char))
-strcpy(output->text,buffer)
-
-stringlistyp* new
-while (EOF != fgets(buffer,511,list)) {
-	new = malloc(sizeof(stringlistyp))
-	fgets(buffer,BUFFERMAX - 1,list)
-	output->prev = output
-	output->next = output
-	output->text = calloc(stringlen(buffer),sizeof(char))
-	strcpy(output->text,buffer)
-	output->prev->next = new
-	new->prev = output->prev
-	new->next = output
-	output->prev = new
-	}
-}
-
-char* getname()
-{
-char buffer[BUFFERMAX]
-char* buffer
-
-BREAKCURSES
-printf("name")
-puts(BLINKY)
-fgets(buffer,BUFFERMAX - 1,stdin)
-output = calloc(stringlen(buffer),sizeof(char))
-strcpy(output,buffer)
-FIXCURSES
-return output
-}
-
-/*pseudocode*/resizetest
-/*IF window is too small THEN PRINT
- * "The terminal is too small."
- * "Please increase the number of " ("rows"|"columns"|"rows and columns")
- * "to avoid segmentation violations."
- * "Press any key to continue"BLINKY
- */
