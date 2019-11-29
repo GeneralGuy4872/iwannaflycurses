@@ -6,6 +6,8 @@
  *
  * the bulk of it's contents, however, will be moved.
  *
+ * comments may be deleted, may be moved into documentation, or may stay with what they describe
+ *
  * workflow:
  * outline blackboxes top-down (-ish)
  * outline pseudocode top-down (-ish)
@@ -15,6 +17,35 @@
  *
  * optimized for memory footprint. speed is not a concern at the moment.
  * C++ was considered and partialy implemented, but mangling made it unsuitable
+ *
+ * the programming paradigm I am using throughout the project is based on the way my mind works
+ * rather than a specific programming paradigm; it contains elements from several, including some
+ * nonstructured paradigmes.
+ *
+ * the program also uses various memory management paradigms,
+ * including linked lists, stacks, queues, and page swapping.
+ *
+ * example: loading a room's file is swapping it into memory.
+ * once it is loaded, the pointer is placed on the top of
+ * the stack of loaded rooms, and the stack's depth counter
+ * is increased. when the counter reaches the limit, the
+ * stalest room is dropped. when warping, the room stack
+ * is checked before an attempt is made to load another
+ * room; when a room is recalled, it is moved to the top
+ * of the stack, therefore less stale rooms are able to be
+ * fetched faster than more stale rooms.
+ *
+ * additional indirection layers are used in an attempt to
+ * prevent larger data structures from being duplicated
+ *
+ * most function calls provide an (obfuscation|abstraction) layer,
+ * and before attempting to understand a function you should trace
+ * down all the functions it calls. many functions use dynamic memory
+ * operations, such as malloc and free; these side effects are what
+ * causes the program state to change as the game unfolds. The
+ * datastructures that are being manipulated are the same ones that
+ * are serialized and saved in the savefiles; listed in the GLOBALS
+ * section
  */
 
 /******************************
@@ -44,7 +75,6 @@
  *	- .hex or .hex## for packed unsigned byte arrays, where ## is a power of 8
  *	- .bin or .bin## for packed signed byte arrays, where ## is a power of 8
  *	- .r8 for a room's tilemap
- *	- .dat for the custom data format
  *	- .json for a JSON file
  *	- .dumper for a Data::Dumper file
  *	- .tsv or .tab for tab seperated values
@@ -81,7 +111,7 @@
  * - number keys move in xy
  * - + or - followed by a number move in xyz
  * - < > strafe
- * - backspace retreats
+ * - backspace retreats (winged creatures also take flight)
  * - spacebar advances
  * - ? turns around
  * - tab lunges
@@ -176,8 +206,7 @@
  * and free, to facilitate this. A side effect of this memory organization
  * choice is that YOU MUST COLLECT (most of) YOUR OWN GARBAGE with free().
  * in Perl, free may or may not be eventually implemented as a method as
- * well as a first-class sub. if C++ is ever involved, this will
- * certainly be the case.
+ * well as a first-class sub.
  *
  * a nonstructured language will be provided for defining midi streams
  * in a human readable format.
@@ -186,6 +215,8 @@
  * a complementery Tileset version of the engine will be created using
  * the X Toolkit, XPixMap, and the Athena Widgets, while retaining the
  * mostly the same API.
+ *
+ * A version targeting the upcoming Atari VCS may be contemplated
  *
  * GPLv2 or later unless noted.
  * Perl code dual-liscensed with the Artistic Liscense unless noted.
@@ -448,30 +479,38 @@ return lines;
  * swapping places with the other option. otherwise, the quit-abort-option3 order will be kept.
  */
 
-union unitype {
-void* pointer;
-const char* string;
-intptr_t value;
-}
+struct blitimgcolor {
+	int attr[6];
+	char ** img[16];
+	}
+	/*	|	0	[0]	[1]	[2]	attr
+	 *	0	[0]	[1]	[2]	[3]	img
+	 *	[3]	[4]	[5]	[6]	[7]
+	 *	[4]	[8]	[9]	[10]	[11]
+	 *	[5]	[12]	[13]	[14]	[15]
+	 *
+	 * the first row and column never have any attributes
+	 * NULL img pointers are skipped, rather than acting as sentries
+	 */
+
+struct drawvector {
+	ucoord3 a;
+	ucoord3 b;
+	char16_t ch;	// if set to \0, then assume that attr also holds an ascii symbol and switch accordingly.
+	int attr;
+	ushort uslp;	/* how long to delay between each character; calls usleep.
+			 * there is already a miniscule delay for the stepwise pathfinder calculation
+			 */
+	}
 
 /**GLOBALS**/
-
-/* globals also include various stacks and queues used by the engine.
- * such organization is infeasable using lexically-scoped garbage
- * collection, hence the elements are placed in heap
- * (dynamically allocated).
- */
-
 playertyp PLAYER
-latlontyp WORLDSWP_HI[2][11]
-latlontyp WORLDSWP_LO[8]
-latlontyp WORLDSWP_EXTRA
-latlontyp* WORLDSWPIN
-#define WORLD (*WORLDSWPIN)
-#define CEILING ROOM->ceiling
 roomstackholder ROOMSTACK
+#define ROOM ROOMSTACK.swapin
+#define ROOM_NOT_NULL(X,Y) ((ROOM != NULL) ? X : Y)
+#define WORLD	ROOM_NOT_NULL( ROOM->latlon , (latlontyp){0,0,0,0,0,0} )
+#define CEILING	ROOM_NOT_NULL( ROOM->ceiling , MAX_Z )
 planestackholder PLANESTACK
-#define ROOM ROOMSTACK.top
 shadowmask SHADOWKNOWS
 shadowmask LIGHTINGMASK
 uint64_t TURN
@@ -550,23 +589,10 @@ NIGHT = ((DATE.hour < 6) || (18 ≤ DATE.hour))
 
 //projection, →x ↓y ↑z
 
-struct coord3:
-uchar x
-uchar y
-uchar z
-
-struct coord2:
-uchar x
-uchar y
-
-struct scoord3:
-char x
-char y
-char z
-
-struct scoord2:
-char x
-char y
+typedef uchar ucoord3[3]
+typedef uchar ucoord2[2]
+typedef char scoord3[3]
+typedef char scoord2[2]
 
 struct mapcoord3:
 uchar x : 6
@@ -585,14 +611,8 @@ uchar table : 4
 uchar meta : 4
 }
 
-struct vector2:
-float x
-float y
-
-struct vector3:
-float x
-float y
-float z
+typedef float vector2[2]
+typedef float vector3[3]
 /* used for velocity, a parameter that holds
  * motion that carries accross turns. this motion
  * is not always cleared after being done; horizontal
@@ -645,9 +665,7 @@ bool behind : 1	//EQUATOR/2 degrees are added to azimuth
 struct setcoord3:
 (self) *prev
 (self) *next
-uchar x
-uchar y
-uchar z
+ucoord3 coord
 
 //some specific use cases require spheres. these are simply numeric types.
 
@@ -657,7 +675,7 @@ uchar side : 5
 uchar tobeat : 8
 
 struct planetyp {
-uchar shift : 2
+uchar rho : 2
 uchar az : 3
 char el : 2
 char : 0
@@ -667,16 +685,16 @@ struct latlontyp {
 uchar dep : 8
 uchar lat : 8
 ushort lon : 9
-uchar shift : 2	//are you plane shifted?
+uchar rho : 2	//are you plane shifted?
 uchar az : 3
 char el : 2
 }
 /* in-game altitude is given as the distance from layer 100
  *
- * shift 0 is the prime plane
- * shift 1 are the elemental planes
- * shift 2 are afterlives
- * shift 3 can be used for areas that are meant to not show up on a map.
+ * rho 0 is the prime plane
+ * rho 1 are the elemental planes
+ * rho 2 are afterlives
+ * rho 3 can be used for areas that are meant to not show up on a map.
  *				(said map is WIP)
  *
  * az	elemental	afterlife	corrilation
@@ -714,10 +732,6 @@ char el : 2
  *
  * a swap array keeps track of gating between the 23 major planes,
  * saving the player's position, but not keeping the room loaded.
- *
- * connectivity of rooms is in 7 directions: the 6 euclidian directions
- * and a room which can be accessed by a 180° phase shift. if NULL,
- * scrolling in that direction is blocked.
  */
 
 struct placetyp {
@@ -726,13 +740,21 @@ struct placetyp {
 eventdata eventident	//7FFF is removeable
 char* name
 latlontyp latlon
-coord3 pos
+ucoord3 pos
 }
 
 struct moneytyp {
 ushort gp : 17
 uchar cp : 7
 }
+
+typedef short trackaligntyp[2]
+/* neutral is the area between -10,000 and 10,000
+ * alignments can be between -30,000 and 30,000
+ * actions, quests, and being polymorphed into
+ * certain monsters can alter your alignment
+ * [0] is good/evil, [1] is lawful/chaotic
+ */
 
 struct aligntyp:
 good : b1
@@ -774,10 +796,10 @@ basearmortyp* armtable[256]
 baseshldtyp* shldtable[256]
 baubtyp* baubtable[256]
 
-char* legendstabs[20] = {"truthseeker","sword of justice","excalibur","thunderbolt"/*torch of smiting*/,"sickle of chaos"/*+drain*/,"stormbringer"/*+drain*/,"devilfork"/*+fire*/,"partisen of tyrants","deathscyth"/*+drain*/,"sunray"/*spear + solar flare*/,"nightedge"/*sword + moonbeam*/,"staff of merlin"/*staff of magic missile*/,"firebrand"/*sword + fireball*/,"tesla's mace"/*+spark*/,"stormgale"/*bow*/,"frostpike"/*+frostbite*/,"trident of the seas"/*+tsunami*/,"staff of the forest"/*staff of animante kudzu*/,"groundshaker"/*+earthquake*/,"imperial baton"/*staff of antagonizing*/};
-legendtyp* legendtable[20];
+char* legendstabs[24] = {"truthseeker"/*bow*/,"sword of justice","excalibur","thunderbolt","sickle of chaos"/*+drain*/,"stormbringer"/*+drain*/,"devilfork"/*+fire*/,"partisen of tyrants"/*+coin stealing*/,"deathscyth"/*+vampiric drain*/,"sunray"/*spear + solar flare*/,"nightedge"/*sword + moonbeam*/,"staff of merlin"/*staff of magic missile*/,"firebrand"/*burn*/,"tesla's mace"/*+spark*/,"stormgale"/*bow*/,"frostpike"/*+frostbite*/,"trident of the seas"/*+tsunami*/,"staff of the forest"/*staff of animante kudzu*/,"quake hammer","bow of fire","bow of ice","bow of darkness","bow of void","bow of dawn"};
+legendtyp* legendtable[24];
 
-char* psystabs[8] = {"detect alignment","charm","hold","sleep","mind blast","passify","unhinge","terrify"}
+char* psystabs[8] = {"detect alignment","charm","psychic lock","sleep","mind blast","passify","unhinge","terrorize"}
 
 /*blackbox*/psionic(id)
 uchar id
@@ -787,6 +809,7 @@ struct multiclasstyp:
 (self) *prev
 (self) *next
 classtyp class
+magictyp element
 
 struct classobjtyp:
 classtyp class
@@ -824,7 +847,6 @@ montable__init() __attribute__((constructor)) {
 char* mon1stabs[256] =
 {"human",	"elf",	"dwarf",	"gnome",	"hobbit",	"half elf",	"drow",	"siren",	"half orc",	"half dragon",	/*half celestial*/,	"tiefling",	"half air elemental",	"half water elemental",	"half earth elemental",	"half fire elemental",
 "merfolk",	"seaelf",	"satyr",	"fairy",	"pixie",	"naiad",	"naga",	"dryad",	"orc",	"kobald",	"centaur",	"sphinx",	"half electric elemental",	"half ice elemental",	"half nature elemental",	"half metal elemental",
-...};
 
 basentyp* mon1table[256]
 /* contains all polymorphable monsters, of type BASENTYPE.
@@ -836,78 +858,86 @@ basentyp* mon1table[256]
  * commands can change your base race without negative side effects
  */
 
-char *mon2stabs[256] = {"grue",	
+char *mon2stabs[256] = {"grue",	"newt",
 basentyp* mon2table[256]
 
-char *mon3stabs[256] = {"rook",	"raven", "jackdaw", ...}
+char *mon3stabs[256] = {"rook",	"raven",	"jackdaw",
 basentyp* mon3table[256]
 
 /* MONSTERS BY LETTER
- * &: horned devil, balrog, pit feind, imp, homunculus, jubilix, drider
- * @: human, elf, half elf, drow, seaelf
- * A: astral, ætherial, celestial, archon
- * a: newt, salamander, frog, 
- * B: bear, polar bear, bugbear, owlbear,
- * b: mockingbird, parkeet, parrot, macaw, cockatoo, songbird, sparrow, starling
- * C: satyr, centaur,
- * c: raven, rook, jackdaw, crow, jay, magpie,
- * D: wyrm, great wyrm, (△red,↯copper,◬white,*cyan,▽blue,♠green,⍫brown,$gold,☽black,☼silver,∅purple) dragon, hydra,
- * d: hellhound, wolf, dire wolf, dog, fox, cyote,
- * E: <elementals>, stalker,
- * e: floating eye,
- * F: turkey, rooster, chicken, peacock, duck, goose, swan, albatross, gull, dodo, auk
- * f: panther, lion, tiger, manticore, cat, lynx, bobcat,
- * G: ghost, banshee, revenent, barrow wight,
- * g: gremlin, gargoyle, winged gargoyle,
- * H: giant, cyclops,
- * h: dwarf, gnome, hobbit,
- * I: giant ant, giant roach, giant scarab, giant wasp, giant scorpion, giant spider,
- * i: ant, roach, scarab, wasp, scorpion, spider, firefly
- * J: djinn,
- * j: lichen, yellow mold, green mold, black mold, gelatinous cube, green slime, brown pudding, black pudding, ocher jelly, spotted jelly, blue jelly,
- * K: chickatrice, cockatrice, pyrolisk,
- * k: kobold,
- * L: skeleton, lich,
- * l: leprachaun,
- * M: gorgon,
- * m: <mummies>
- * N: naga,
- * n: merfolk, naiad, dryad, sea siren
- * O: orc, half orc, uruk-hai, ogre,
- * o: ostrich, emu, moa, penguin
- * P: fairy, pixie,
- * p: dolphin, narwhal, orca, beluga,
- * Q: elephant, mammoth, rhino,
- * q: cow, pig, buffalo,
- * R: eagle, falcon, owl, kite, vulture, phoenix,
- * r: rat, dire rat, raccoon, platypus,
- * S: cracken, shark, octopus, giant squid,
- * s: copperhead, cobra, rattlesnake, python,
- * T: lurker above, trapper, wallmaster, rust monster,
- * t: troll,
- * U: umber hulk,
- * u: unicorn, pegasus, griphon, hippogriph,
- * V: vampire, wolfman,
- * v: bat,
- * W: half dragon, half celestial, tiefling, avian, erinys, kerr, harpy, siren, tengu,
- * w: purple worm, nightcrawler,
- * X: velociraptor, tyrannasaurus,
- * x: monitor, alligator, crocodile, skink,
- * Y: yeti, bigfoot,
- * y: ape, monkey, gorilla,
- * Z: mind flayer,
- * z: <zombies>
- * {: (flesh, straw, clay, stone, glass, paper, leather) golem, (gold, copper) automaton, hungry chest, chest monster,
- * «: bass, trout, salmon, tuna, carp, swordfish, pike, eel,
- * ÷: cracken, lobster, crab, shrimp,
- * £: justice. (lawful neutral)
- * ¶: da fuzz. (lawful neutral)
- * ⑄: retribution. (chaotic neutral)
- * ∈: <half elementals>
- * ∞: grue.
- * ☠: death. (true neutral)
- * ♞: quarterhorse, draft horse, miniature horse, zebra, nightmare,
- * ⏍: hungry chest, chest monster,
+ * & : horned devil, balrog, jubilix,
+ * @ : human, elf, half elf, drow, seaelf
+ * A : angel, astral, ætherial, celestial, archon
+ * a : newt, salamander, frog, 
+ * B : bear, polar bear, bugbear, owlbear,
+ * b : mockingbird, parkeet, parrot, macaw, cockatoo, songbird, sparrow, starling
+ * C : satyr, centaur,
+ * c : chickatrice, cockatrice, pyrolisk,
+ * D : wyrm, great wyrm, /(△red|↯copper|◬white|*cyan|▽blue|♠green|⍫brown|$gold|☽black|☼silver|∅grey) dragon/, hydra,
+ * d : hellhound, wolf, dire wolf, dog, fox, cyote,
+ * E : <elementals>, stalker,
+ * e : floating eye,
+ * F : panther, lion, tiger, manticore, cat, lynx, bobcat,
+ * f : turkey, rooster, chicken, peacock, duck, goose, swan, gull, dodo
+ * G : ghost, banshee, revenent, barrow wight,
+ * g : gremlin, gargoyle, winged gargoyle,
+ * H : giant, cyclops,
+ * h : dwarf, gnome, hobbit,
+ * I : /giant (ant|roach|scarab|wasp|scorpion|spider)/
+ * i : ant, roach, scarab, wasp, scorpion, spider, firefly
+ * J : djinn,
+ * j : lichen, yellow mold, green mold, black mold, gelatinous cube, green slime, brown pudding, black pudding, ocher jelly, spotted jelly, blue jelly,
+ * K : kracken, giant squid, octopus,
+ * k : kobold,
+ * L : skeleton, lich,
+ * l : leprachaun,
+ * M : elephant, mammoth, rhino,
+ * m : <mummies>
+ * N : naga,
+ * n : merfolk, naiad, dryad, sea siren
+ * O : orc, half orc, uruk-hai, ogre,
+ * o : ostrich, emu, moa
+ * P : dolphin, narwhal, orca, beluga,
+ * p : penguin, puffin, auk, albatross
+ * Q : fiend, drider
+ * q : quasit, imp, homunculus,
+ * R : eagle, falcon, owl, kite, vulture, phoenix,
+ * r : mouse, rat, dire rat, raccoon, badger, opossum, platypus, groundhog, 
+ * S : shark, stingray, swordfish, barracuda, eel,
+ * s : copperhead, cobra, rattlesnake, python, boa, viper, coral snake, king snake, anaconda,
+ * T : lurker above, trapper, wallmaster, rust monster,
+ * t : troll,
+ * U : umber hulk,
+ * u : unicorn, pegasus, griphon, hippogriph,
+ * V : vampire, <lycanthropes>
+ * v : bat,
+ * W : half dragon, half celestial, tiefling, siren, erinys, kerr, harpy, tengu,
+ * w : purple worm, nightcrawler,
+ * X : velociraptor, tyrannasaurus,
+ * x : monitor, alligator, crocodile,
+ * Y : yeti, bigfoot,
+ * y : ape, monkey, gorilla, chimp, leamur
+ * Z : mind flayer, medusa
+ * z : <zombies>
+ * = : [spoiler]
+ * {}: /(flesh|straw|clay|stone|glass|paper|leather) golem/, /(gold|copper|finite state) automaton/, chest monster,
+ * ? : mystery person
+ * «»: bass, trout, salmon, tuna, carp, pike,
+ * × : lizard, geko, skink, 
+ * ÷ : lobster, crab, shrimp,
+ * £ : justice. (hard lawful neutral)
+ * ¶ : da fuzz. (lawful neutral)
+ * Ω : [spoiler]
+ * ⑄ : retribution. (chaotic neutral)
+ * ∀ : ox, cow, pig, buffalo, goat, sheep,
+ * ∄ : fear itself. (soft neutral evil)
+ * ⊞ : lichen, moss, green mold, slime mold, black mold
+ * ∈ : <half elementals>
+ * ∞ : grue.
+ * ☠ : death. (true neutral)
+ * ♞ : quarterhorse, draft horse, miniature horse, zebra, nightmare,
+ * ♖ : raven, rook, jackdaw, crow, jay, magpie,
+ * ⏍ : hungry chest, chest monster,
  */
 
 struct the8stats:	//8* 5D6
@@ -935,7 +965,7 @@ multiclasstyp *MULTICLASS
 struct racetyp baserace
 struct racetyp polyrace
 shiftertyp polycounter
-coord3 loc
+ucoord3 loc
 polar facing
 vector3 velo
 float carryover	//leftover moves; never exceeds 2
@@ -995,29 +1025,36 @@ ENUM_WRIST_RIGHT}
 /*blackbox*/force_global
 /* forces some queued globals to be loaded. takes a very long time, but can
  * sometimes be necissary if the global buffer is starving the system.
+ */
+
+
 
 struct basentyp:
 aligntyp alignmask
 aggrotyp aggro	//here, shiftable denotes a monster's aggro state is locked. also gives the value that patience is set to when a monster calms down, the value that cooldown is set to when it is angered, and the default AI.
 paffectyp base
 venomtyp venom
-uchar spd	//distance calculations use M_SQRT2 for diagonals
+uchar spd	//distance calculations use M_SQRT2 and local SQRT3 for diagonals
 uchar hplvl
 uchar mplvl
 uchar xplvl
 uchar airmax	//how long you can hold your breath
-_8bitPtr lang0 : 6
-_8bitPtr lang1 : 6
+struct conlangtyp lang0
+struct conlangtyp lang1
 uchar vocal[4]
 _8bitPtr spell[4]
 bitfield psyattack
-char16_t unichar
-bool unaligned : 1
-bool keepindark : 1
+char16_t sprite
+int attrs
+char16_t altsprite
+int altattrs
 bool mindless : 1
+bool shadow : 1
 bool incoporeal : 1
+bool unaligned : 1
+uchar natural_element : 8
 char size : 2
-uchar color : 6
+uchar weight : 2
 /* entitys of size 1 or -2 cannot use armor.
  * entitys of larger size automaticly win grapples.
  * entitys of 2 sizes smaller can be picked up and thrown.
@@ -1038,7 +1075,7 @@ char* name
 classobjtyp class
 aggrotyp aggro
 struct racetyp race
-coord3 loc
+ucoord3 loc
 polar facing
 vector3 velo
 float carryover
@@ -1075,7 +1112,7 @@ eventdata eventident
 classobjtyp class
 setcoord3* path
 struct racetyp race
-coord3 loc
+ucoord3 loc
 polar facing
 conlangtyp lang
 char* lines
@@ -1091,7 +1128,7 @@ aggrotyp aggro
 struct racetyp baserace
 struct racetyp polyrace
 shiftertyp polycounter
-coord3 loc
+ucoord3 loc
 polar facing
 vector3 velo
 float carryover
@@ -1204,7 +1241,7 @@ struct basespelltyp:
 bool poly : 1
 bool self : 1
 uchar lvl : 6
-magictyp type : 8
+magictyp type
 char cost_typ : 2 //0 = at will, 1 = gold, -1 = mp, -2 = hp
 uchar cost_amnt : 6
 potiontyp effect
@@ -1330,14 +1367,14 @@ blind : u8
 eaten : u8
 
 struct elixtyp:
-dizzy : b
-psn : b
-prlz : b
-frz : b
-brn : b
-stone : b
-slp : b
-invis : b
+dizzy : 1
+psn : 1
+prlz : 1
+frz : 1
+brn : 1
+stone : 1
+slp : 1
+invis : 1
 
 struct cursetyp:
 stattyp type
@@ -1371,7 +1408,6 @@ stattyp stat
 resistyp resist
 senstyp sense
 skilltyp skill
-magictyp asp
 char atk
 char spatk
 char def
@@ -1385,7 +1421,6 @@ elixtyp curse
 resistyp resist
 senstyp sense
 skilltyp skill
-magictyp asp
 char atk
 char spatk
 char def
@@ -1471,7 +1506,6 @@ latlontyp east
 latlontyp west
 latlontyp up
 latlontyp down
-latlontyp mirror
 }
 
 struct roomtyp: //top-down display of a 3d space
@@ -1488,9 +1522,9 @@ npctyp *npc_ptr
 mapobjtyp *obj_ptr
 lightyp *lamp_ptr
 setcoord3 *path_ptr
-coord2 downstair
-coord2 upstair
-coord3 home
+ucoord2 downstair
+ucoord2 upstair
+ucoord3 home
 struct roomneighbors neighborhood
 /* if invalid coords are given for a warp (typically {$FF,$FF}),
  * then the player is dumped at the location indicated by home.
@@ -1513,7 +1547,7 @@ struct roomneighbors neighborhood
 
 struct subroomtyp: //used by mapgen
 char tiledata[MAX_Z][MAX_Z][MAX_Z]	//cube of MAX_Z
-coord3 dim
+ucoord3 dim
 enttype *ent_ptr
 mapobjtyp *obj_ptr
 lightyp *lamp_ptr
@@ -1527,15 +1561,16 @@ lightyp *lamp_ptr
  *     *.tsv : UTF-8 text record deliminated with tabs and line breaks
  *     *.tab : same as tsv
  *      *.so : a shared object. a game may use as many of these as it wants. Placing single-use functions in LD_LOAD_PATH is DISCOURAGED; they should be placed in the game's private files.
- *     *.dat : internal data from inside a savefile
- *    *.json : a less compact container format that does not allow linking
- * *.pl.dump : a self-reassembling perl datastructure
+ *     *.ini : data from inside a savefile
+ *    *.json : produced when a dump is requested
+ *  *.dumper : a self-reassembling perl datastructure
  *     *.asc : UTF-8 text record delimenated by newline.
  *     *.txt : UTF-8 text document. usually stored in the program's static files, which is CAT-ed to provide dialouge; also used in dumps of primatives
  *     *.ans : UTF-8 text record containing SGR sequences deleminated by newline.
  *     *.nfo : UTF-8 text document (not CP437) containing SGR sequences. otherwise identical to asc.
- *  *.tar.gz : each room is saved as a tar.gz file, as are linked lists and the player. rooms are divided into compressed files for each plane. the extra planes are tar.gz files named shift_az_el
- * *.tar.bz2 : a savefile is a tar.bz2 file. it is named %H_%M_%S__%d_%m_%Y. the 23 main planes are tar.bz files named shift_az_el
+ *  **.rot13 : an encrypted text file, containing major spoilers.
+ *  *.tar.gz : each room is saved as a tar.gz file, as are linked lists and the player. rooms are divided into compressed files for each plane. the extra planes are tar.gz files named rho_az_el
+ * *.tar.bz2 : a savefile is a tar.bz2 file. it is named %H_%M_%S__%d_%m_%Y. the 23 main planes are tar.bz files named rho_az_el
  *   *.man.# : a linux manpage
  *  *.mdoc.# : a bsd manpage
  *         * : documentation
@@ -1546,7 +1581,7 @@ lightyp *lamp_ptr
  *      *.PL : a build-related perl script
  *     *.pod : perl documentation
  *       *.d : everything relating to a struct is stored in the same directory, and pointers to structs are stored as subdirectories with the name of that field. the tail element in a linked list has no subdirectory named "next"; "prev" pointers are "../" implicitly.
- *    *.conf : a configuration file, parsed with perl.
+ *    *.conf : a configuration file.
  *     *.*rc : a user's configuration file.
  *  *.dumper : a debugger data dump, with a format somwhere between JSON, INI, and C-like pseudocode. essentialy a dat file in readable (and non-raw) format.
  *
@@ -1708,7 +1743,7 @@ struct mapobjtyp:
 (self) *prev
 (self) *next
 eventdata eventident
-coord3 pos
+ucoord3 pos
 objid type
 void* data
 mapobjflags flags
@@ -1716,7 +1751,7 @@ mapobjflags flags
 struct lamptyp:
 (self) *prev
 (self) *next
-coord3 pos
+ucoord3 pos
 uchar lum
 
 struct signtyp {
@@ -1827,15 +1862,15 @@ struct qglobobj: //queued global object
 eventdata eventident
 qglobflags flags
 latlontyp latlon
-coord3 pos
+ucoord3 pos
 objid type
 void* data
 
 struct qglobflags {
 struct racetyp race : 16
 race-specific : 1
-role : 2
-class : 3
+role : u2
+class : u3
 lawfulgood : 1
 neutralgood : 1
 chaoticgood : 1
@@ -1853,7 +1888,7 @@ struct traptyp:
 (self) *next
 eventdata eventident
 char16_t unichar
-coord3 loc
+ucoord3 loc
 ushort duration
 magictyp element
 stattyp stat
@@ -1883,7 +1918,7 @@ eventdata eventident
 bool perm : 1
 bool blink : 1
 uchar color : 6
-coord3 loc
+ucoord3 loc
 setcoord3 *dest
 short duration	//negative are uses, positive are turns
 }
@@ -1894,7 +1929,7 @@ bool perm : 1
 bool blink : 1
 uchar color : 6
 latlontyp glob_loc
-coord3 loc
+ucoord3 loc
 latlontyp glob_dest
 setcoord3 *dest
 short duration
@@ -1973,36 +2008,41 @@ drawing is stopped and the player is drawn if they have not been already
 fluid tiles are transparent.
 
 to avoid confusion, by default the player always uses a unique character: ☻
+if so, then ☺ is used for your dopplganger.
+whether or not these symbols are used must be decided at library compile time
+
+symbols that are white or black based on being filled or unfilled might be
+switchable at startup in the same way as tilde vs tilde operator
+
+depening on difficulty of implementing such, characters might be stored in a lookup table
+that stores indexes between an anything and a unicode codepoint. this would require a byte
+encoding scheme for peeking anythings between runtimes, which is problematic considering
+the existing 2 ways require either names or pointers
 
 an UNDERLINE is a shadow
 
 note: unicode symbols are (mostly) used be their appearence, not by their meaning
 ) is a sword or dagger. ⍏ are polearms. \ is a staff. ¦ is a club. : is a mace. ℓ is a whip. ( is a bow. ⇤ is an arrow. ⍖ is a writing instrument.
-⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves. ☜☝☞☟ is a gauntlet. % is meat. ⊞ is food (don't shoot it). $ is gold. ¢ is copper.
-⌘ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♫ is a lyre. ƒ is a violin. ♪ is a different music instrument.
+⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves. ☜☝☞☟ is a gauntlet. % is meat. ± is food (don't shoot it). $ is gold. ¢ is copper.
+⌘ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♫ is a lyre. ƒ is a violin. ♪ is a lute.
 ¿ are potions (fragile). ∫ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet. ^ is a crown.
 / is a wand. ♮ is a ladder. ⋎ is a fountain or gyser. ⍾ is a bell. ⎋ is a clockface. ♠ ♣ ‡ are trees. ⋏ is fire. ♜ is a pedestal.
 ≋ is deep liquid's surface. ∬ is a waterfall. ≈ is a shallow liquid's surface, or a deep liquid below surface. ~ (centered) is a puddle. ≣ is a staircase. 
 ⌁ is electricity. * is ice. ⎈ spider web. ⌬ beehive. ↥ are spikes. ⎙ ⍝ ⎍ ∎ ⎅ are tombstones or signs. ␥ is glass.
-! is trouble. ☀ is a light source. ⌸ is a door. ⍯ is a locked door. ⎕ is an open door. = is a gate. ≠ is a locked gate. ⑆ is an open gate.
+! is trouble. ☀ is a light source. ⌸ is a door or gate. ⍯ is a locked door. ⎕ is an open door. 
 • is a boulder. . is a rock. ⁂ is a rockslide. ◇ is a gemstone. ◊ is a giant magic crystal. ? is somone wearing a cowled cloak.
 ∪ is a sink. ⏍ is a chest. ↯ is the thunderbolt. ∅ is a spacetime anomaly (do not touch). ↸ ⇲ are level stairs.
 ← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles, or facing direction. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are ballistae. ✪ is a rune. ː ⍽ are traps.
-# █ ▓ ▒ ░ ▞ ▚ (etc) are thick walls or floor. ≎ ☈ are clouds (do not walk on them; keep your head out of them).
+# █ ▓ ▒ ░ ▞ ▚ ⑆ (etc) are thick walls or floor. ☁ ≎ are clouds (do not walk on them; keep your head out of them). ☈ is a thundercloud (hurts).
 ˜ ␣ are holes. ' is a stalagtite or icicle. , is a plant. ; is a grain or sunflower (impassable).
 box drawings are low walls or columns. ⋯⋰⋱⋮ are iron bars. · is an ember or star. ` ´ are flower petals.
-¬ is carbon monoxide. ∽ is mud. ≉ is stagnent water (unbreathable).
-" deliminates text. > < is the cursor (selected tile is inbetween)
+¬ is mud. ≃ ≊ is stagnent water (unbreathable). ☿ is a pool of mercury. ♃ is a mirror. ♄ is an antimagic field.
+" deliminates text.
 ⍰ is a missingno (invalid tile id).
 
-the symbol for gemstone and giant crystal has been the source of much headache,
-but any truly monospace font should render their relative sizes correctly;
-if the font is only pretending to be monospace (like the default github font),
-you'll have bigger issues of non-uniform characters warping and tearing
-the world's projection grid. it is for this reason that the recommended font
-is a raster one, as raster fonts tend to be more uniform.
-
 a prompt at launch uses user responce to choose between using ~ or ∼ for centered tilde.
+handling of solid vs outlined symbols will use the solid symbol for a forground different from the background,
+and outlined to represent same color on color.
 
 box drawings:
  ╒╤╕     ╔╦╗
@@ -2023,7 +2063,7 @@ and will use the full range of ANSI SGR escape codes
 rune symbols
 ◬ air, ⍫ earth, △ fire, ▽ water, ⍰ missingno
 ⋇ ice, ☇ electricity, ♤ metal, ♻ nature
-❖ status effect, ☣ poison, ¤ stoning, ∅ entropy
+¤ status effect, ❖ stoning, ☣ poison, ∅ entropy
 ☼ light, ☽ dark, § polymorph, ↹ planer
 ♥ healing
 
@@ -2369,6 +2409,7 @@ sleep(4);
 }
 
 main() {
+
 termcheck();
 enginesplash("Default Game","Prealpha","Rough Draft");
 printf(RESET);printf(BLINKY);
@@ -2389,3 +2430,15 @@ sleep(4);
 FIXCURSES
 do_intro_movie();
 promptload();
+engineloop();
+if (!(TRUENDING)) {
+	notatruending()
+	}
+}
+
+notatruending() {
+	BREAKCURSES
+	printf("\033[1;3;33mTHIS IS NOT A TRUE ENDING...\n");
+	puts(RESET);
+	quit(0);
+	}

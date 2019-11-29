@@ -10,8 +10,11 @@
 #define ≤ <=
 #define forever for (;;)
 #define END return 0;}
-#define :: __
-#define :/: __ 
+
+#define ARRY_X 0
+#define ARRY_Y 1
+#define ARRY_Z 2
+#define ARRY_W 3
 
 /* syntactic sugar for macros that are actually tailcalls
  * such macros contain a return or this macro
@@ -63,7 +66,7 @@
 #define BACKGROUND 010
 #define MAX(A,B) (A ≥ B ? A : B)
 #define MIN(A,B) (A ≤ B ? A : B)
-#define SGN(N) (N < 0 ? 1 : (N > 0 ? -1 : (N == 0 ? 0 : NAN)))
+#define SGN(N) (
 #define CLAMP(A,N,B) MIN(MAX(A,N),B)
 #define COORDSUB(Z,Y,X) ((MAX_Y * Z) + (MAX_X * Y) + X)
 #define SWAP(X,Y) {if (X != Y) {intptr_t sWaPtEmPoRaRy = X;Y = X;X = sWaPtEmPoRaRy}}\

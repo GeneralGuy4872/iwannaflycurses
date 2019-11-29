@@ -1,0 +1,10 @@
+persuer AI:
+queue from nearest to furthest
+store distance from player when they leave room for each persuer
+divide by move distance
+give twice that many turns head start
+as soon as square that player entered into opens, spawn
+
+follower AI:
+queue from nearest to furthest
+as soon as square that player entered into opens, spawn next

@@ -1,54 +1,126 @@
-/**ROOMSTACK global object
- **ROOM global object acessor
- * roomstackele* ROOMSTACK::push(roomtyp)
- * void ROOMSTACK::shift()
- * roomstackele* ROOMSTACK::roomp(latlontyp)
- * implicit ROOMSTACK::pull(roomstackele*)
- * implicit ROOMSTACK::makecurrent(latlontyp)
+/* roomstackele* roomstackobj__push(roomstackobj*,roomtyp*)	...add a room to the roomstack; NULL on error
+ * roomstackele* roomstackobj__pushover(roomstackobj*,roomtyp*)	...add a room to the roomstack; NULL on error. no length checking.
+ * roomtyp * roomstackobj__shift(roomstackobj*)	...drop the most stale node. pointer must be immediately used or a memory leak occurs
+ * roomtyp * roomstackobj__drop(roomstackobj*,roomstackele*)	...drop a node from the roomstack. pointer must be immediately used or a memory leak occurs
+ * void roomstackobj__shift_free(roomstackobj*)	...drop and free the most stale node from the stack
+ * void roomstackobj__drop_free(roomstackobj,roomstackele*)	...drop and free the most stale node from the stack
+ * void roomstackobj__trim(roomstackobj*)	...drop and free the most stale nodes until the size of the stack is acceptable
+ * roomstackele* roomstackobj__nth(roomstackobj*,int)	...get the nth element; NULL on sentry
+ * roomstackele* roomstackobj__roomp(roomstackobj*,latlontyp)	...if an element exists, return it; else NULL
+ * implicit roomstackobj__roompull(roomstackobj*,latlontyp)	...if an element exists, move it to the front. OK or ERR
+ * implicit roomstackobj__pull(roomstackobj*,roomstackele*)	...move the element to the front. OK or ERR
+ * implicit roomstackobj__setswap(roomstackobj*,roomtyp*)	...create a room and push it to swap
+ * roomtyp * roomstackobj__getswap(roomstackobj*,planetyp)	...get the room in a given swap.
+ * roomtyp * roomstackobj__resetswap(roomstackobj*,planetyp)	...recall the room in the given swap. invalid plane will call topswap; this may not be what you want.
+ * roomtyp * roomstackobj__topswap(roomstackobj*)	...recall the top of the stack to swap.
+ * implicit roomstackobj__setswap_ele(roomstackobj*,roomstackele*)	...push the room contained in an element to swap.
+ * implicit roomstackobj__makecurrent(roomstackobj*,latlontyp)	...smart swap function. if an element doesn't exist, it is created. if it does, it is moved.
+ *	note: because of the way the implementation works, duplicate entries are HIGHLY DANGEROUS and must be avoided.
  */
 
 struct roomstackele {
-struct roomstackele* prev;
-struct roomstackele* next;
-roomtyp* room;
+struct roomstackele * prev;
+struct roomstackele * next;
+roomtyp * room;
 }
 
-struct roomstackholder {
-struct roomstackele* bottom;
-struct roomstackele* top;
+struct roomstackobj {
+roomtyp ** swapin;	//column-major
+roomtyp *bank[3][11];
+struct roomstackele * top;
+struct roomstackele * bottom;
 ushort depth;
 }
 
-ROOMSTACK::push(new)
-roomtyp* new
-{
-struct roomstack* newnode = malloc(sizeof(struct roomstackele));
-newnode->room = new;
-newnode->prev = ROOM;
-newnode->next = NULL;
-ROOMSTACK.top->next = newnode;
-ROOMSTACK.top = ROOM->next;
-ROOMSTACK.depth++;
-if (ROOMSTACK.depth > ROOM_STACK_MAX) {
-	ROOMSTACK::shift();
-	ROOMSTACK--;
+roomstackele * roomstackobj__pushover(roomstackobj * this,roomtyp * room) {
+	struct roomstackele * new = malloc(sizeof(struct roomstackele));
+	new->room = room;
+	new->prev = this->top;
+	new->next = NULL;
+	this->top->next = new;
+	this->top = new;
+	this->depth++;
+	return new;
+}
+
+void roomstackobj__trim(roomstackobj * this) {
+while (this->depth > ROOM_STACK_MAX) {
+	freeroom(roomstackobj__shift(this));
 	}
 }
 
-roomtyp* ROOMSTACK::makecurrent(query)
-latlontyp query
-{
-if (ROOMSTACK::makecurrent(query) > 0) {
-	continue;
+roomstackele * roomstackobj__push(roomstackobj * this,roomtyp * room) {
+	roomstackele * tmp = roomstackobj__pushover(this,room);
+	roomstackobj__trim(this);
+	return tmp;
 	}
-else if (roomp(query)) {
-	ROOMSTACK::push(query,loadroom(query));
+
+#define roomstackobj__roompull(X,Y) roomstackobj__pull(X,roomstackobj__roomp(X,Y))
+
+roomstackobj__pull (roomstackobj * this, roomstackele * that) {
+	if (!(this->top != that)) {
+		that->prev->next = that->next;
+		if (that->next == NULL) {
+			that->next->prev = that->prev;
+			}
+		that->prev = NULL;
+		that->next = this->top;
+		this->top->prev = that;
+		this->top = that;
+		}
+	return that;
 	}
-else {
-	ROOMSTACK::push(query,roomgen(query));
+
+roomstackobj__setswap (roomstackobj * this, roomtyp * that) {
+	struct planetyp plane = getplanetyp(that->latlon);
+	roomstackobj__push(this,roomstackobj__getswap(plane))
+	if (plane.rho < 3) {
+		if (!(plane.el)) {
+			this->bank[plane.rho][plane.az] = that;
+			}
+		else if (!(plane.az)) {
+			switch plane.az :
+				case 1 : this->bank[plane.rho][8] = that;break;
+				case -1 : this->bank[plane.rho][9] = that;break;
+				case -2 : this->bank[plane.rho][10] = that;break;
+				default : fprintf(stderr,"struct bitfield overflow\n");raise(SIGSEGV);
+			}
+		else {
+			roomstackobj__push(this,that);
+			}
+		}
+	else {
+		roomstackobj__push(this,that);
+		}
+	this->swapin = that;
+	END
+
+#define roomstackobj__setswap_ele(X,Y) roomstackobj__setswap(X,roomstackobj__drop(X,Y))
+
+roomstackobj__makecurrent(roomstackobj * this,latlontyp query) {
+	if (
+	 (query == roomstackobj__getswap( this , getplanetyp(query) )->latlon)
+	  ||
+	 (roomstackobj__roompull(this,query) != NULL)
+	  ) {
+		/*conditional must short circuit in this order*/
+		return 0;
+		}
+	else {
+		if (roomp(query)) {
+			roomstackobj__setswap(this,loadroom(query));
+			}
+		else {
+			setswaproom(roomgen(query));
+			}
+		}
 	}
-return ROOMSTACK.top.value;
-}
+END
+
+/*^DONE^
+ * From Rough Pseudocode to Pseudo C
+ * TODO
+ */
 
 /**PLANESTACK global object**
  * planestackele* PLANESTACK::push(planetyp)
@@ -154,57 +226,38 @@ if (roomptr == NULL) {roomptr = ROOM}
 	return free(roomptr)
 }
 
-/**WORLDSWP global object
- **WORLDSWPIN global object index flag
- **WORLD global object acessor**
- * implicit WORLD::gate(latlontyp)
- * implicit WORLD::swap(planetyp)
- * planetyp getplanetyp(latlontyp)
+/*^TODO^
+ * From Rough Pseudocode to Pseudo C
+ * DONE
  */
 
-swaproom(dest)
-struct latlontyp dest;
-{
-if (!(dest.shift || dest.az || dest.el)) {WORLDSWPIN = 0}
-else {switch dest.shift : {
-	case 0 : return ERR;
-	case 1 : if (!(dest.el)) {
-		switch dest.az : {
-			case 0 : ROOMSWPIN = 1; return OK;
-			case 01 : ROOMSWPIN = 2; return OK;
-			case 02 : ROOMSWPIN = 3; return OK;
-			case 03 : ROOMSWPIN = 4; return OK;
-			case 04 : ROOMSWPIN = 5; return OK;
-			case 05 : ROOMSWPIN = 6; return OK;
-			case 06 : ROOMSWPIN = 7; return OK;
-			case 07 : ROOMSWPIN = 8; return OK;
-			default : ERROR_GRAPHIC("Struct Field Overflow",'X',dest.az,'s',"too big for expected three bit field",true);
-		}
-		else if (dest.el && !(dest.az)) {
-			case 1 : ROOMSWPIN = 9; return OK;
-			case -1 : ROOMSWPIN = 10; return OK;
-			case -2 : ROOMSWPIN = 11; return OK;
-			default : ERROR_GRAPHIC("Struct Field Overflow",'X',dest.el,'s',"too big for expected three bit field",true);
-		}
-		break;
-	case 2 : if (dest.az && !(dest.el)) {
-		switch dest.az : {
-			case 0 : ROOMSWPIN = 12; return OK;
-			case 01 : ROOMSWPIN = 13; return OK;
-			case 02 : ROOMSWPIN = 14; return OK;
-			case 03 : ROOMSWPIN = 15; return OK;
-			case 04 : ROOMSWPIN = 16; return OK;
-			case 05 : ROOMSWPIN = 17; return OK;
-			case 06 : ROOMSWPIN = 18; return OK;
-			case 07 : ROOMSWPIN = 19; return OK;
-			default : ERROR_GRAPHIC("Struct Field Overflow",'X',dest.az,'s',"too big for expected three bit field",true);
-		}
-		else if (dest.el && !(dest.az)) {
-			case 1 : ROOMSWPIN = 20; return OK;
-			case -1 : ROOMSWPIN = 21; return OK;
-			case -2 : ROOMSWPIN = 22; return OK;
-			default : ERROR_GRAPHIC("Struct Field Overflow",'X',dest.el,'s',"too big for expected three bit field",true);
-		}
-		break;
-	default : return ERR;
-	}}
+/* planetyp getplanetyp(latlontyp)
+ */
+
+/* blitlineobj__load_room(blit_lineobj*,char,char*)	...load a bank of lines from a room
+ * blitlineobj__load_plane(blit_lineobj*,char,char*)	...load a bank of lines from a plane
+ * blitlineobj__load(blit_lineobj*,char,char*)	...load a bank of lines from the global library
+ * blitobj__pallette_load_room(blitobj*,char,char*)	...load a pallette from a room
+ * blitobj__pallette_load_plane(blitobj*,char,char*)	...load a pallette from a plane
+ * blitobj__pallette_load(blitobj*,char,char*)	...load a pallette from the global library
+ * blitobj__img_load_room(blitobj*,char*)	...load an imageset from a room
+ * blitobj__img_load_plane(blitobj*,char*)	...load an imageset from a plane
+ * blitobj__img_load(blitobj*,char*)	...load an imageset from the global library
+ * blitobj__sprite_load_room(blitobj*,char*)	...load a spriteset from a room
+ * blitobj__sprite_load_plane(blitobj*,char*)	...load a spriteset from a plane
+ * blitobj__sprite_load(blitobj*,char*)	...load a spriteset from the global library
+ */
+
+struct blitobj {
+	char *lines[8][32];	// ans file
+	_8bitPtr *img[4][8][8];	// hex file
+	struct blitele * head;
+	struct blitele * tail;
+	}
+
+blitele {
+	blitele * prev;
+	blitele * next;
+	int p[6];
+	uchar s[16];
+	}

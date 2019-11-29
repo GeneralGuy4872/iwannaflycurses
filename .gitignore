@@ -10,3 +10,4 @@
 #exclude temporary files
 **/*.tmp
 **/*.swp
+**/.*.sw*
