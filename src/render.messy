@@ -1,0 +1,27 @@
+int posx = 0;
+int posy;
+int posz;
+int yindex; yindex = -(PLAYER.pos[3]);
+for (int z = 0;z ≤ CEILING;z++) {	// one of these is not like the others
+	for (int y = 0;y < MAX_Y;y++) {
+	if (posy ≥ 0) {
+		for (int x = 0;x < MAX_X;x++) {
+			if (ROOM->tiledata[z][y][x] < 0) {
+				mvaddch16(posy,posx,MAINTILES[ROOM->tiledata[z][y][x]]->unichar,(MAINTILES[ROOM->tiledata[z][y][x]]->blink * A_BLINK) | COLOR_PAIR(MAINTILES[ROOM->tiledata[z][y][x]]->color))
+				}
+			else {
+				mvaddch16(posy,posx,ROOM->hightiles[abs(ROOM->tiledata[z][y][x]) - 1]->unichar,(ROOM->hightiles[abs(ROOM->tiledata[z][y][x]) - 1]->blink * A_BLINK) | COLOR_PAIR(ROOM->hightiles[ROOM->tiledata[z][y][x]]->color))
+				}
+			posx++;
+			}
+		}
+		posy++;
+		posx = 0;
+		}
+	posz++;
+	posy = yindex + posz;
+	posx = 0;
+	}
+
+enttyp ent_nextptr = ROOM->ent_ptr↑;
+

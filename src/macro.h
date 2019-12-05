@@ -4,12 +4,13 @@
 #define uchar unsigned char
 #define ushort unsigned short
 #define ulong unsigned long
-#define _8bitPtr uint8_t
+#define 8BITPTR uint8_t
 
 #define ≥ >=
 #define ≤ <=
 #define forever for (;;)
 #define END return 0;}
+#define ↑ [0]
 
 #define ARRY_X 0
 #define ARRY_Y 1
@@ -64,10 +65,7 @@
 
 /*FUNCTION MACROS*/
 #define BACKGROUND 010
-#define MAX(A,B) (A ≥ B ? A : B)
-#define MIN(A,B) (A ≤ B ? A : B)
-#define SGN(N) (
-#define CLAMP(A,N,B) MIN(MAX(A,N),B)
+#define BALTERN_3(X,Y,Z) ((sgn(Z) * 9) + (sgn(Y) * 3) + sgn(X))
 #define COORDSUB(Z,Y,X) ((MAX_Y * Z) + (MAX_X * Y) + X)
 #define SWAP(X,Y) {if (X != Y) {intptr_t sWaPtEmPoRaRy = X;Y = X;X = sWaPtEmPoRaRy}}\
 
