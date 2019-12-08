@@ -410,14 +410,6 @@ ushort lineno
 char * text
 }
 
-struct eventstringtyp {
-(self) *prev
-(self) *next
-eventdata eventident
-char* text
-}
-// like stringlistyp, but also has a field for eventident
-
 /*blackbox*/loading()
 	/* clears screen
 	 * prints "  LOADING..." on line 13
@@ -480,13 +472,13 @@ return lines;
 }
 
 // depricated
-/* should also output __FILE__ ɛ⃓ __LINE__, which will likely be the program's version of
- * undecipherable hex codes to anyone not extreamly fammiliar with the source. less severe
- * errors will prompt for [Q]uit, [A]bort, or [Z] continue. more severe ones will prompt
- * [Q]uit, [A]bort, [Z] restart. When other keyboard layout options are supported, QAZ will
- * be replaced with the left column of letters (under 1). replacements for QAZ might be:
- * QAY, AQW, "A:, FUJ. if Q or A are present in this group, they will be [Q]uit ɛ⃓ [A]bort,
- * swapping places with the other option. otherwise, the quit-abort-option3 order will be kept.
+/*x should also output __FILE__ ɛ⃓ __LINE__, which will likely be the program's version of
+ *x undecipherable hex codes to anyone not extreamly fammiliar with the source. less severe
+ *x errors will prompt for [Q]uit, [A]bort, or [Z] continue. more severe ones will prompt
+ *x [Q]uit, [A]bort, [Z] restart. When other keyboard layout options are supported, QAZ will
+ *x be replaced with the left column of letters (under 1). replacements for QAZ might be:
+ *x QAY, AQW, "A:, FUJ. if Q or A are present in this group, they will be [Q]uit ɛ⃓ [A]bort,
+ *x swapping places with the other option. otherwise, the quit-abort-option3 order will be kept.
  */
 
 struct blitimgcolor {
@@ -523,7 +515,7 @@ roomstackholder ROOMSTACK
 #define ROOM ROOMSTACK.swapin
 #define ROOM_NOT_NULL(X,Y) ((ROOM != NULL) ? X : Y)
 #define WORLD	ROOM_NOT_NULL( ROOM->latlon , (latlontyp){0,0,0,0,0,0} )
-#define CEILING	ROOM_NOT_NULL( (ROOM->ceiling + 1) , MAX_Z )
+#define CEILING	ROOM_NOT_NULL( ROOM->ceiling , MAX_Z )
 planestackholder PLANESTACK
 uint64_t TURN
 nibbles TIMER
@@ -538,8 +530,9 @@ followtype *FOLLOW_ptr	//pursuers, i.e. paid assasins, ninjas, the reaper...
 eventtyp *EVNT_ptr	//FOO_ptr refers to the doubly linked list's head. the tail is FOO_ptr->prev. FOO_ptr->prev->next is always NULL.
 placetyp *PLACE_ptr
 stringlistyp *HINT_ptr
-eventstringtyp *HEYLISTEN_ptr
-eventdatyp* EVENTDATA_ptr
+eventdatastack_ele *EVSTACK_ptr
+qglobobj * GLOBOBJ_ptr
+qglobev * GLOBEV_ptr
 bitfield globools
 #define NEW globools.a
 #define FIRST globools.b
@@ -606,11 +599,23 @@ typedef char scoord3[3]
 typedef char scoord2[2]
 //sentinal for an array of coord3 is {0,0,-1}
 
+struct lightblit {
+ucoord2 pos
+ucoord2 size
+ushort * mask
+}
+
+struct agetyp {
+unsigned chrono : 16
+signed bio : 8	//entity dies on overflow
+unsigned rem : 8
+}
+
 struct mapcoord3:
 unsigned x : 6
 unsigned y : 5
 unsigned z : 4
-bool w : 1
+bool last : 1
 
 struct nibbles {
 unsigned lo : 4
@@ -992,6 +997,7 @@ char* conlangtab[32] = {"common language","middle elvish","old elvish","dwarvish
 struct playertyp:
 classobjtyp class
 multiclasstyp *MULTICLASS
+agetyp age
 struct racetyp baserace[2]
 struct racetyp polyrace
 shiftertyp polycounter
@@ -1083,6 +1089,7 @@ unsigned natural_element : 8
 signed size : 2
 signed wingtyp : 2 // 1 = fancy, -1 = <>, -2 = ><
 bool permwings : 1
+unsigned age_rate : 8
 /* entitys of size 1 or -2 cannot use armor.
  * entitys of larger size automaticly win grapples.
  * entitys of 2 sizes smaller can be picked up and thrown.
@@ -1100,6 +1107,7 @@ struct enttyp:
 (self) *prev
 (self) *next
 npctyp * depth
+agetyp age
 classobjtyp class
 aggrotyp aggro
 struct racetyp race[2]
@@ -1135,7 +1143,6 @@ subobjtyp wristr
 struct npctyp:
 (self) *prev
 (self) *next
-eventdata eventident
 ucoord3 * path
 conlangtyp lang
 char * describe
@@ -1143,9 +1150,10 @@ char * gibber
 char ** lines	// heap array of pointers
 
 struct followtyp:
-(self) *prev
-(self) *next
+(self) * prev
+(self) * next
 npctyp * depth
+agetyp age
 classobjtyp class
 aggrotyp aggro
 struct racetyp baserace[2]
@@ -1541,14 +1549,14 @@ unsigned ceiling : 4
 unsigned bgcolor : 3
 bool visited : 1
 shadowmask seen
+shadowmask light
 collimaptyp collimap
 encontyp *encon_ptr
 enttyp *ent_ptr
-npctyp *npc_ptr
+eventtyp *ev_ptr
 mapobjtyp *obj_ptr
-lightyp *lamp_ptr
 ray_vfx_typ *ray_ptr
-char lightsource
+char lightsource	//must be a valid octant
 ucoord3 * path_ptr
 ucoord2 downstair
 ucoord2 upstair
@@ -1578,7 +1586,6 @@ char tiledata[MAX_Z][MAX_Z][MAX_Z]	//cube of MAX_Z
 ucoord3 dim
 enttype *ent_ptr
 mapobjtyp *obj_ptr
-lightyp *lamp_ptr
 
 /*     *.bin : signed binary data that is organized into 8 bit segments
  *    *.bin# : signed binary data that is organized into n bit segments
@@ -1671,7 +1678,7 @@ struct collisionmaptyp {
 	collisionmapholes holes
 	}
 
-set_collision_map_solid (roomtyp * this,char x,char y,char z,bool q) {
+set_collision_map (roomtyp * this,char x,char y,char z,bool q) {
 	if (z < this->ceiling) {
 		if (q) {
 			switch (z) : {
@@ -1747,38 +1754,6 @@ set_collision_map_solid (roomtyp * this,char x,char y,char z,bool q) {
 		}
 	return ERR;}
 
-struct petaltyp {
-starfield acute
-starfield grave
-}
-
-bitfield starfield_generator() {
-uchar xor_rand = (uchar) (rand() ^ (~rand() + 1))
-bitfield output
-output.a = (bool) (xor_rand & 0x80)
-output.b = (bool) (xor_rand & 0x40)
-output.c = (bool) (xor_rand & 0x20)
-output.d = (bool) (xor_rand & 0x10)
-output.w = (bool) (xor_rand & 0x08)
-output.x = (bool) (xor_rand & 0x04)
-output.y = (bool) (xor_rand & 0x02)
-output.z = (bool) (xor_rand & 0x01)
-return output
-}
-
-starfield_step(tube)
-starfield tube
-{
-xiter = MAX_X / 8
-for (uchar n = MAX_X;n;n--) {
-	for (uchar x = 0;x < xiter;x++) {
-		tube[n][x] = tube[n-1][x]
-		}
-	}
-for (uchar x = 0;x < xiter;x++) {
-	tube[0][x] = starfield_generator()
-	}
-
 typedef tilemeta* tileset[128]
 
 struct tilemeta {
@@ -1791,6 +1766,10 @@ bool hypotherm : 1
 bool sharp : 1
 bool entropy : 1
 
+bool shiney : 1
+bool slip : 1
+signed speed : 2
+
 bool freezes : 1
 bool melts : 1
 bool petrif : 1
@@ -1798,10 +1777,10 @@ bool petrif : 1
 bool dig : 1
 bool fence : 1
 
-intptr_t freeze : 7
-intptr_t melt : 7
-intptr_t stone : 7
-unsigned density : 7
+intptr_t freeze : 8
+intptr_t melt : 8
+intptr_t stone : 8
+unsigned density
 
 bool blink : 1
 unsigned color : 6
@@ -1828,8 +1807,8 @@ char16_t unichar : 16
  * digging something triggers updates which cause gravity to affect gases (!liquid,!solid),
  * liquids(+liquid,!solid), and granulars(+liquid,+solid), wherin less dense
  * tiles will swap with more dense ones. this effect travels outwards, to the edge of the room,
- * but will not be applied to the border tiles. granulars are always more dense than liquids,
- * and liquids are always more dense than gases.
+ * but will not be applied to the border tiles. in the default set, water has a density of 10, snow
+ * has a density of -1, and air has a density of -100. 
  */
 
 /*pseudocode*/getsym
@@ -1859,12 +1838,6 @@ ucoord3 pos
 objid type
 void* data
 mapobjflags flags
-
-struct lamptyp:
-(self) *prev
-(self) *next
-ucoord3 pos
-uchar lum
 
 struct signtyp {
 char16_t unichar
@@ -1942,15 +1915,35 @@ unsigned element : 8
 unsigned lde : 3
 }
 
-struct eventdatyp {	//list of events
+struct eventdatastack_ele {	//list of events
 (self)* prev
 (self)* next
 eventdata data
+char * heylisten
+eventdatastack_garbage * head
+eventdatastack_garbage * tail
+}
+
+struct eventdatastack_garbage {
+(self) * next
+(self) * prev
+objid type
+void * data
+}
+
+enum eventdatastack_objid = {
+EDS_ROOMOBJ_FLAG
+EDS_QGLOBOBJ_FLAG
+EDS_EVENTTYP_FLAG
+EDS_QGLOBEV_FLAG
+EDS_ENCONTYP_FLAG
+EDS_PLACETYP_FLAG
 }
 
 struct eventtyp:
 (self) *prev
 (self) *next
+ucoord3 pos
 eventdata eventdatavals
 triggertyp whenthis
 const char* dothis	//object to be loaded. must be a shared object with C linkage; but not necissarily one written in C. if NULL, is a built-in function.
@@ -1978,6 +1971,22 @@ ucoord3 pos
 objid type
 void* data
 
+struct qglobev: //queued global event
+(self) *prev
+(self) *next
+qglobflags flags
+latlontyp latlon
+ucoord3 pos
+eventdata eventdatavals
+triggertyp whenthis
+const char* dothis	//object to be loaded. must be a shared object with C linkage; but not necissarily one written in C. if NULL, is a built-in function.
+int (*doit)(union unitype,union unitype,union unitype,union unitype)
+unsigned radius : 7
+bool show : 1
+unsigned up : 4
+unsigned down : 4
+uint32_t duration
+
 struct qglobflags {
 struct racetyp race
 race-specific : 1
@@ -1996,11 +2005,7 @@ canforceload : 1
 }
 
 struct traptyp:
-(self) *prev
-(self) *next
-eventdata eventident
 char16_t unichar
-ucoord3 pos
 ushort duration
 magictyp element
 stattyp stat
@@ -2026,7 +2031,6 @@ bool magic : 1	//whether the trap is a mechanism or a rune
 unsigned color : 6
 
 struct subwarptyp {
-eventdata eventident
 bool perm : 1
 bool blink : 1
 unsigned color : 6
@@ -2036,7 +2040,6 @@ short duration	//negative are uses, positive are turns
 }
 
 struct warptyp:
-eventdata eventident
 bool perm : 1
 bool blink : 1
 unsigned color : 6
@@ -2092,8 +2095,6 @@ SPELL_FLAG : contains spelltyp
 MISC_FLAG : contains _8bitPtr
 GEM_FLAG : contains gemstonetyp
 TRAP_FLAG : contains traptyp
-EVENT_FLAG : contains eventtyp
-QGLOB_FLAG : contains qglobobj
 WARP_FLAG : contains warptyp
 SUBWARP_FLAG : contains subwarptyp
 CHEST_FLAG : contains chestyp
@@ -2145,8 +2146,8 @@ note: unicode symbols are (mostly) used be their appearence, not by their meanin
 ∪ is a sink. ⏍ is a chest. ↯ is the thunderbolt. ∅ is a spacetime anomaly (do not touch). ↸ ⇲ are level stairs.
 ← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles, or facing direction. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are ballistae. ✪ is a rune. ː ⍽ are traps.
 # █ ▓ ▒ ░ ▞ ▚ ⑆ (etc) are thick walls or floor. ☁ ≎ are clouds (do not walk on them; keep your head out of them). ☈ is a thundercloud (hurts).
-˜ is a sunbeam. ␣ are holes. ' is a stalagtite or icicle. , is a plant. ; is a grain or sunflower (impassable).
-box drawings are low walls or columns. ⋯⋰⋱⋮ are iron bars. · is an ember or star. ` ´ are flower petals.
+` ␣ are holes (note that ` is only used when a sunbeam is not present). ' is a stalagtite or icicle. , is a plant. ; is a grain or sunflower (impassable).
+box drawings are low walls or columns. ⋯⋰⋱⋮ are iron bars. · is an ember or star.
 ¬ is mud. ≃ ≊ is stagnent water (unbreathable). ☿ is a pool of mercury. ♃ is a mirror. ♄ is an antimagic field.
 " deliminates text.
 ⍰ is a missingno (invalid tile id).

@@ -1,0 +1,60 @@
+#define PREDICATE(X,Y) X->Y.shape.wingoverride\
+ &&\
+(\
+ X->Y.shape.permwings\
+  ||\
+ (\
+  (\
+   basentity->base.skill.fly\
+    ||\
+   this->paffect.skill.fly\
+    ||\
+   this->effect.skill.fly\
+  )\
+   &&\
+  not_standing_on_anything()\
+ )\
+)
+
+#define SWITCH_BODY(X,Y) if (X->Y.shape.wingsign) {\
+	switch X->Y.shape.wingtyp :\
+		case 0 : this_sprite[0] = '>'; this_sprite[1] = '<'; break;\
+		case 1 : this_sprite[0] = 0x2265; this_sprite[1] = 0x2264; break;\
+		case 2 : this_sprite[0] = 0x226B; this_sprite[1] = 0x226A; break;\
+		case 3 : this_sprite[0] = 0x2277; this_sprite[1] = 0x2276; break;\
+		default : this_sprite[0] = 0xFFFD; this_sprite[1] = 0xFFFD; break;\
+	}\
+else {\
+	switch X->Y.shape.wingtyp :\
+		case 0 : this_sprite[0] = '<'; this_sprite[1] = '>'; break;\
+		case 1 : this_sprite[0] = 0x2264; this_sprite[1] = 0x2265; break;\
+		case 2 : this_sprite[0] = 0x226A; this_sprite[1] = 0x226B; break;\
+		case 3 : this_sprite[0] = 0x2276; this_sprite[1] = 0x2277; break;\
+		default : this_sprite[0] = 0xFFFD; this_sprite[1] = 0xFFFD; break;\
+	}
+
+enttyp__wingrender(enttyp * this,basentyp * basentity,int yzindex) {
+	char16_t this_sprite[2];
+	if (PREDICATE(this,effect)) {SWITCH_BODY(this,effect)}
+	else if (PREDICATE(this,paffect)) {SWITCH_BODY(this,paffect)}
+	else if (PREDICATE(basentity,base)) {SWITCH_BODY(basentity,base)}
+	else {return 0;}
+	if (
+	    ((next_ent_ptr->pos[0] + 1) < MAX_X)
+	     &&
+	    raycast__visabledefault_noarr(next_ent_ptr->pos[0] + 1,next_ent_ptr->pos[1],next_ent_ptr->pos[2])
+	   ) {
+		mvaddch16(next_ent_ptr->pos[1] + yzindex - next_ent_ptr->pos[2],next_ent_ptr->pos[0] + 1,this_sprite,
+		getglyph(next_ent_ptr->pos[1] + yzindex - next_ent_ptr->pos[2],next_ent_ptr->pos[0] + 1) ? basentity->attrs : basentity->altattrs);
+		}
+	if (
+	    ((next_ent_ptr->pos[0] - 1) ≥ 0)
+	     &&
+	    raycast__visabledefault_noarr(next_ent_ptr->pos[0] - 1,next_ent_ptr->pos[1],next_ent_ptr->pos[2])
+	   ) {
+		mvaddch16(next_ent_ptr->pos[1] + yzindex - next_ent_ptr->pos[2],next_ent_ptr->pos[0] - 1,this_sprite,
+		getglyph(next_ent_ptr->pos[1] + yzindex - next_ent_ptr->pos[2],next_ent_ptr->pos[0] - 1) ? basentity->attrs : basentity->altattrs);
+		}
+	return 0;}
+#undef PREDICATE
+#undef SWITCH_BODY

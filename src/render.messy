@@ -1,27 +1,119 @@
-int posx = 0;
-int posy;
-int posz;
-int yindex; yindex = -(PLAYER.pos[3]);
-for (int z = 0;z ≤ CEILING;z++) {	// one of these is not like the others
-	for (int y = 0;y < MAX_Y;y++) {
-	if (posy ≥ 0) {
-		for (int x = 0;x < MAX_X;x++) {
-			if (ROOM->tiledata[z][y][x] < 0) {
-				mvaddch16(posy,posx,MAINTILES[ROOM->tiledata[z][y][x]]->unichar,(MAINTILES[ROOM->tiledata[z][y][x]]->blink * A_BLINK) | COLOR_PAIR(MAINTILES[ROOM->tiledata[z][y][x]]->color))
+/*blackboxes*/
+raycast__visable(ucoord3,char) 
+	traces a ray from ucoord3 and returns whether or not it is visible
+	from a given octant
+
+raycast__visabledefault(ucoord3)
+
+raycast__visable_noarr(uchar,uchar,uchar,char)
+raycast__visabledefault_noarr(uchar,uchar,uchar)
+
+raycast__cullplane()
+	returns the highest layer that is rendered
+
+raycast__cursor(ucoord2)
+	traces a ray from ucoord2 and returns what's supposd to be drawn there.
+	not entirely reliable...
+	(any glyph not originating from room render will be ignored)
+
+raycast__dropshadow(ucoord3,char)
+	render shadows
+	second argument is the octant that light is cast from
+
+raytrace(ucoord3,char,float,char16_t,attr_t)
+	traces a ray from ucoord3 from a lightsource in octant char,
+	using glyph (char16_t,attr_t), until length exceeds float.
+
+getglyph(int,int)
+	chooses between the light (0) and dark (1) glyphs for an entity based on
+	background's attributes
+/*</>*/
+
+// roomrender functions will be called via jumptable to enable camera switching
+
+roomrender__standard () {
+int yzindex;
+yzindex = PLAYER.pos[2];
+int cullplane;
+cullplane = raycast__cullplane();
+	{
+	int posx = 0;
+	int posy;
+	int posz;
+	for (int z = 0;(z ≤ CEILING) && (z < cullplane);z++) {	// one of these is not like the others
+		for (int y = 0;y < MAX_Y;y++) {
+		if (posy ≥ 0) {
+			for (int x = 0;x < MAX_X;x++) {
+				if (ROOM->tiledata[z][y][x] < 0) {
+					mvaddch16(posy,posx,MAINTILES[ROOM->tiledata[z][y][x]]->unichar,(MAINTILES[ROOM->tiledata[z][y][x]]->blink * A_BLINK) | COLOR_PAIR(MAINTILES[ROOM->tiledata[z][y][x]]->color))
+					if (MAINTILES[ROOM->tiledata[z][y][x]]->solid) {
+						set_collision_map(ROOM,x,y,z,true)
+						}
+					else {
+						set_collision_map(ROOM,x,y,z,false)
+						}
+					}
+					if (MAINTILES[ROOM->tiledata[z][y][x]]->liquid) {
+						maskset(z,y,x,ROOM->collisionmap.liquid,true)
+						}
+					else {
+						maskset(z,y,x,ROOM->collisionmap.liquid,false)
+						}
+				else {
+					mvaddch16(posy,posx,ROOM->hightiles[ROOM->tiledata[z][y][x] ^ 0x80]->unichar,(ROOM->hightiles[ROOM->tiledata[z][y][x] ^ 0x80]->blink * A_BLINK) | COLOR_PAIR(ROOM->hightiles[ROOM->tiledata[z][y][x] ^ 0x80]->color))
+					if (ROOM->hightiles[ROOM->tiledata[z][y][x] ^ 0x80]->liquid) {
+						set_collision_map(ROOM,x,y,z,true)
+						}
+					else {
+						set_collision_map(ROOM,x,y,z,false)
+						}
+					if (ROOM->hightiles[ROOM->tiledata[z][y][x] ^ 0x80]->liquid) {
+						maskset(z,y,x,ROOM->collisionmap.liquid,true)
+						}
+					else {
+						maskset(z,y,x,ROOM->collisionmap.liquid,false)
+						}
+					}
+				posx++;
 				}
-			else {
-				mvaddch16(posy,posx,ROOM->hightiles[abs(ROOM->tiledata[z][y][x]) - 1]->unichar,(ROOM->hightiles[abs(ROOM->tiledata[z][y][x]) - 1]->blink * A_BLINK) | COLOR_PAIR(ROOM->hightiles[ROOM->tiledata[z][y][x]]->color))
-				}
-			posx++;
 			}
-		}
-		posy++;
+			posy++;
+			posx = 0;
+			}
+		posz--;
+		posy = yzindex + posz;
 		posx = 0;
 		}
-	posz++;
-	posy = yindex + posz;
-	posx = 0;
+	}{
+	struct enttyp * next_ent_ptr = ROOM->ent_ptr;
+	while (next_ent_ptr != NULL) {
+		if (raycast__visabledefault(next_ent_ptr->pos) {
+			basentyp * basentity = &((montable[next_ent_ptr->race[0]->table])[next_ent_ptr->race[0]->race]);
+			char16_t this_sprite;
+			attr_t this_attr;
+			if (getglyph(next_ent_ptr->pos[1] + yzindex - next_ent_ptr->pos[2],next_ent_ptr->pos[0])) {
+				this_sprite = basentity->sprite;
+				this_attr = basentity->attrs;
+				}
+			else {
+				this_sprite = basentity->altsprite;
+				this_attr = basentity->attrs;
+				}
+			mvaddch16(next_ent_ptr->pos[1] + yzindex - next_ent_ptr->pos[2],next_ent_ptr->pos[0],this_sprite,this_attr);
+			}
+		maskset(z,y,x,ROOM->collisionmap.ents,true);
+		enttyp__wingrender(next_ent_typ,basentity,yzindex);
+		raycast__dropshadow(next_ent_ptr->pos,ROOM->lightsource);
+		next_ent_ptr = next_ent_ptr->next;
+		}
+	}{
+	struct mapobjtyp * next_obj_ptr = ROOM->obj_ptr;
+	while (next_obj_ptr != NULL) {
+		// B L A H
+		}
+	}{
+	ray_vfx_typ * next_ray_ptr = ROOM->ray_ptr;
+	while (next_ray_ptr != NULL) {
+		raytrace(next_ray_ptr->p,next_ray_ptr->dir,next_ray_ptr->mag,next_ray_ptr->c,next_ray_ptr->a);
+		}
 	}
-
-enttyp ent_nextptr = ROOM->ent_ptr↑;
-

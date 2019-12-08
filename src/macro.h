@@ -12,10 +12,6 @@
 #define END return 0;}
 #define ↑ [0]
 
-#define ARRY_X 0
-#define ARRY_Y 1
-#define ARRY_Z 2
-#define ARRY_W 3
 
 /* syntactic sugar for macros that are actually tailcalls
  * such macros contain a return or this macro
@@ -65,7 +61,7 @@
 
 /*FUNCTION MACROS*/
 #define BACKGROUND 010
-#define BALTERN_3(X,Y,Z) ((sgn(Z) * 9) + (sgn(Y) * 3) + sgn(X))
+#define BALTERNOCT(X,Y,Z) ((sgn(Z) * 9) + (sgn(Y) * 3) + sgn(X))
 #define COORDSUB(Z,Y,X) ((MAX_Y * Z) + (MAX_X * Y) + X)
 #define SWAP(X,Y) {if (X != Y) {intptr_t sWaPtEmPoRaRy = X;Y = X;X = sWaPtEmPoRaRy}}\
 
