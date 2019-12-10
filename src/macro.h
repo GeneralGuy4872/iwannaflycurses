@@ -10,8 +10,6 @@
 #define ≤ <=
 #define forever for (;;)
 #define END return 0;}
-#define ↑ [0]
-
 
 /* syntactic sugar for macros that are actually tailcalls
  * such macros contain a return or this macro
@@ -58,6 +56,16 @@
 #ifndef MIDI_TYPE
 #define MIDI_TYPE "MISSING"
 #endif
+
+#define CAMERA_UP 9
+#define CAMERA_DOWN 1
+#define CAMERA_LEFT 014
+#define CAMERA_RIGHT 4
+#define CAMERA_PGUP 012
+#define CAMERA_PGDN 2
+#define CAMERA_XY 0xE
+#define CAMERA_XZ 013
+#define CAMERA_YZ 0xD
 
 /*FUNCTION MACROS*/
 #define BACKGROUND 010

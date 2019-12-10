@@ -1,4 +1,5 @@
-#define PREDICATE(X,Y) X->Y.shape.wingoverride\
+#define PREDICATE(X,Y) (\
+X->Y.shape.wingoverride\
  &&\
 (\
  X->Y.shape.permwings\
@@ -12,11 +13,12 @@
    this->effect.skill.fly\
   )\
    &&\
-  not_standing_on_anything()\
+  §not_standing_on_anything()\
  )\
-)
+))
 
-#define SWITCH_BODY(X,Y) if (X->Y.shape.wingsign) {\
+#define SWITCH_BODY(X,Y) {\
+if (X->Y.shape.wingsign) {\
 	switch X->Y.shape.wingtyp :\
 		case 0 : this_sprite[0] = '>'; this_sprite[1] = '<'; break;\
 		case 1 : this_sprite[0] = 0x2265; this_sprite[1] = 0x2264; break;\
@@ -31,30 +33,41 @@ else {\
 		case 2 : this_sprite[0] = 0x226A; this_sprite[1] = 0x226B; break;\
 		case 3 : this_sprite[0] = 0x2276; this_sprite[1] = 0x2277; break;\
 		default : this_sprite[0] = 0xFFFD; this_sprite[1] = 0xFFFD; break;\
-	}
+	}\
+}
 
-enttyp__wingrender(enttyp * this,basentyp * basentity,int yzindex) {
+enttyp__wingrender(enttyp * this,basentyp * basentity,int yzindex,int cullplane,attr_t attrs) {
 	char16_t this_sprite[2];
-	if (PREDICATE(this,effect)) {SWITCH_BODY(this,effect)}
-	else if (PREDICATE(this,paffect)) {SWITCH_BODY(this,paffect)}
-	else if (PREDICATE(basentity,base)) {SWITCH_BODY(basentity,base)}
+	if PREDICATE(this,effect) SWITCH_BODY(this,effect)
+	else if PREDICATE(this,paffect) SWITCH_BODY(this,paffect)
+	else if PREDICATE(basentity,base) SWITCH_BODY(basentity,base)
 	else {return 0;}
 	if (
 	    ((next_ent_ptr->pos[0] + 1) < MAX_X)
 	     &&
-	    raycast__visabledefault_noarr(next_ent_ptr->pos[0] + 1,next_ent_ptr->pos[1],next_ent_ptr->pos[2])
+	    raycast__visabledefault_noarr(next_ent_ptr->pos[0] + 1,next_ent_ptr->pos[1],next_ent_ptr->pos[2],cullplane)
 	   ) {
 		mvaddch16(next_ent_ptr->pos[1] + yzindex - next_ent_ptr->pos[2],next_ent_ptr->pos[0] + 1,this_sprite,
-		getglyph(next_ent_ptr->pos[1] + yzindex - next_ent_ptr->pos[2],next_ent_ptr->pos[0] + 1) ? basentity->attrs : basentity->altattrs);
+		(getglyph(next_ent_ptr->pos[1] + yzindex - next_ent_ptr->pos[2],next_ent_ptr->pos[0] + 1) ? basentity->attrs : basentity->altattrs));
 		}
 	if (
 	    ((next_ent_ptr->pos[0] - 1) ≥ 0)
 	     &&
-	    raycast__visabledefault_noarr(next_ent_ptr->pos[0] - 1,next_ent_ptr->pos[1],next_ent_ptr->pos[2])
+	    raycast__visabledefault_noarr(next_ent_ptr->pos[0] - 1,next_ent_ptr->pos[1],next_ent_ptr->pos[2],cullplane)
 	   ) {
 		mvaddch16(next_ent_ptr->pos[1] + yzindex - next_ent_ptr->pos[2],next_ent_ptr->pos[0] - 1,this_sprite,
-		getglyph(next_ent_ptr->pos[1] + yzindex - next_ent_ptr->pos[2],next_ent_ptr->pos[0] - 1) ? basentity->attrs : basentity->altattrs);
+		(getglyph(next_ent_ptr->pos[1] + yzindex - next_ent_ptr->pos[2],next_ent_ptr->pos[0] - 1) ? basentity->attrs : basentity->altattrs));
 		}
 	return 0;}
 #undef PREDICATE
 #undef SWITCH_BODY
+
+enttyp__sleeprender(enttyp * this,basentyp * basentity,int yzindex,int cullplane) {
+	if ((this->paffect.ails_ya.slp) || (this->effect.stat.slp)) {
+		if (raycast__visabledefault_noarr(next_ent_ptr->pos[0],next_ent_ptr->pos[1],next_ent_ptr->pos[2] + 1,cullplane)) {
+			mvaddch(next_ent_ptr->pos[1] + yzindex - (next_ent_ptr->pos[2] + 1),next_ent_ptr->pos[0],'z' |
+			(getglyph(next_ent_ptr->pos[1] + yzindex - next_ent_ptr->pos[2],next_ent_ptr->pos[0] - 1) ? basentity->attrs : basentity->altattrs));
+			}
+		}
+	}
+

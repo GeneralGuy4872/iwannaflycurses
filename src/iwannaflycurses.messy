@@ -124,13 +124,11 @@
  *	culling the first layer which obstructs the player from view and above (free action)
  * - end renders only the plane including the player. takes a slice perpindicular to the camera. (free action)
  * - 5 idles
- * - Insert toggles wings and 'z's
- * - Delete toggles shadows
- * - F1 shows sense trouble. (free action)
- * - F2 shows sense alignment. (free action)
- * - F3 shows see invisible. (free action)
- * - F4 shows the direction entities are facing (free action)
- * - F5 shows the normal view (free action)
+ * - F1 toggles see invisible. (free action)
+ * - F2 toggles dingbats (free action)
+ * - F3 shows sense alignment. (free action)
+ * - F4 shows the direction entities are facing. (free action)
+ * - F5 shows normal view (free action)
  * - . pick up items
  * - \ initiates command entry. free action itself, but most commands are not.
  * more tbd
@@ -542,6 +540,7 @@ bitfield globools
 #define NOON globools.x
 #define EVE globools.y
 #define MIDNIT globools.z
+cameratyp CAMERA
 /*end GLOBALS*/
 
 struct turntyp:
@@ -622,6 +621,14 @@ unsigned lo : 4
 unsigned hi : 4
 }
 
+struct cameratyp {
+unsigned dir : 4
+bool invis : 1
+bool align : 1
+bool arrows : 1
+bool dingbats : 1
+}
+
 struct racetyp {
 intptr_t race : 8
 intptr_t table : 4
@@ -645,7 +652,6 @@ struct ray_vfx_typ {
 ucoord3 p
 uchar dir	//must be a valid octant
 float mag
-char16_t c
 attr_t a
 }
 
@@ -942,7 +948,7 @@ basentyp* mon3table[256]
  * = : [spoiler]
  * {}: /(flesh|straw|clay|stone|glass|paper|leather) golem/, /(gold|copper|finite-state) automaton/, chest monster,
  * ? : mystery person
- * «»: bass, trout, salmon, tuna, carp, pike,
+ * «»: bass, trout, salmon, tuna, carp, pike, halibut, herring, cod
  * × : lizard, geko, skink, 
  * ÷ : lobster, crab, shrimp,
  * £ : justice. (strictly-lawful neutral)
@@ -958,12 +964,11 @@ basentyp* mon3table[256]
  * ♞ : quarterhorse, draft horse, miniature horse, zebra, nightmare,
  * ⏍ : hungry chest, chest monster,
  *//*
- * ≷?≶ : feathery wings
- * <?> : batwings
- * >?< : insect wings
+ * ≷?≶ ≶?≷ <?> >?< ≤?≥ ≥?≤ ≪?≫ ≫?≪ wings
  * for some races, wings disappear when not flying; for others they are permenantly visable
  *
  * z : asleep
+ * not rendered in the pgup or pgdn views
  *
  * these are rendered before (under) entities, but after tiles on each slice.
  */
@@ -1020,22 +1025,29 @@ heldobjtyp *lang_ptr
 heldobjtyp *spell_ptr
 heldobjtyp *bag_ptr
 bitfield psyattack
-subobjtyp weap_left	//weapon
-subobjtyp weap_right	//weapon
+oneobjtyp helm	//any item
 subobjtyp shield	//shld
 subobjtyp bow	//weapon
 subobjtyp armor	//armor
 subobjtyp cape	//armor
-oneobjtyp helm	//any item
-subobjtyp gloves	//armor
-subobjtyp cannon	//shld
-subobjtyp boots	//armor
-subobjtyp greev	//shld
 subobjtyp amul	//baub
-subobjtyp ringl	//baub
-subobjtyp ringr	//baub
-subobjtyp wristl	//baub
-subobjtyp wristr	//baub
+armtyp * arms
+legtyp * legs
+
+struct armtyp {
+armtyp * next
+subobjtyp weap[2]
+subobjtyp ring[2]
+subobjtyp wrist[2]
+subobjtyp gloves
+subobjtyp cannon
+}
+
+struct legtyp {
+legtyp * next
+subobjtyp boots
+subobjtyp greev
+}
 
 enum equipenum = {ENUM_WEAP_LEFT,ENUM_WEAP_RIGHT,ENUM_SHIELD_ENUM_BOW,ENUM_ARMOR,ENUM_CAPE,ENUM_HELM,
 ENUM_GLOVES,ENUM_CANNON,ENUM_BOOTS,ENUM_GREEV,ENUM_AMUL,ENUM_RING_LEFT,ENUM_RING_RIGHT,ENUM_WRIST_LEFT,
@@ -1082,14 +1094,13 @@ char16_t sprite
 attr_t attrs
 char16_t altsprite
 attr_t altattrs
+signed size : 2
 bool mindless : 1
 bool shadow : 1
 bool incoporeal : 1
-unsigned natural_element : 8
-signed size : 2
-signed wingtyp : 2 // 1 = fancy, -1 = <>, -2 = ><
-bool permwings : 1
 unsigned age_rate : 8
+unsigned element : 8
+unsigned lde : 3
 /* entitys of size 1 or -2 cannot use armor.
  * entitys of larger size automaticly win grapples.
  * entitys of 2 sizes smaller can be picked up and thrown.
@@ -1123,22 +1134,14 @@ uint32_t xp
 uchar lvl
 moneytyp gold
 oneobjtyp loot
-subobjtyp weap_left
-subobjtyp weap_right
+oneobjtyp helm
 subobjtyp shield
 subobjtyp bow
 subobjtyp armor
 subobjtyp cape
-oneobjtyp helm
-subobjtyp gloves
-subobjtyp cannon
-subobjtyp boots
-subobjtyp greev
 subobjtyp amul
-subobjtyp ringl
-subobjtyp ringr
-subobjtyp wristl
-subobjtyp wristr
+armtyp * arms
+legtyp * legs
 
 struct npctyp:
 (self) *prev
@@ -1176,22 +1179,14 @@ moneytyp gold
 heldobjtyp *spell_ptr
 bitfield psyattack
 oneobjtyp holding
-subobjtyp weap_left
-subobjtyp weap_right
+oneobjtyp helm
 subobjtyp shield
 subobjtyp bow
 subobjtyp armor
 subobjtyp cape
-oneobjtyp helm
-subobjtyp gloves
-subobjtyp cannon
-subobjtyp boots
-subobjtyp greev
 subobjtyp amul
-subobjtyp ringl
-subobjtyp ringr
-subobjtyp wristl
-subobjtyp wristr
+armtyp * arms
+legtyp * legs
 
 struct spawntyp:
 npctyp * depth
@@ -1201,22 +1196,14 @@ struct racetyp race
 paffectyp paffect
 effectyp effect
 oneobjtyp loot
-subobjtyp weap_left
-subobjtyp weap_right
+oneobjtyp helm
 subobjtyp shield
 subobjtyp bow
 subobjtyp armor
 subobjtyp cape
-oneobjtyp helm
-subobjtyp gloves
-subobjtyp cannon
-subobjtyp boots
-subobjtyp greev
 subobjtyp amul
-subobjtyp ringl
-subobjtyp ringr
-subobjtyp wristl
-subobjtyp wristr
+armtyp * arms
+legtyp * legs
 
 struct oneobjtyp {
 objid type
@@ -1257,6 +1244,7 @@ unsigned wings : 4
 unsigned tail : 4
 unsigned claws : 4
 unsigned fangs : 4
+unsigned talons : 4
 bodytyp alterations	//keeps track of changes. if a change becomes permenent, it is moved to paffect.
 }
 /* non-player, non-follower entitys do not have this field,
@@ -1369,14 +1357,19 @@ bool claws : 1	//affects unarmed attacks, writing
 bool hoof : 1	//affects walking, swimming, unarmed attacks
 bool talon : 1	//affects walking, swimming, unarmed attacks 
 bool fangs : 1	//affects unarmed attacks
-bool quad : 1	//affects walking, swimming, unarmed attacks
-bool nolegs : 1	//affects walking, swimming, unarmed attacks
-bool noarms : 1	//affects walking, swimming, unarmed attacks, writing
+bool legs : 1	//affects walking, swimming, unarmed attacks
+bool arms : 1	//affects walking, swimming, unarmed attacks, writing
 bool nolungs : 1	//affects breathing above water
 bool noswim : 1	//affects swimming
+bool nofly : 1
 bool atktail : 1	//affects unarmed attacks, swimming, flying
 bool atkwing : 1	//affects unarmed attacks, swimming, flying
 signed atkbite : 2	//affects unarmed attacks; +1 = swallow, -1 = bite, -2 = bite ɛ⃓ breath
+bool wingoveride : 1	//needed because the next paramaters can't simply be maxed/ORed together
+bool permwings : 1
+bool wingsign : 1
+unsigned wingtype : 2
+char : 0
 
 struct venomtyp {
 elixtyp claws
@@ -1387,17 +1380,17 @@ elixtyp passive
 }
 
 struct stattyp:
-dizzy : u4
+dizzy : u3
 psn : u4
 prlz : u4
 frz : u4
 brn : u4
-stone : s6
-slime : s6
+stone : s8	//inverse one's complement; 0x00 is inactive (-0), 0xFF is dead (+0). overflows can be used to extend time to live
+slime : s8	//inverse one's complement;
 slp : u8
-invis : u8
+invis : u6
 blind : u8
-eaten : u8
+eaten : s7	//inverse one's complement;
 
 struct elixtyp:
 dizzy : 1
@@ -1439,7 +1432,7 @@ the8stats eight
 bodytyp shape
 stattyp stat
 resistyp resist
-senstyp sense
+sensetyp sense
 skilltyp skill
 char atk
 char spatk
@@ -1449,10 +1442,10 @@ char spdef
 struct paffectyp
 the8stats eight
 bodytyp shape
+nibbles n_arms_legs
 elixtyp ails_ya
-elixtyp curse
 resistyp resist
-senstyp sense
+sensetyp sense
 skilltyp skill
 char atk
 char spatk
@@ -1464,7 +1457,7 @@ bodytyp shape
 elixtyp ails_ya
 cursetyp curse
 resistyp resist
-senstyp sense
+sensetyp sense
 short hp
 short mp
 diceodds odds
@@ -1676,6 +1669,7 @@ struct collisionmaptyp {
 	collisionmapcols solid
 	shadowmask liquid
 	collisionmapholes holes
+	shadowmask ents
 	}
 
 set_collision_map (roomtyp * this,char x,char y,char z,bool q) {
@@ -1848,7 +1842,7 @@ char* gibber
 
 struct chestyp:
 heldobjtyp *bag_ptr
-cursetyp trap
+cursetyp curse
 locktype locked
 
 struct doortyp {
@@ -2012,7 +2006,7 @@ stattyp stat
 cursetyp curse
 diceodds odds
 trapflags flags
-senstyp sense
+sensetyp sense
 short hp
 short mp
 
@@ -2134,23 +2128,20 @@ the existing 2 ways require either names or pointers
 an UNDERLINE is a shadow
 
 note: unicode symbols are (mostly) used be their appearence, not by their meaning
-) is a sword or dagger. ⍏ are polearms. \ is a staff. ¦ is a club. : is a mace. ℓ is a whip. ( is a bow. ⇤ is an arrow. ⍖ is a writing instrument.
+) is a sword or dagger. ⍏ are polearms. ! is a staff. ⇞ is a club or mace. ℓ is a whip. ␋ is a flail. ( is a bow. ⇤ is an arrow. ⇲ is a writing instrument.
 ⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves. ☜☝☞☟ is a gauntlet. % is meat. ± is food (don't shoot it). $ is gold. ¢ is copper.
 ⌘ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♫ is a lyre. ƒ is a violin. ♪ is a lute.
-¿ are potions (fragile). ∫ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet. ^ is a crown.
-/ is a wand. ♮ is a ladder. ⋎ is a fountain or gyser. ⍾ is a bell. ⎋ is a clockface. ♠ ♣ ‡ are trees. ⋏ is fire. ♜ is a pedestal.
+¿ are potions (fragile). ∫ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet. ¬ is a crown.
+¡ is a wand. ♮ ⇫ ⇪ is a ladder. ⋎ is a fountain or gyser. ⍾ is a bell. ⎋ is a clockface. ♠ ♣ ‡ are trees. ⋏ is fire. ♜ is a pedestal.
 ≋ is deep liquid's surface. ∬ is a waterfall. ≈ is a shallow liquid's surface, or a deep liquid below surface. ~ (centered) is a puddle. ≣ is a staircase. 
 ⌁ is electricity. * is ice. ⎈ spider web. ⌬ beehive. ↥ are spikes. ⎙ ⍝ ⎍ ∎ ⎅ are tombstones or signs. ␥ is glass.
-! is trouble. ☀ is a light source. ⌸ is a door or gate. ⍯ is a locked door. ⎕ is an open door. 
-• is a boulder. . is a rock. ⁂ is a rockslide. ◇ is a gemstone. ◊ is a giant magic crystal. ? is somone wearing a cowled cloak.
-∪ is a sink. ⏍ is a chest. ↯ is the thunderbolt. ∅ is a spacetime anomaly (do not touch). ↸ ⇲ are level stairs.
-← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles, or facing direction. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are ballistae. ✪ is a rune. ː ⍽ are traps.
-# █ ▓ ▒ ░ ▞ ▚ ⑆ (etc) are thick walls or floor. ☁ ≎ are clouds (do not walk on them; keep your head out of them). ☈ is a thundercloud (hurts).
-` ␣ are holes (note that ` is only used when a sunbeam is not present). ' is a stalagtite or icicle. , is a plant. ; is a grain or sunflower (impassable).
-box drawings are low walls or columns. ⋯⋰⋱⋮ are iron bars. · is an ember or star.
-¬ is mud. ≃ ≊ is stagnent water (unbreathable). ☿ is a pool of mercury. ♃ is a mirror. ♄ is an antimagic field.
-" deliminates text.
-⍰ is a missingno (invalid tile id).
+• is a boulder. . is a rock. : is a rockslide. ◇ is a gemstone. ◊ is a giant magic crystal. ? is somone wearing a cowled cloak.
+∪ is a sink. ⏍ is a chest. ↯ is the thunderbolt. ∅ is a spacetime anomaly (do not touch). ⍍ ⍔ are level stairs.
+⇡ ⇣ ← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles, or facing direction. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are ballistae. ✪ is a rune. ː ˑ are traps.
+# █ ▓ ▒ ░ ▞ ▚ ⑆ (etc) are thick walls or floor. ☁ ≎ are clouds. ☈ is a thundercloud (keep your head out of them).
+^ ␣ are holes. , is a plant. ; is a grain or sunflower (impassable). ⌸ is a door or gate. ⍯ is a locked door. ⎕ is an open door.
+box drawings are low walls or columns. ¦ ⑉ are iron bars. / \ " are sunbeams.
+⍽ is mud. ≃ ≊ is stagnent water (unbreathable). ¤ is a mirror. ♄ is an antimagic field.
 
 a prompt at launch uses user responce to choose between using ~ or ∼ for centered tilde.
 handling of solid vs outlined symbols will use the solid symbol for a forground different from the background,
@@ -2173,17 +2164,17 @@ text that is cat-ed from an nfo file, or otherwise printed using stdio, will not
 and will use the full range of ANSI SGR escape codes
 
 rune symbols
-◬ air, ⍫ earth, △ fire, ▽ water, ⍰ missingno
-⋇ ice, ☇ electricity, ♤ metal, ♻ nature
-¤ status effect, ❖ stoning, ☣ poison, ∅ entropy
+◬ air, ⍫ earth, △ fire, ▽ water
+⋇ ice, ☇ electricity, ⇡ metal, ♻ nature
+❖ ☣ status effects, ∅ entropy
 ☼ light, ☽ dark, § polymorph, ↹ planer
 ♥ healing
 
 magic AOE symbols
 ≋ air, • earth, ⋏ fire, ∿ water
 * ice, ⌁ electricity, ↥ metal, ♠ nature
-❖ status effect, ☣ poison, ¤ stoning, ‽ entropy
-☀ light, ⎈ dark, § polymorph
+❖ ☣ status effects, ‽ entropy
+☀ light, ☽ dark, § polymorph
 
 directional symbols:
 ←, ↑, →, ↓, ↖, ↗, ↘, ↙, direction in XY;
@@ -2547,14 +2538,20 @@ FIXCURSES
 do_intro_movie();
 promptload();
 engineloop();
-if (!(TRUENDING)) {
-	notatruending()
-	}
 }
 
-notatruending() {
+notatruending() {	/* used when an early win condition is met.
+			 * the game is not normally saved,
+			 * and the character remains in the file so that
+			 * the real ending can be reached.
+			 *
+			 * recieving this message is usually a bad thing,
+			 * as it means you were working in the wrong
+			 * direction; however, there are more wicks
+			 * twords the real endings than the red herrings
+			 */
 	BREAKCURSES
-	printf("\033[1;3;33mTHIS IS NOT A TRUE ENDING...\n");
+	printf("\033[1;3;33mTHIS IS NOT THE ENDING YOU ARE LOOKING FOR...\n");
 	puts(RESET);
 	quit(0);
 	}

@@ -1,0 +1,38 @@
+enttyp__normalrender (int yzindex,int cullplane) {
+	struct enttyp * next_ent_ptr = ROOM->ent_ptr;
+	while (next_ent_ptr != NULL) {
+		if (raycast__visabledefault(next_ent_ptr->pos,cullplane) {
+			basentyp * basentity = &((montable[next_ent_ptr->race[0]->table])[next_ent_ptr->race[0]->race]);
+			char16_t this_sprite;
+			attr_t this_attr;
+			if (CAMERA.align) {
+				/*cross-reference colors/alignment*/
+				}
+			else if (getglyph(next_ent_ptr->pos[1] + yzindex - next_ent_ptr->pos[2],next_ent_ptr->pos[0])) {
+				this_sprite = basentity->sprite;
+				this_attr = basentity->attrs;
+				}
+			else {
+				this_sprite = basentity->altsprite;
+				this_attr = basentity->attrs;
+				}
+			if (this->paffect.ails_ya.stone || this->effect.stat.stone) {
+				this_attr |= A_BOLD;
+				}
+			if (this->paffect.ails_ya.invis || this->paffect.sense.blind || this->effect.stat.invis || this->effect.sense.blind) {
+				this_attr |= A_BLINK;
+				}
+			if (this->effect.stat.slime) {
+				this_attr |= A_ITALIC;
+				}
+			mvaddch16(next_ent_ptr->pos[1] + yzindex - next_ent_ptr->pos[2],next_ent_ptr->pos[0],this_sprite,this_attr);
+			}
+		maskset(z,y,x,ROOM->collisionmap.ents,true);
+		if (CAMERA.dingbats) {
+			enttyp__wingrender(next_ent_ptr,basentity,yzindex,cullplane);
+			enttyp__sleeprender(next_ent_ptr,basentity,yzindex,cullplane);
+			}
+		raycast__dropshadow(next_ent_ptr->pos);
+		next_ent_ptr = next_ent_ptr->next;
+		}
+	}

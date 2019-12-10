@@ -1,9 +1,9 @@
 /*blackboxes*/
-raycast__visable(ucoord3,char) 
+raycast__visable(ucoord3,char,int) 
 	traces a ray from ucoord3 and returns whether or not it is visible
 	from a given octant
 
-raycast__visabledefault(ucoord3)
+raycast__visabledefault(ucoord3,int)
 
 raycast__visable_noarr(uchar,uchar,uchar,char)
 raycast__visabledefault_noarr(uchar,uchar,uchar)
@@ -28,6 +28,8 @@ getglyph(int,int)
 	chooses between the light (0) and dark (1) glyphs for an entity based on
 	background's attributes
 /*</>*/
+#include "baserender.c"
+#include "wingrender.c"
 
 // roomrender functions will be called via jumptable to enable camera switching
 
@@ -85,27 +87,11 @@ cullplane = raycast__cullplane();
 		posx = 0;
 		}
 	}{
-	struct enttyp * next_ent_ptr = ROOM->ent_ptr;
-	while (next_ent_ptr != NULL) {
-		if (raycast__visabledefault(next_ent_ptr->pos) {
-			basentyp * basentity = &((montable[next_ent_ptr->race[0]->table])[next_ent_ptr->race[0]->race]);
-			char16_t this_sprite;
-			attr_t this_attr;
-			if (getglyph(next_ent_ptr->pos[1] + yzindex - next_ent_ptr->pos[2],next_ent_ptr->pos[0])) {
-				this_sprite = basentity->sprite;
-				this_attr = basentity->attrs;
-				}
-			else {
-				this_sprite = basentity->altsprite;
-				this_attr = basentity->attrs;
-				}
-			mvaddch16(next_ent_ptr->pos[1] + yzindex - next_ent_ptr->pos[2],next_ent_ptr->pos[0],this_sprite,this_attr);
+		if (CAMERA.arrows) {
 			}
-		maskset(z,y,x,ROOM->collisionmap.ents,true);
-		enttyp__wingrender(next_ent_typ,basentity,yzindex);
-		raycast__dropshadow(next_ent_ptr->pos,ROOM->lightsource);
-		next_ent_ptr = next_ent_ptr->next;
-		}
+		else {
+			enttyp__normalrender(yzindex,cullplane)
+			}
 	}{
 	struct mapobjtyp * next_obj_ptr = ROOM->obj_ptr;
 	while (next_obj_ptr != NULL) {
