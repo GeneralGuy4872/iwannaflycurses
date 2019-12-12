@@ -67,6 +67,13 @@
 #define CAMERA_XZ 013
 #define CAMERA_YZ 0xD
 
+#define SCROLL_NORTH 3
+#define SCROLL_SOUTH 2
+#define SCROLL_EAST 4
+#define SCROLL_WEST 5
+#define SCROLL_UP 7
+#define SCROLL_DOWN 6
+
 /*FUNCTION MACROS*/
 #define BACKGROUND 010
 #define BALTERNOCT(X,Y,Z) ((sgn(Z) * 9) + (sgn(Y) * 3) + sgn(X))

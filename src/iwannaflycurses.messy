@@ -524,13 +524,15 @@ uchar ELECOLLECT[8]	//elemental collectibles
 uchar QUESTCOLLECT[3]	//light/dark/entropy collectibles
 uint64_t KILLS
 char* SAVEPATH
-followtype *FOLLOW_ptr	//pursuers, i.e. paid assasins, ninjas, the reaper...
+followtyp *FOLLOW_ptr	//followers/minions
+followtyp *PURS_ptr	//pursuers, i.e. paid assasins, ninjas, the reaper...
 eventtyp *EVNT_ptr	//FOO_ptr refers to the doubly linked list's head. the tail is FOO_ptr->prev. FOO_ptr->prev->next is always NULL.
 placetyp *PLACE_ptr
 stringlistyp *HINT_ptr
 eventdatastack_ele *EVSTACK_ptr
 qglobobj * GLOBOBJ_ptr
 qglobev * GLOBEV_ptr
+ushort CHAPTER
 bitfield globools
 #define NEW globools.a
 #define FIRST globools.b
@@ -825,6 +827,14 @@ basearmortyp* armtable[256]
 baseshldtyp* shldtable[256]
 baubtyp* baubtable[256]
 
+struct ray_vfx_typ {
+(self) * prev
+(self) * next
+ucoord3 p
+uchar dir	//must be a valid octant
+float mag
+attr_t a
+}
 char* legendstabs[24] = {"truthseeker"/*bow*/,"sword of justice","excalibur","thunderbolt","sickle of chaos"/*+drain*/,"stormbringer"/*+drain*/,"devilfork"/*+fire*/,"partisen of tyrants"/*+coin stealing*/,"deathscyth"/*+vampiric drain*/,"sunray"/*spear + solar flare*/,"nightedge"/*sword + moonbeam*/,"staff of merlin"/*staff of magic missile*/,"firebrand"/*burn*/,"tesla's mace"/*+spark*/,"stormgale"/*bow*/,"frostpike"/*+frostbite*/,"trident of the seas"/*+tsunami*/,"staff of the forest"/*staff of animante kudzu*/,"quake hammer","bow of fire","bow of ice","bow of darkness","bow of void","bow of dawn"};
 legendtyp* legendtable[24];
 
@@ -2543,15 +2553,15 @@ engineloop();
 notatruending() {	/* used when an early win condition is met.
 			 * the game is not normally saved,
 			 * and the character remains in the file so that
-			 * the real ending can be reached.
+			 * the true ending can be reached.
 			 *
 			 * recieving this message is usually a bad thing,
 			 * as it means you were working in the wrong
 			 * direction; however, there are more wicks
-			 * twords the real endings than the red herrings
+			 * twords the true endings than the red herrings
 			 */
 	BREAKCURSES
-	printf("\033[1;3;33mTHIS IS NOT THE ENDING YOU ARE LOOKING FOR...\n");
+	printf("\033[1;3;33mTHIS IS NOT A TRUE ENDING...\n");
 	puts(RESET);
 	quit(0);
 	}
