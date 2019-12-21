@@ -11,6 +11,8 @@ that this would be a pessimization in most of my use cases.
 
 files that do not require access to a global variable will
 use the linker; files that do will use preprocessor transclusion
-via a .ch file
+via a .ch file. the paradigm of existing functions needs to
+be changed to switch from calling globals explicitly to passing
+them at invocation as development continues.
 
 all details are subject to change, based on compiler tinkering.

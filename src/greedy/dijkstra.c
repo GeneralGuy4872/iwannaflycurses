@@ -39,7 +39,7 @@ forever {
 					(current->x + xdiff ≥ 0) &&
 					(current->y + ydiff < MAX_Y) &&
 					(current->x + xdiff ≥ 0) &&
-					(current->z + zdiff ≤ activeroom->ceiling) &&
+					(current->z + zdiff < OLDCEILING) &&
 					(current->z + zdiff ≥ 0) &&
 					(!(datakeeper.grid[COORDSUB(current->z + zdiff,current->y + ydiff,current->x + xdiff)].obs)) && (
 						((datakeeper.grid[COORDSUB(current->z + zdiff,current->y + ydiff,current->x + xdiff)].runningdist) > (datakeeper.grid[COORDSUB(current->z,current->y,current->x)].runningdist + step)) ||

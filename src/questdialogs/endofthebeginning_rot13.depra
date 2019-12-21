@@ -1,0 +1,28 @@
+char *lines0[] = {
+	"Jrypbzr...V unir orra rkcrpgvat lbh.",
+	"V nz Sngr, gur xrrcre bs onynapr.",
+	"Naq V arrq lbhe uryc."
+	}
+
+char *lines1[] = {
+	"Ynj, Punbf, Tbbq, naq Rivy...rnpu nybar pnaabg shapgvba jvgubhg vg'f bccbfvgr.",
+	"Ynj jvgubhg Punbf vf vaqvssrerg naq pehyr.",
+	"Punbf jvgubhg ynj vf nanepul.",
+	"Tbbq pnaabg fheivir jvgubhg fbzr nzbhag bs Rivy.",
+	"Rivy qrfgeblf vgfrys va gur nofrapr bs Tbbq.",
+	"Fheryl, lbh unir frra guvf va lbhe ybat geniryf..."
+	}
+
+char *lines2[] = {
+	"Na napvrag orvat bs Rivy evfrf va gur bhgre cynarf.",
+	"vg vf lbhe qrfgval gb rafher gung onynapr erznvaf va gur zhygvirefr..."
+	}
+
+char *lines3[] = {
+	"V pnaabg vagresrne va gur nssnvef bs gur pbfzbf nal zber guna V unir nyernql qbar;",
+	"vg vf sbeovqqra gb qb nf zhpu nf V unir nyernql. Lbh zhfg svaq lbhe bja cngu sebz urer.",
+	"V tenag lbh bar ynfg tvsg orsber lbh zhfg yrnir..."
+	}
+
+/*Ryrzragny jrncba vf tenagrq urer.
+Ebbz orpbzrf vanpprffvoyr nsgre rirag cynlf.*/

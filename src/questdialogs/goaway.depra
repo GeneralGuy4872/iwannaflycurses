@@ -1,0 +1,12 @@
+char *lines0[] = {
+	"∿{HALT!}∿",
+	"∿{Leave this place. You are not welcome here.}∿",
+	NULL}
+
+/*if an evil player tries to enter a Siren village,
+they recieve this warning. if they ignore it, they
+are smitten.*/
+
+/*a parallel event keeps siren players inside the
+village until they have done their rites of passage,
+by warning them to not leave and then warping them back to their home*/

@@ -42,7 +42,7 @@ cullplane = raycast__cullplane();
 	int posx = 0;
 	int posy;
 	int posz;
-	for (int z = 0;(z ≤ CEILING) && (z < cullplane);z++) {	// one of these is not like the others
+	for (int z = 0;(z < OLDCEILING) && (z < cullplane);z++) {	// one of these is not like the others
 		for (int y = 0;y < MAX_Y;y++) {
 		if (posy ≥ 0) {
 			for (int x = 0;x < MAX_X;x++) {

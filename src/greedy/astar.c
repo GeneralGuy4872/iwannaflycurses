@@ -50,7 +50,7 @@ forever {
 					case 1 : step = 1; break;
 					case 2 : step = diagonal2; break;
 					case 3 : step = diagonal3; break;
-					default : goto(skip);
+					default : goto(_skip);
 					}
 				if (
 					!(( ((abs(xdiff) + abs(ydiff) + abs(zdiff)) > 1) && args.ortho)
@@ -58,7 +58,7 @@ forever {
 					(current->x + xdiff ≥ 0) &&
 					(current->y + ydiff < MAX_Y) &&
 					(current->x + xdiff ≥ 0) &&
-					(current->z + zdiff < CEILING) &&
+					(current->z + zdiff < OLDCEILING) &&
 					(current->z + zdiff ≥ 0) &&
 					(!(datakeeper.grid[COORDSUB(current->z + zdiff,current->y + ydiff,current->x + xdiff)].obs)) && (
 						((datakeeper.grid[COORDSUB(current->z + zdiff,current->y + ydiff,current->x + xdiff)].runningdist) > (datakeeper.grid[COORDSUB(current->z,current->y,current->x)].runningdist + step)) ||
@@ -113,7 +113,7 @@ reap:
 			}
 		}
 
-skip:
+_skip:
 	if (((current->x == pointb.x) && (current->y == pointb.y) && (current->z == pointb.z)) && !args.indecisive) {goto(breakout)}
 	}
 

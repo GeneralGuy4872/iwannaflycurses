@@ -8,13 +8,20 @@
  * roomstackele* roomstackobj__nth(roomstackobj*,int)	...get the nth element; NULL on sentry
  * roomstackele* roomstackobj__roomp(roomstackobj*,latlontyp)	...if an element exists, return it; else NULL
  * implicit roomstackobj__roompull(roomstackobj*,latlontyp)	...if an element exists, move it to the front. OK or ERR
+ * implicit roomstackobj__roomset(roomstackobj*,latlontyp)	...if an element exists, move it to swapin. OK or ERR
  * implicit roomstackobj__pull(roomstackobj*,roomstackele*)	...move the element to the front. OK or ERR
- * implicit roomstackobj__setswap(roomstackobj*,roomtyp*)	...create a room and push it to swap
- * roomtyp * roomstackobj__getswap(roomstackobj*,planetyp)	...get the room in a given swap.
- * roomtyp * roomstackobj__resetswap(roomstackobj*,planetyp)	...recall the room in the given swap. invalid plane will call topswap; this may not be what you want.
- * roomtyp * roomstackobj__topswap(roomstackobj*)	...recall the top of the stack to swap.
+ * implicit roomstackobj__set(roomstackobj*,roomstackele*)	...move the element to swapin. OK or ERR
+ * implicit roomstackobj__setswap(roomstackobj*,roomtyp*)	...create a room and push it to a swap slot, setting swapin.
+ * roomtyp * roomstackobj__getswap(roomstackobj*,planetyp)	...get the room in a given swap slot.
+ * roomtyp * roomstackobj__resetswap(roomstackobj*,planetyp)	...recall the room in the given swap slot to swapin. invalid plane will call topswap; this may not be what you want.
+ * roomtyp * roomstackobj__topswap(roomstackobj*)	...recall the top of the stack to swapin.
  * implicit roomstackobj__setswap_ele(roomstackobj*,roomstackele*)	...push the room contained in an element to swap.
  * implicit roomstackobj__makecurrent(roomstackobj*,latlontyp)	...smart swap function. if an element doesn't exist, it is created. if it does, it is moved.
+ * roomstackobj__neighbor_query(latlontyp)	...check if a room is in the neighbor register
+ * roomstackobj__neighbor_reset()	...set the neighbors register according to the current room
+ * roomstackobj__neighbor_clear()
+ * roomstackobj__neighbor_pull(uchar)	...copy a pointer from the neighbors register to the swapin register and clear the neighbors register
+ * roomstackobj__neighbor_pullset(uchar)	...copy a pointer from the neighbors register to the swapin register and repopulate the neighbors register
  *	note: because of the way the implementation works, duplicate entries are HIGHLY DANGEROUS and must be avoided.
  */
 
@@ -25,7 +32,8 @@ roomtyp * room;
 }
 
 struct roomstackobj {
-roomtyp ** swapin;	//column-major
+roomtyp * swapin;
+roomtyp *neighbor[2][6];	//first row are the pointers to the swapped in neighboring rooms. second row is for storing neighbor rooms that are not from the stack and will not be put there.
 roomtyp *bank[3][11];
 struct roomstackele * top;
 struct roomstackele * bottom;
@@ -57,7 +65,7 @@ roomstackele * roomstackobj__push(roomstackobj * this,roomtyp * room) {
 
 #define roomstackobj__roompull(X,Y) roomstackobj__pull(X,roomstackobj__roomp(X,Y))
 
-roomstackobj__pull (roomstackobj * this, roomstackele * that) {
+roomstackele * roomstackobj__pull (roomstackobj * this, roomstackele * that) {
 	if (!(this->top != that)) {
 		that->prev->next = that->next;
 		if (that->next == NULL) {
@@ -93,29 +101,71 @@ roomstackobj__setswap (roomstackobj * this, roomtyp * that) {
 		roomstackobj__push(this,that);
 		}
 	this->swapin = that;
-	END
+return 0;}
 
 #define roomstackobj__setswap_ele(X,Y) roomstackobj__setswap(X,roomstackobj__drop(X,Y))
 
 roomstackobj__makecurrent(roomstackobj * this,latlontyp query) {
-	if (
-	 (query == roomstackobj__getswap( this , getplanetyp(query) )->latlon)
-	  ||
-	 (roomstackobj__roompull(this,query) != NULL)
-	  ) {
-		/*conditional must short circuit in this order*/
-		return 0;
+	roomtyp * neighborptr = roomstackobj__neighbor_tmpquery(this,query);
+	if (neighborptr != NULL) {
+		roomstackobj__setswap(this,neighborptr);
+		}
+	planetyp plane = getplanetyp(query);
+	else if (query == roomstackobj__getswap(this,plane)->latlon) {
+		roomstackobj__resetswap(this,plane);
+		}
+	else if (roomstackobj__roompull(this,query) != NULL) {
+		roomstackobj__topswap(this);
 		}
 	else {
 		if (roomp(query)) {
 			roomstackobj__setswap(this,loadroom(query));
 			}
 		else {
-			setswaproom(roomgen(query));
+			roomstackobj__setswap(this,roomgen(query));
 			}
 		}
+	roomstackobj__neighbor_reset();
+return 0;}
+
+roomstackobj__neighbor_reset (struct roomstack * this) {
+	for (int n = 0;n < 6;n++) {
+		for (int i = 0,i < n,i++) {
+			if (this.neighbor[1][i] == this.neighbor[1][n]) {
+				this.neighbor[1][n] = NULL;
+				}
+			}
+		if (this.neighbor[1][n] != NULL) {
+			freeroom(this.tmpneighbor[n]);
+			}
+		}
+	for (int n = 0;n < 6;n++) {
+		this.neighbor[0][n] = NULL;
+		this.neighbor[1][n] = NULL;
+		}
+	struct roomneighbors neighborhood = (*this.swapin)->neighborhood;
+#define IFSWITCH(X,Y) if (neighborhood.X) {\
+		struct planetyp plane = getplanetyp(neighborhood.latlon[Y]);\
+		roomstackele * ele = roomstackobj__roomp(this,neighborhood.latlon[Y]);\
+		if (neighborhood.latlon[Y] == roomstackobj__getswap(this,plane).latlon {\
+			this.neighbor[0][Y] = roomstackobj__getswap(this,plane);\
+			}\
+		else if (ele != NULL) {\
+			this.neighbor[0][Y] = ele.room;\
+			}\
+		else {\
+			this.neighbor[1][Y] = smrtloadroom(neighborhood.latlon[Y]);\
+			this.neighbor[0][Y] = this.neighbor[1][Y];\
+			}\
+		}
+	IFSWITCH(north,ROOM_NORTH);
+	IFSWITCH(south,ROOM_SOUTH);
+	IFSWITCH(east,ROOM_EAST);
+	IFSWITCH(west,ROOM_WEST);
+	IFSWITCH(up,ROOM_UP);
+	IFSWITCH(down,ROOM_DOWN);
+#undef IFSWITCH
 	}
-END
 
 /*^DONE^
  * From Rough Pseudocode to Pseudo C
@@ -146,6 +196,7 @@ umint value
 /**File Operations**
  * implicit saveroom(roomtyp*)
  * roomtyp* loadroom(latlontyp)
+ * roomtyp* smrtloadroom(latlontyp)
  * void freeroom(roomtyp*)
  * bool roomp(latlontyp)
  * bool planep(planetyp)
@@ -230,6 +281,15 @@ if (roomptr == NULL) {roomptr = ROOM}
  * From Rough Pseudocode to Pseudo C
  * DONE
  */
+
+roomtyp * smrtloadroom (struct latlontyp query) {
+	if (roomp(query)) {
+		return loadroom(query);
+		}
+	else {
+		return roomgen(query);
+		}
+	}
 
 /* planetyp getplanetyp(latlontyp)
  */

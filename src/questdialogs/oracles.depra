@@ -1,0 +1,4 @@
+char *lines0[] = {
+	"You should heed the words of oracles…",
+	"Except when they're wrong!",
+	NULL }

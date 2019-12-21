@@ -1,20 +1,9 @@
 /*TYPES*/
 //ensure size names work on all systems
-#define uint unsigned int
-#define uchar unsigned char
-#define ushort unsigned short
-#define ulong unsigned long
-#define 8BITPTR uint8_t
-
 #define ≥ >=
 #define ≤ <=
 #define forever for (;;)
 #define END return 0;}
-
-/* syntactic sugar for macros that are actually tailcalls
- * such macros contain a return or this macro
- */
-#define tailcall(X) X
 
 #ifndef EOF
 #error now you're just TRYING to break stuff...
@@ -29,13 +18,6 @@
 #define True true
 #define FALSE false
 #define False false
-
-/*ENVIROMENTALS*/
-#define BUFFER_MAX 512
-#define FLOPPYSIZE 1474560
-#define DRUMSIZE 16384
-#define BGCOLORS 8
-#define FGCOLORS 8
 
 /*VERSION*/
 #define ENGINE_VERSION "Prealpha"
@@ -57,28 +39,10 @@
 #define MIDI_TYPE "MISSING"
 #endif
 
-#define CAMERA_UP 9
-#define CAMERA_DOWN 1
-#define CAMERA_LEFT 014
-#define CAMERA_RIGHT 4
-#define CAMERA_PGUP 012
-#define CAMERA_PGDN 2
-#define CAMERA_XY 0xE
-#define CAMERA_XZ 013
-#define CAMERA_YZ 0xD
-
-#define SCROLL_NORTH 3
-#define SCROLL_SOUTH 2
-#define SCROLL_EAST 4
-#define SCROLL_WEST 5
-#define SCROLL_UP 7
-#define SCROLL_DOWN 6
-
 /*FUNCTION MACROS*/
 #define BACKGROUND 010
 #define BALTERNOCT(X,Y,Z) ((sgn(Z) * 9) + (sgn(Y) * 3) + sgn(X))
 #define COORDSUB(Z,Y,X) ((MAX_Y * Z) + (MAX_X * Y) + X)
-#define SWAP(X,Y) {if (X != Y) {intptr_t sWaPtEmPoRaRy = X;Y = X;X = sWaPtEmPoRaRy}}\
 
 // kludge so that stdio and ncurses play nice together
 #define RESET "\033c\033[2J\033[0H"

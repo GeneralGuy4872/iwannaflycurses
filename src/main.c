@@ -1,26 +1,25 @@
 #error NOT READY FOR INITIAL COMPILATION
-/* to preserve the file history,
- * this file will eventually become main.h, main.c, or util.c
- * a dummy.h and dummy.c will provide externs and macros for linkage.
- * some of the larger comment blocks will be moved to man, info, and/or doc
+/* at the moment, this file is a scratchpad for outlining functions.
+ * as development progresses, these outlines will be replaced with
+ * tested and working equivilants.
+ * to preserve the file history, this file will eventually become main.c
+ * dummy.h will provide externs and macros for linkage.
  *
  * the bulk of it's contents, however, will be moved.
  *
  * comments may be deleted, may be moved into documentation, or may stay with what they describe
  *
- * workflow:
- * outline blackboxes top-down (-ish)
- * outline pseudocode top-down (-ish)
+ * work process:
+ * outline pseudocode top-down, using blackboxes as neccisary
  * write real code bottom-up
- * structs are made both top-down (specific) and bottom-up (generic)
- * changes must be propogated both down and up
  *
  * optimized for memory footprint. speed is not a concern at the moment.
- * C++ was considered and partialy implemented, but mangling made it unsuitable
+ * C++ was found unsuitable for the majority of the program, however
+ * Perl is seeming more and more of an extravagance; a C/C++ hybrid 
+ * may be called upon to replace it.
  *
- * the programming paradigm I am using throughout the project is based on the way my mind works
- * rather than a specific programming paradigm; it contains elements from several, including some
- * nonstructured paradigmes.
+ * the idioms and formatting I am using throughout the project are based on the way my mind works
+ * rather than a specific programming paradigm; I am borrowing from several.
  *
  * the program also uses various memory management paradigms,
  * including linked lists, stacks, queues, and page swapping.
@@ -32,8 +31,8 @@
  * stalest room is dropped. when warping, the room stack
  * is checked before an attempt is made to load another
  * room; when a room is recalled, it is moved to the top
- * of the stack, therefore less stale rooms are able to be
- * fetched faster than more stale rooms.
+ * of the stack, therefore (less stale) rooms are able to be
+ * fetched faster than (more stale) rooms.
  *
  * additional indirection layers are used in an attempt to
  * prevent larger data structures from being duplicated
@@ -46,6 +45,28 @@
  * datastructures that are being manipulated are the same ones that
  * are serialized and saved in the savefiles; listed in the GLOBALS
  * section
+ *
+ * in the documentation and comments,
+ * an "unbounded" array refers to
+ * a [0] array that resembles a
+ * nul-terminated string literal.
+ * they are used for fixed data where
+ * linked lists would be bloaty, but the
+ * size of the array is not consistent.
+ *
+ * both explicit and implicit int declarations are used.
+ * functions declared <implicit int> return either zero (ok) or
+ * nonzero (error) rather than a proper intergal value.
+ * this is akin to certain C library functions, and inverse
+ * to a perl sub or a function returning bool
+ * for the same pourpouse.
+ * functions that return pointers return NULL on error;
+ * functions returning "unbounded" arrays that cannot simply return NULL
+ * return an equivilant to the empty string on error.
+ *
+ * as has already been demonstrated, my comment notation uses
+ * programming speak in some situations. the meaning should be
+ * readily apparent.
  */
 
 /******************************
@@ -68,20 +89,6 @@
  * a game using the engine should provide the following:
  * - A newgame initializer perl script
  * - Any shared resources needed by events
- *	the resource files MUST follow the following naming conventions:
- *	- .pl for a perl script
- *	- .pm for a perl module
- *	- .so for a shared object
- *	- .hex or .hex## for packed unsigned byte arrays, where ## is a power of 8
- *	- .bin or .bin## for packed signed byte arrays, where ## is a power of 8
- *	- .r8 for a room's tilemap
- *	- .json for a JSON file
- *	- .dumper for a Data::Dumper file
- *	- .tsv or .tab for tab seperated values
- *	- .csv for comma seperated values (structs)
- *	- .ans for a line-seperated record
- *	- .txt for a plaintext block of text
- *	- .nfo for an ansi escaped block of text
  *
  * enviromental requirements:
  * - UTF-8 terminal of at least 24*80 characters
@@ -112,9 +119,9 @@
  * - + or - followed by a number move in xyz
  * - < > strafe
  * - backspace retreats (winged creatures also take flight)
- * - spacebar advances
- * - ? turns around
- * - tab lunges
+ * - spacebar attacks
+ * - tab picks up items
+ * - enter interacts
  * - arrow keys, page up, page down, render a flat orthographic projection looking in that direction (free action)
  *	When in multiview mode:
  *	only visable tiles are rendered, other tiles are skipped instead of being rendered blinky.
@@ -125,11 +132,13 @@
  * - end renders only the plane including the player. takes a slice perpindicular to the camera. (free action)
  * - 5 idles
  * - F1 toggles see invisible. (free action)
- * - F2 toggles dingbats (free action)
- * - F3 shows sense alignment. (free action)
- * - F4 shows the direction entities are facing. (free action)
- * - F5 shows normal view (free action)
- * - . pick up items
+ * - F2 shows sense alignment. (free action)
+ * - F3 shows the direction entities are facing. (free action)
+ * - F4 shows normal view (free action)
+ * - F5 toggles dingbats (free action)
+ * - . <movement control> face a direction
+ * - . ( "<" | ">" ) rotate that direction
+ * - . . turn around
  * - \ initiates command entry. free action itself, but most commands are not.
  * more tbd
  *
@@ -218,6 +227,7 @@
  *
  * GPLv2 or later unless noted.
  * Perl code dual-liscensed with the Artistic Liscense unless noted.
+ * Do Please Distribute, All Wrongs Reversed.
  */
 
 /**standard libraries**/
@@ -229,7 +239,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <math.h>
-#define SQRT3 1.732050807568877293528
 #include <limits.h>
 #include <time.h>
 #include <string.h>
@@ -379,35 +388,6 @@ forever {
 	}
 }
 
-struct stringlistyp {
-(self) *prev
-(self) *next
-char* text
-}
-/* used to store a list of strings
- * may be from a data object, or
- * stored in a tsv
- */
-
-struct singlestringlistyp {
-(self) * next
-char * text
-}
-
-struct filelinetyp {
-(self) *prev
-(self) *next
-ushort lineno
-char* text
-}
-// used by the line editor
-
-struct singlestringlistyp {
-(self) * next
-ushort lineno
-char * text
-}
-
 /*blackbox*/loading()
 	/* clears screen
 	 * prints "  LOADING..." on line 13
@@ -479,34 +459,6 @@ return lines;
  *x swapping places with the other option. otherwise, the quit-abort-option3 order will be kept.
  */
 
-struct blitimgcolor {
-	attr_t attr[6];
-	char ** img[16];
-	}
-	/*	|	0	[0]	[1]	[2]	attr
-	 *	0	[0]	[1]	[2]	[3]	img
-	 *	[3]	[4]	[5]	[6]	[7]
-	 *	[4]	[8]	[9]	[10]	[11]
-	 *	[5]	[12]	[13]	[14]	[15]
-	 *
-	 * the first row and column never have any attributes
-	 * NULL img pointers are skipped, rather than acting as sentries
-	 */
-
-struct drawvector {
-	ucoord3 a;
-	ucoord3 b;
-	char16_t ch;	// if set to \0, then assume that attr also holds an ascii symbol and switch accordingly.
-	attr_t attr;
-	ushort uslp;	/* how long to delay between each character; calls usleep.
-			 * there is already a miniscule delay for the stepwise pathfinder calculation
-			 */
-	}
-
-/* note: make function where some glyph is swept to some azimuth
- * ( char16_t unichar, attr_t attrib, uchar az ¿, float dist?, ushort uslp)
- */
-
 /**GLOBALS**/
 playertyp PLAYER
 roomstackholder ROOMSTACK
@@ -514,6 +466,7 @@ roomstackholder ROOMSTACK
 #define ROOM_NOT_NULL(X,Y) ((ROOM != NULL) ? X : Y)
 #define WORLD	ROOM_NOT_NULL( ROOM->latlon , (latlontyp){0,0,0,0,0,0} )
 #define CEILING	ROOM_NOT_NULL( ROOM->ceiling , MAX_Z )
+#define OLDCEILING (CEILING + 1)
 planestackholder PLANESTACK
 uint64_t TURN
 nibbles TIMER
@@ -532,7 +485,7 @@ stringlistyp *HINT_ptr
 eventdatastack_ele *EVSTACK_ptr
 qglobobj * GLOBOBJ_ptr
 qglobev * GLOBEV_ptr
-ushort CHAPTER
+chaptertyp CHAPTER
 bitfield globools
 #define NEW globools.a
 #define FIRST globools.b
@@ -544,15 +497,6 @@ bitfield globools
 #define MIDNIT globools.z
 cameratyp CAMERA
 /*end GLOBALS*/
-
-struct turntyp:
-uchar sec : 6
-uchar min : 6
-uchar hour : 5
-uchar day : 5
-uchar weekday : 3
-uchar month : 4
-ushort year : 11
 
 bool ticktock() {
 TURN++;
@@ -594,226 +538,6 @@ NIGHT = ((DATE.hour < 6) || (18 ≤ DATE.hour))
 
 //projection, →x ↓y ↑z
 
-typedef uchar ucoord3[3]
-typedef uchar ucoord2[2]
-typedef char scoord3[3]
-typedef char scoord2[2]
-//sentinal for an array of coord3 is {0,0,-1}
-
-struct lightblit {
-ucoord2 pos
-ucoord2 size
-ushort * mask
-}
-
-struct agetyp {
-unsigned chrono : 16
-signed bio : 8	//entity dies on overflow
-unsigned rem : 8
-}
-
-struct mapcoord3:
-unsigned x : 6
-unsigned y : 5
-unsigned z : 4
-bool last : 1
-
-struct nibbles {
-unsigned lo : 4
-unsigned hi : 4
-}
-
-struct cameratyp {
-unsigned dir : 4
-bool invis : 1
-bool align : 1
-bool arrows : 1
-bool dingbats : 1
-}
-
-struct racetyp {
-intptr_t race : 8
-intptr_t table : 4
-unsigned meta : 4
-	// 00-0-F is nul
-}
-
-typedef float vector2[2]
-typedef float vector3[3]
-/* used for velocity, a parameter that holds
- * motion that carries accross turns. this motion
- * is not always cleared after being done; horizontal
- * velocity persists until a tile with friction is
- * encountered, while downwards vertical velocity 
- * accumulates and persists until the ground is encountered.
- */
-
-struct ray_vfx_typ {
-(self) * prev
-(self) * next
-ucoord3 p
-uchar dir	//must be a valid octant
-float mag
-attr_t a
-}
-
-struct polar {
-unsigned az : 3	//azimuth
-signed el : 2	//elevation
-signed slope : 3	//negative is inverse slope, most negative is undefined. defines a cone.
-unsigned r : 5	//radius
-bool omni : 1	//omnidirectional
-bool not : 1	//invert the mask defined by slope
-bool behind : 1	//EQUATOR/2 degrees are added to azimuth
-}
-/* amoungst other uses, defines the cone of vision
- * and used to generate magic beams
- *
- * for all azimuths:
- *
- * 701
- * 6 2
- * 543
- *
- * for all elevations:
- *
- * +1
- *  0  ?-2?
- * -1
- */
-
-/*
- * notetyp {
- * (self) next
- * unsigned evnt : 4
- * unsigned chan : 4
- * unsigned note : 8
- * unsigned velo : 8
- * clock_t delay
- * }
- * for interfacing with a raw midi library
- *
- * delay is not part of the midi data, rather,
- * it tells how long to wait until sending the
- * next packet. set to 0 to send immidiately.
- */
-
-//some specific use cases require spheres. these are simply numeric types.
-
-struct diceodds:
-unsigned num : 3
-unsigned side : 5
-unsigned tobeat : 8
-
-struct planetyp {
-unsigned rho : 2
-unsigned az : 3
-signed el : 2
-char : 0
-}
-
-struct latlontyp {
-unsigned dep : 8
-unsigned lat : 8
-unsigned lon : 9
-unsigned rho : 2	//are you plane shifted?
-unsigned az : 3
-signed el : 2
-}
-/* in-game altitude is given as the distance from layer 100
- *
- * rho 0 is the prime plane
- * rho 1 are the elemental planes
- * rho 2 are afterlives
- * rho 3 can be used for areas that are meant to not show up on a map.
- *				(said map is WIP)
- *
- * az	elemental	afterlife	corrilation
- * 0	water		neutral good	nurturer
- * 1	ice		chaotic good	the ends justify the means
- * 2	air		chaotic neutral	princess stealing
- * 3	electricity	chaotic evil	force lightning
- * 4	fire		neutral evil	obviously
- * 5	metal		lawful evil	greed
- * 6	earth		lawful neutral	stubborn
- * 7	trees		lawful good	knowladge
- *
- * az rotates by 45 degree steps and el by 90 degree steps.
- * a nonzero el causes az to gimbal lock.
- * also best not to think about where exactly -2 is pointing.
- *
- * el	"		"		"
- * +1	light		true neutral	enlightenment
- * -1	darkness	uncomitted	meh, I'll think of one later
- * -2	entropy		oathbreakers	abandon all hope ye who enter here
- *
- * errors related to this section may generate one of 2 errors:
- * "fell off the edge of the world", N1=±lat,N2=±lon
- * "froze to death on pluto", N1=+az,N2=±el
- *
- * a room stack exists that keeps a number of rooms loaded
- * if a room is not on the stack, it is loaded from the save file and
- * pushed to the stack. this may cause the stack to intentionally drop
- * the room at the bottom to prevent eating too much ram. if the file
- * does not yet exist, the room is generated according to a dispatch table
- * in a shared object. if the function and file are both NULL and the
- * room is being entered, a lost in space death is called. if only the
- * function is NULL, the file is executed in perl. if only the file is
- * NULL, no shared objects are loaded before the function is called. 
- *
- * a swap array keeps track of gating between the 23 major planes,
- * saving the player's position, but not keeping the room loaded.
- */
-
-struct placetyp {
-(self) *prev
-(self) *next
-eventdata eventident
-char* name
-latlontyp latlon
-ucoord3 pos
-}
-
-struct moneytyp {
-unsigned gp : 17
-unsigned cp : 7
-}
-
-typedef short trackaligntyp[2]
-/* neutral is the area between -10,000 and 10,000
- * alignments can be between -30,000 and 30,000
- * actions, quests, and being polymorphed into
- * certain monsters can alter your alignment
- * [0] is good/evil, [1] is lawful/chaotic
- */
-
-struct aligntyp:
-good : b1
-evil : b1
-law : b1
-chaos : b1
-nogood : b1
-noevil : b1
-nolaw : b1
-nochaos : b1
-/* used as a mask.
- * starting alignment must be one of the high nibble (those bit flags | true neutral if more than 1 is selected.)
- * alignment may NEVER enter any of the low nibble, marked "no"
- *
- * there are other ways that alignment masks may be specified,
- * all of which have finer grained control.
- */
-
-struct bitfield:
-a : 1
-b : 1
-c : 1
-d : 1
-w : 1
-x : 1
-y : 1
-z : 1
-
 char* itemstabs[256] //stuff that doesn't go anywhere else; i.e. arrows, keys, quest items
 char* spellstabs[256] //spells
 char* weapstabs[256] //weapons
@@ -827,15 +551,9 @@ basearmortyp* armtable[256]
 baseshldtyp* shldtable[256]
 baubtyp* baubtable[256]
 
-struct ray_vfx_typ {
-(self) * prev
-(self) * next
-ucoord3 p
-uchar dir	//must be a valid octant
-float mag
-attr_t a
-}
-char* legendstabs[24] = {"truthseeker"/*bow*/,"sword of justice","excalibur","thunderbolt","sickle of chaos"/*+drain*/,"stormbringer"/*+drain*/,"devilfork"/*+fire*/,"partisen of tyrants"/*+coin stealing*/,"deathscyth"/*+vampiric drain*/,"sunray"/*spear + solar flare*/,"nightedge"/*sword + moonbeam*/,"staff of merlin"/*staff of magic missile*/,"firebrand"/*burn*/,"tesla's mace"/*+spark*/,"stormgale"/*bow*/,"frostpike"/*+frostbite*/,"trident of the seas"/*+tsunami*/,"staff of the forest"/*staff of animante kudzu*/,"quake hammer","bow of fire","bow of ice","bow of darkness","bow of void","bow of dawn"};
+char* legendstabs[24] = {
+#include "legend.csv"
+};
 legendtyp* legendtable[24];
 
 char* psystabs[8] = {"detect alignment","charm","psychic lock","sleep","mind blast","passify","unhinge","terrorize"}
@@ -844,48 +562,28 @@ char* psystabs[8] = {"detect alignment","charm","psychic lock","sleep","mind bla
 uchar id
 //switch case for each psionic ability
 
-struct multiclasstyp:
-(self) *prev
-(self) *next
-classtyp class
-magictyp element
+char (*classnametable[8])[4] = {
+	{
+#include "class_rogue.csv"
+	},{
+#include "class_fighter.csv"
+	},{
+#include "class_magic_user.csv"
+	},{
+#include "class_cleric.csv"
+}}
 
-struct classobjtyp:
-classtyp class
-magictyp element
+struct baseclasstyp classtable[4][8][4];
 
-struct classtyp {
-unsigned role : 2
-unsigned class : 3
-unsigned align : 9
-unsigned mastery : 2
-}
+char (*monstabs[256])[16] = {
+#include "monster0.csv"
+	},{
+#include "monster1.csv"
+	},{
+#include "monster2.csv"
+}}
 
-char* roguestabs[8] = {"changeling","rogue","thief","pirate","ninja","assasin","tourist","ronan"}
-char* fighterstabs[8] = {"fighter","knight","paladin","valkyrie","viking","samuri","ranger","monk"}
-char* magicuserstabs[8] = {"magic-user","wizard","illusionist","enchanter","black mage","red mage","psion","necromancer"}
-char* healerstabs[8] = {"healer","cleric","priest","druid","alchemist","scholar","white mage","seer"}
-
-paffect	classtable[4][8]
-
-struct montableptr {
-char *nametable[256]
-basentyp *ptrtable[256]
-}
-
-struct montableptr montable[16];
-
-init__montable() {
-	montable[0] = {mon1stabs,mon1table};
-	montable[1] = {mon2stabs,mon2table};
-	montable[2] = {mon3stabs,mon3table};
-	END
-
-char* mon1stabs[256] =
-{"human",	"elf",	"dwarf",	"gnome",	"hobbit",	"half elf",	"drow",	"siren",	"half orc",	"half dragon",	/*half celestial*/,	"tiefling",	"half air elemental",	"half water elemental",	"half earth elemental",	"half fire elemental",
-"merfolk",	"seaelf",	"satyr",	"fairy",	"pixie",	"naiad",	"naga",	"dryad",	"orc",	"kobald",	"centaur",	"sphinx",	"half electric elemental",	"half ice elemental",	"half nature elemental",	"half metal elemental",
-
-basentyp* mon1table[256]
+basentyp (*montable[256])[16] = {
 /* contains all polymorphable monsters, of type BASENTYPE.
  * all C0 controls should be valid starting races, or left empty,
  * any polymorphable race can BECOME your base race...
@@ -894,12 +592,6 @@ basentyp* mon1table[256]
  * becoming polylocked to one of the C0 entrys has no negative effects.
  * commands can change your base race without negative side effects
  */
-
-char *mon2stabs[256] = {"grue",	"newt",
-basentyp* mon2table[256]
-
-char *mon3stabs[256] = {"rook",	"raven",	"jackdaw",
-basentyp* mon3table[256]
 
 /* MONSTERS BY LETTER
  * & : horned devil, balrog, jubilix,
@@ -955,13 +647,13 @@ basentyp* mon3table[256]
  * Y : yeti, bigfoot,
  * y : ape, monkey, gorilla, chimp, leamur,
  * Z : <zombies>
- * = : [spoiler]
  * {}: /(flesh|straw|clay|stone|glass|paper|leather) golem/, /(gold|copper|finite-state) automaton/, chest monster,
  * ? : mystery person
  * «»: bass, trout, salmon, tuna, carp, pike, halibut, herring, cod
  * × : lizard, geko, skink, 
  * ÷ : lobster, crab, shrimp,
  * £ : justice. (strictly-lawful neutral)
+ * ¥ : [spoiler]
  * ¶ : da fuzz. (lawful neutral)
  * Ω : [spoiler]
  * ⑄ : retribution. (chaotic neutral)
@@ -975,7 +667,7 @@ basentyp* mon3table[256]
  * ⏍ : hungry chest, chest monster,
  *//*
  * ≷?≶ ≶?≷ <?> >?< ≤?≥ ≥?≤ ≪?≫ ≫?≪ wings
- * for some races, wings disappear when not flying; for others they are permenantly visable
+ * some wings disappear when not flying; others are permenantly visable
  *
  * z : asleep
  * not rendered in the pgup or pgdn views
@@ -983,85 +675,8 @@ basentyp* mon3table[256]
  * these are rendered before (under) entities, but after tiles on each slice.
  */
 
-struct the8stats:	//8* 5D6
-stren : u5
-psy : u5
-dex : u5
-con : u5
-fort : u5
-intl : u5
-wis : u5
-bluff : u5
-
-struct conlangtype:
-unsigned id : 5
-bool r : 1
-bool w : 1
-bool x : 1	//can be spoken
-
 char* conlangtab[32] = {"common language","middle elvish","old elvish","dwarvish", "gnomish","gothic","orkish","draconic", "fey","celestic","demonic","blackspeech", "skyspeak","waterspeak","earthspeak","firespeak",
 	"thieves cant",/*?*/,/*?*/,/*?*/, /*?*/,/*?*/,/*?*/,/*?*/, /*?*/,/*?*/,/*?*/,/*?*/, "electric","icespeak","treespeak","metallic"}
-
-/* note: if the compiler complains about mixing tightly packed and loosly packed fields,
- * the tightly packed ones will be split off into a seperate type with "_bitfield" affixed to
- * the name, which will be placed in a consistantly-named member at the end of the struct.
- *
- * possible names:	1."β"	2."_b"
- */
-
-struct playertyp:
-classobjtyp class
-multiclasstyp *MULTICLASS
-agetyp age
-struct racetyp baserace[2]
-struct racetyp polyrace
-shiftertyp polycounter
-ucoord3 pos
-polar facing
-vector3 velo
-float carryover	//leftover moves; never exceeds 2
-paffectyp permenent
-effectyp fromequip
-scoord2 align
-ushort hp	//they're fun and easy to...wait
-ushort mp
-uchar air
-ushort uptime
-uint32_t xp
-uchar lvl
-short food
-moneytyp gold
-heldobjtyp *lang_ptr
-heldobjtyp *spell_ptr
-heldobjtyp *bag_ptr
-bitfield psyattack
-oneobjtyp helm	//any item
-subobjtyp shield	//shld
-subobjtyp bow	//weapon
-subobjtyp armor	//armor
-subobjtyp cape	//armor
-subobjtyp amul	//baub
-armtyp * arms
-legtyp * legs
-
-struct armtyp {
-armtyp * next
-subobjtyp weap[2]
-subobjtyp ring[2]
-subobjtyp wrist[2]
-subobjtyp gloves
-subobjtyp cannon
-}
-
-struct legtyp {
-legtyp * next
-subobjtyp boots
-subobjtyp greev
-}
-
-enum equipenum = {ENUM_WEAP_LEFT,ENUM_WEAP_RIGHT,ENUM_SHIELD_ENUM_BOW,ENUM_ARMOR,ENUM_CAPE,ENUM_HELM,
-ENUM_GLOVES,ENUM_CANNON,ENUM_BOOTS,ENUM_GREEV,ENUM_AMUL,ENUM_RING_LEFT,ENUM_RING_RIGHT,ENUM_WRIST_LEFT,
-ENUM_WRIST_RIGHT}
 
 /*blackbox*/update_player
 /* resets .fromequip , then iterates through the entire equipment list to regenerate it.
@@ -1085,602 +700,9 @@ ENUM_WRIST_RIGHT}
  * sometimes be necissary if the global buffer is starving the system.
  */
 
-struct basentyp:
-aligntyp alignmask
-aggrotyp aggro	//here, shiftable denotes a monster's aggro state is locked. also gives the value that patience is set to when a monster calms down, the value that cooldown is set to when it is angered, and the default AI.
-paffectyp base
-venomtyp venom
-uchar spd	//distance calculations use M_SQRT2 and local SQRT3 for diagonals
-uchar hplvl
-uchar mplvl
-uchar xplvl
-uchar airmax	//how long you can hold your breath
-struct conlangtyp lang0
-struct conlangtyp lang1
-uchar vocal[4]
-_8BITPTR spell[4]
-bitfield psyattack
-char16_t sprite
-attr_t attrs
-char16_t altsprite
-attr_t altattrs
-signed size : 2
-bool mindless : 1
-bool shadow : 1
-bool incoporeal : 1
-unsigned age_rate : 8
-unsigned element : 8
-unsigned lde : 3
-/* entitys of size 1 or -2 cannot use armor.
- * entitys of larger size automaticly win grapples.
- * entitys of 2 sizes smaller can be picked up and thrown.
- * entitys of size 1 can instakill entitys of size -2. squish.
- * size 1: dragon, size 0: human, size -1: dwarf, size -2: pixie
- */
-
-struct aggrotyp:
-bool unhinged : 1
-unsigned patience : 3
-unsigned ai_type : 4
-unsigned anger : 8
-
-struct enttyp:
-(self) *prev
-(self) *next
-npctyp * depth
-agetyp age
-classobjtyp class
-aggrotyp aggro
-struct racetyp race[2]
-ucoord3 pos
-polar facing
-vector3 velo
-float carryover
-paffectyp paffect
-effectyp effect
-ushort hp
-uchar air
-uint32_t xp
-uchar lvl
-moneytyp gold
-oneobjtyp loot
-oneobjtyp helm
-subobjtyp shield
-subobjtyp bow
-subobjtyp armor
-subobjtyp cape
-subobjtyp amul
-armtyp * arms
-legtyp * legs
-
-struct npctyp:
-(self) *prev
-(self) *next
-ucoord3 * path
-conlangtyp lang
-char * describe
-char * gibber
-char ** lines	// heap array of pointers
-
-struct followtyp:
-(self) * prev
-(self) * next
-npctyp * depth
-agetyp age
-classobjtyp class
-aggrotyp aggro
-struct racetyp baserace[2]
-struct racetyp polyrace
-shiftertyp polycounter
-ucoord3 pos
-polar facing
-vector3 velo
-float carryover
-paffectyp permenent
-effectyp fromequip
-scoord2 align
-ushort hp
-ushort mp
-uchar air
-uint32_t xp
-uchar lvl
-short food
-moneytyp gold
-heldobjtyp *spell_ptr
-bitfield psyattack
-oneobjtyp holding
-oneobjtyp helm
-subobjtyp shield
-subobjtyp bow
-subobjtyp armor
-subobjtyp cape
-subobjtyp amul
-armtyp * arms
-legtyp * legs
-
-struct spawntyp:
-npctyp * depth
-classobjtyp class
-aggrotyp aggro
-struct racetyp race
-paffectyp paffect
-effectyp effect
-oneobjtyp loot
-oneobjtyp helm
-subobjtyp shield
-subobjtyp bow
-subobjtyp armor
-subobjtyp cape
-subobjtyp amul
-armtyp * arms
-legtyp * legs
-
-struct oneobjtyp {
-objid type
-void* data
-}
-
-struct heldobjtyp:
-(self) *prev
-(self) *next
-uchar stack //stack+1 items are present. lumping them together is a complicated operation. 
-objid type
-void* data
-
-struct subobjtyp:
-unsigned itemid : 8
-bool cursed : 1
-bool oxide : 1
-bool burned : 1
-signed bonus : 5
-intptr_t metadata : 8 //secondary _8bitPtr for legendary objects
-
-struct magictyp:
-bool fire : 1
-bool air : 1
-bool water : 1
-bool earth : 1
-unsigned lde : 3
-bool planer : 1
-
-struct shiftertyp {
-unsigned polytimer : 8	//time remaining in the current polymorph. if non-zero, polyrace is used instead of baserace.
-unsigned polydepth : 4	//polymorphing more than 10 times without returning to your base form first change your base form to the 15th one
-unsigned polycount : 4	//repeating the same polymorph 10 times will make it permenant
-unsigned altertimer : 8	//time remaining in the current alteration.
-unsigned gills : 4	//using an alteration spell, including intrensics from polymorph spells, 10 times will make them permenent.
-unsigned lungs : 4	//these counters can be reset by rest or spells
-unsigned wings : 4
-unsigned tail : 4
-unsigned claws : 4
-unsigned fangs : 4
-unsigned talons : 4
-bodytyp alterations	//keeps track of changes. if a change becomes permenent, it is moved to paffect.
-}
-/* non-player, non-follower entitys do not have this field,
- * and any polymorph or alteration is permenent. this may be
- * changed in future if memory footprint allows.
- */
-
-struct spelltyp:
-intptr_t itemid : 8
-diceodds odds
-uchar prof
-
-struct basespelltyp:
-bool poly : 1
-bool self : 1
-unsigned lvl : 6
-magictyp type
-char cost_typ : 2 //0 = at will, 1 = gold, -1 = mp, -2 = hp
-unsigned cost_amnt : 6
-potiontyp effect
-missiletyp delivery
-intptr_t polyref : 8
-
-struct psytyp:
-signed cost_typ : 2 //0 = at will, 1 = gold, -1 = mp, -2 = hp
-unsigned cost_amnt : 6
-potiontyp effect
-missiletyp delivery
-
-struct missiletyp:
-bool psion : 1
-bool vamp : 1
-unsigned damage : 8
-signed recoil : 7
-unsigned spread : 2 //0 = line, 1 = narrow (1:3), 2 = wide (1:2), 3 = very wide (1:1)
-unsigned splash : 3 //radius of damage on impact
-bool spz : 1 //spread and splash in the z plane.
-bool dig : 1 
-//if (.spread != 0), slope = 4-.spreaad
-
-struct baseweaptyp:
-bool fire : 1
-bool air : 1
-bool water : 1
-bool earth : 1
-bool entro : 1
-bool light : 1
-bool dark : 1
-bool fireproof : 1
-bool waterproof : 1
-bool elecproof : 1
-bool iceproof : 1
-bool warded : 1
-bool illum : 1
-unsigned skill : 3
-unsigned damage : 8
-
-legendtyp:
-paffectyp magic
-symtableref base
-symtableref spell
-legendflagtyp flags
-
-legendflagtyp:
-bool fire : 1
-bool air : 1
-bool water : 1
-bool earth : 1
-bool entro : 1
-bool light : 1
-bool dark : 1
-bool fireproof : 1
-bool waterproof : 1
-bool elecproof : 1
-bool iceproof : 1
-bool warded : 1
-bool unbreak : 1
-bool infinate : 1
-bool spelled : 1
-bool vamp : 1
-bool drain : 1
-bool interest : 1
-bool useless : 1
-unsigned powermag : 5
-
-struct basearmortyp:
-effectyp effect
-uchar def
-uchar spdef
-uchar extfort
-
-struct baseshldtyp:
-bool fireproof : 1
-bool waterproof : 1
-bool elecproof : 1
-bool iceproof : 1
-bool reflect : 1
-bool entro : 1
-bool light : 1
-bool dark : 1
-effectyp effect
-unsigned def : 8
-unsigned spdef : 8
-
-struct bodytyp:
-bool gills : 1	//affects breathing underwater
-bool wings : 1	//affects flying
-bool tail : 1	//affects unarmed attacks, swimming, flying
-bool claws : 1	//affects unarmed attacks, writing
-bool hoof : 1	//affects walking, swimming, unarmed attacks
-bool talon : 1	//affects walking, swimming, unarmed attacks 
-bool fangs : 1	//affects unarmed attacks
-bool legs : 1	//affects walking, swimming, unarmed attacks
-bool arms : 1	//affects walking, swimming, unarmed attacks, writing
-bool nolungs : 1	//affects breathing above water
-bool noswim : 1	//affects swimming
-bool nofly : 1
-bool atktail : 1	//affects unarmed attacks, swimming, flying
-bool atkwing : 1	//affects unarmed attacks, swimming, flying
-signed atkbite : 2	//affects unarmed attacks; +1 = swallow, -1 = bite, -2 = bite ɛ⃓ breath
-bool wingoveride : 1	//needed because the next paramaters can't simply be maxed/ORed together
-bool permwings : 1
-bool wingsign : 1
-unsigned wingtype : 2
-char : 0
-
-struct venomtyp {
-elixtyp claws
-elixtyp talon
-elixtyp fangs
-elixtyp tail
-elixtyp passive
-}
-
-struct stattyp:
-dizzy : u3
-psn : u4
-prlz : u4
-frz : u4
-brn : u4
-stone : s8	//inverse one's complement; 0x00 is inactive (-0), 0xFF is dead (+0). overflows can be used to extend time to live
-slime : s8	//inverse one's complement;
-slp : u8
-invis : u6
-blind : u8
-eaten : s7	//inverse one's complement;
-
-struct elixtyp:
-dizzy : 1
-psn : 1
-prlz : 1
-frz : 1
-brn : 1
-stone : 1
-slp : 1
-invis : 1
-
-struct cursetyp:
-stattyp type
-uchar polytimer
-intptr_t poly : 8
-
-struct resistyp:
-bool fireproof : 1
-bool waterproof : 1
-bool elecproof : 1
-bool iceproof : 1
-bool stoneproof : 1
-bool polyproof : 1
-bool sleepproof : 1
-bool poisonproof : 1
-
-struct sensetyp:
-bool trouble : 1
-bool invis : 1
-bool infra : 1
-bool blind : 1
-bool good : 1
-bool evil : 1
-bool law : 1
-bool chaos : 1
-
-struct effectyp:
-the8stats eight
-bodytyp shape
-stattyp stat
-resistyp resist
-sensetyp sense
-skilltyp skill
-char atk
-char spatk
-char def
-char spdef
-
-struct paffectyp
-the8stats eight
-bodytyp shape
-nibbles n_arms_legs
-elixtyp ails_ya
-resistyp resist
-sensetyp sense
-skilltyp skill
-char atk
-char spatk
-char def
-char spdef
-
-struct potiontyp:
-bodytyp shape
-elixtyp ails_ya
-cursetyp curse
-resistyp resist
-sensetyp sense
-short hp
-short mp
-diceodds odds
-
-struct skilltyp:
-unsigned sword : 3 //+skill to sword-type weapon attack
-unsigned knife : 3 //+skill to knife-type weapon attack
-unsigned stave : 3 //+skill to stave-type weapon attack
-unsigned spear : 3 //+skill to club-type weapon attack
-unsigned whip : 3 //+skill to whip-type weapon range (unused range added to attack)
-unsigned club : 2 //+skill to club-type weapon attack
-unsigned bow : 4 //+(2 * skill) to bow-type weapon range
-unsigned throw : 4 //+(2 * skill) to javalin-type weapon range
-unsigned monk : 4 //+(2*skill) to unarmed attack, unlocks more modes of attack.
-unsigned shield : 3 //skill in (damage-defense)+abs(damage-defense) chance of blocking
-unsigned locks : 3 //1 in 2^(lock.level - (skill)) chance of picking
-unsigned caster : 6 //-(skill-1)/4 to casting cost, +(skill-1)/4 to spatk and spdef, unlocks spells, 0 is non-caster
-bool swim : 1 //learned in shallow water; may be lost by polymorphing to a form with different locomotion.
-bool walk : 1 //learned on land; may be lost by polymorphing to a form with different locomotion.
-unsigned fly : 2 //0 = never had wings, 1 = slow falling, 2 = cannot gain altitude, 3 = free flight. lvl1 learned by falling
-
-/* damage = MAX( incoming-defense , 0 )
- *
- * polyshock = base.hplvl - ((poly.hplvl * (util__roll(1,20,1) / 20)) * util__roll(1,3,0))
- * ⎧if n < -HPMAX     : Instakill (deathmessage: miscalculated a crucial equivilant-exchange parameter,hath choose...poorly)
- * ⎪if n = -HPMAX     : Stoning
- * ⎨if -HPMAX < n < 0 : abs(n) Damage (deathmessage: could not withstand the cost of transmutation)
- * ⎪if n = 0          : stun for 1D16 (standardmessage: your mind reels from the transformation...)
- * ⎩if n > 0          : success
- *
- * writing =
- * succeed if 4D6 < dex if !talons, break pen on fail if 1D20 < stren
- * succeed if 6D6 < dex if talons, break pen on fail if coinflip
- * talons can engrave without tools
- */
-
-readtyp:
-unsigned locale : 6
-bool multiuse : 1
-bool scroll : 1
-unsigned subject : 2 //0 = cooking, 1 = weapons, 2 = language, 3 = spellcraft
-unsigned uses : 6
-void* contents
-
 char* wandmaterials[16] = {"oak","ash","yew","honeylocust","silver","bronze","iron","orichalcum","marble","bone","dragon fang","unicorn horn","glass","lead crystal","adamantine","stardust"} //stoning -> marble
 
-wandtyp:
-unsigned matter : 4
-unsigned uses : 4
-intptr_t bound : 8
-
 char* baubmaterials[8] = {"yew","bronze","silver","gold","soapstone","ivory","obsidian","stardust"} //stoning -> soapstone
-
-baubtype :
-signed type : 2 //0=ring, 1=bracelet, -1=amulet, -2=tiara
-unsigned matter : 3
-unsigned color : 3
-paffectyp enchnt
-
-struct roomneighbors {
-bool north
-bool south
-bool east
-bool west
-bool up
-bool down
-bool upstair
-bool downstair
-latlontyp north
-latlontyp south
-latlontyp east
-latlontyp west
-latlontyp up
-latlontyp down
-}
-
-struct roomtyp: //top-down display of a 3d space
-latlontyp latlon
-tileset *hightiles
-char* tiledata[][MAX_Y][MAX_X]
-unsigned ceiling : 4
-unsigned bgcolor : 3
-bool visited : 1
-shadowmask seen
-shadowmask light
-collimaptyp collimap
-encontyp *encon_ptr
-enttyp *ent_ptr
-eventtyp *ev_ptr
-mapobjtyp *obj_ptr
-ray_vfx_typ *ray_ptr
-char lightsource	//must be a valid octant
-ucoord3 * path_ptr
-ucoord2 downstair
-ucoord2 upstair
-ucoord3 home
-struct roomneighbors neighborhood
-/* if invalid coords are given for a warp (typically {$FF,$FF}),
- * then the player is dumped at the location indicated by home.
- *
- * if the player has invalid coords, then the error string "fell out of terminal",N1=x,N2=y is generated.
- */
-
-/* the world of the game will be referred to using two different grids of
- * discreet coordinates. the primary grid is the cell space, which is
- * interleaved octohedrally with the boundry space, such that if a given
- * diminsion in cell space has n points, the same dimension in boundry
- * space has n+1 points. the cell space referes to the cells that are
- * displayed (the "cells"), while the boundry space referes to their
- * boundries. exact boundry space coordinates are not expected to be used;
- * only planes and polytopes are meaningful in boundry space.
- *
- * some notable uses of boundry space are in describing the emulated
- * cull plane of the "camera", and as the boundries of a given room.
- */
-
-struct subroomtyp: //used by mapgen
-char tiledata[MAX_Z][MAX_Z][MAX_Z]	//cube of MAX_Z
-ucoord3 dim
-enttype *ent_ptr
-mapobjtyp *obj_ptr
-
-/*     *.bin : signed binary data that is organized into 8 bit segments
- *    *.bin# : signed binary data that is organized into n bit segments
- *     *.hex : unsigned binary data that is organized into 8 bit segments
- *    *.hex# : unsigned binary data that is organized into n bit segments
- *      *.r8 : the tilemap of a room
- *     *.csv : UTF-8 text record deliminated with commas and line breaks
- *     *.tsv : UTF-8 text record deliminated with tabs and line breaks
- *     *.tab : same as tsv
- *      *.so : a shared object. a game may use as many of these as it wants. Placing single-use functions in LD_LOAD_PATH is DISCOURAGED; they should be placed in the game's private files.
- *     *.ini : data from inside a savefile
- *    *.json : produced when a dump is requested
- *  *.dumper : a self-reassembling perl datastructure
- *     *.asc : UTF-8 text record delimenated by newline.
- *     *.txt : UTF-8 text document. usually stored in the program's static files, which is CAT-ed to provide dialouge; also used in dumps of primatives
- *     *.ans : UTF-8 text record containing SGR sequences deleminated by newline.
- *     *.nfo : UTF-8 text document (not CP437) containing SGR sequences. otherwise identical to asc.
- *  **.rot13 : an encrypted text file, containing major spoilers.
- *  *.tar.gz : each room is saved as a tar.gz file, as are linked lists and the player. rooms are divided into compressed files for each plane. the extra planes are tar.gz files named rho_az_el
- * *.tar.bz2 : a savefile is a tar.bz2 file. it is named %H_%M_%S__%d_%m_%Y. the 23 main planes are tar.bz files named rho_az_el
- *   *.man.# : a linux manpage
- *  *.mdoc.# : a bsd manpage
- *         * : documentation
- *    *.html : documentation
- * *.texinfo : documentation
- *      *.pl : a perl script
- *      *.pm : a perl module
- *      *.PL : a build-related perl script
- *     *.pod : perl documentation
- *       *.d : everything relating to a struct is stored in the same directory, and pointers to structs are stored as subdirectories with the name of that field. the tail element in a linked list has no subdirectory named "next"; "prev" pointers are "../" implicitly.
- *    *.conf : a configuration file.
- *     *.*rc : a user's configuration file.
- *  *.dumper : a debugger data dump, with a format somwhere between JSON, INI, and C-like pseudocode. essentialy a dat file in readable (and non-raw) format.
- *
- * if the following new extensions collide with anything, I will change them. I specifically chose ones that were not a TLA or EFLA to try and avoid this, because there have been TDMTLA since before I came along.
- * *.midibas : midiBASIC, to be parsed by the midi generator into a .h file. Represents a different subset of general midi than regular midi files, but does so in a human readable format.
- */
-
-/* dat file format:
- * SOH name BEL = struct field key
- * STX string ETX = an ascii text field, can contain ESC
- * DLE s8bit raw_data = a numeric field, abs(n) bits long. a negative number indicates the field is signed.
- * ACK = true
- * NAK = false
- * SUB = -1
- * NUL = empty string
- * XON path XOFF = a pointer to the data at path
- * ENQ = is a pointer
- * SYN = start an array or add a diminsion to the array
- * structs are terminated with ETB
- * arrays may have up to 4 dimensions seperated with FS GS RS and US.
- * arrays are ended with EM.
- */
-
-struct mapgen_bordertyp {
-tileset *hightiles_n
-char north[MAX_Z][MAX_X]
-tileset *hightiles_s
-char south[MAX_Z][MAX_X]
-tileset *hightiles_e
-char east[MAX_Z][MAX_Y]
-tileset *hightiles_w
-char west[MAX_Z][MAX_Y]
-tileset *hightiles_ne
-char northeast[MAX_Z]
-tileset *hightiles_nw
-char northwest[MAX_Z]
-tileset *hightiles_se
-char southeast[MAX_Z]
-tileset *hightiles_sw
-char southwest[MAX_Z]
-tileset *hightiles_u
-char up[MAX_Y][MAX_X]
-tileset *hightiles_d
-char down[MAX_Y][MAX_X]
-}
-/* only used during mapgen, freed immediatly since it's so huge
- * up and down do not need secondary directions as the map cannot be scrolled that way
- */
-
-typedef ushort shadowmask[MAX_Y][MAX_X]
-typedef bitfield starfield[MAX_Y][MAX_X/8]
-
-typedef ushort collisionmapcols[MAX_Y+2][MAX_X+2]
-typedef uchar collisionmapholes[MAX_Y][MAX_X/8]
-
-struct collisionmaptyp {
-	collisionmapcols solid
-	shadowmask liquid
-	collisionmapholes holes
-	shadowmask ents
-	}
 
 set_collision_map (roomtyp * this,char x,char y,char z,bool q) {
 	if (z < this->ceiling) {
@@ -1758,63 +780,6 @@ set_collision_map (roomtyp * this,char x,char y,char z,bool q) {
 		}
 	return ERR;}
 
-typedef tilemeta* tileset[128]
-
-struct tilemeta {
-bool ladder : 1
-bool solid : 1
-bool liquid : 1
-bool conductive : 1
-bool burns : 1
-bool hypotherm : 1
-bool sharp : 1
-bool entropy : 1
-
-bool shiney : 1
-bool slip : 1
-signed speed : 2
-
-bool freezes : 1
-bool melts : 1
-bool petrif : 1
-
-bool dig : 1
-bool fence : 1
-
-intptr_t freeze : 8
-intptr_t melt : 8
-intptr_t stone : 8
-unsigned density
-
-bool blink : 1
-unsigned color : 6
-
-char16_t unichar : 16
-}
-/* tiles can be effected by stuff happening around them.
- *
- * if a tile is flammable, a fire is summoned when fire magic
- * enters the space or 1d6 chance if there is fire within 1 taxicab of it.
- *
- * if a tile is conductive, then electricity is summoned for the instant
- * that electrical magic strikes it, and propagates through contiguous tiles.
- *
- * if a tile can freeze, it's _8BITPTR is changed to the number indicated by ice.
- * when ice magic intersects it.
- *
- * if a tile can melt, it's _8bitPtr is changed to the number indicated by melt
- * when fire or electrical magic intersect it.
- *
- * if a tile can be petrified, it is changed to the tile indicated by stone.
- *
- * if a tile can be dug, using a ↧digging tool on it will remove it
- * digging something triggers updates which cause gravity to affect gases (!liquid,!solid),
- * liquids(+liquid,!solid), and granulars(+liquid,+solid), wherin less dense
- * tiles will swap with more dense ones. this effect travels outwards, to the edge of the room,
- * but will not be applied to the border tiles. in the default set, water has a density of 10, snow
- * has a density of -1, and air has a density of -100. 
- */
-
 /*pseudocode*/getsym
 	{
 	if (sym < 0)
@@ -1827,286 +792,15 @@ char16_t unichar : 16
 		}
 	}
 
-mapobjflags:
-bool hidden : 1
-bool moves : 1
-bool rclass : 1
-unsigned class : 4
-unsigned alignment : 9
-
-struct mapobjtyp:
-(self) *prev
-(self) *next
-eventdata eventident
-ucoord3 pos
-objid type
-void* data
-mapobjflags flags
-
-struct signtyp {
-char16_t unichar
-conlangtyp lang
-char* lines
-char* gibber
-}
-
-struct chestyp:
-heldobjtyp *bag_ptr
-cursetyp curse
-locktype locked
-
-struct doortyp {
-bool open : 1
-unsigned hp : 7
-locktype lock : 8
-
-struct locktype {
-bool locked : 1
-bool level : 3
-bool pin1 : 1
-bool pin2 : 1
-bool pin3 : 1
-bool pin4 : 1
-trapflag flags : 8
-/* lockpicking requires the player to enter
- * 0 and + in the correct order to turn the
- * tumblers. in addition to making the correct
- * guess, one must make a skill check:
- * 1 in 2^(lock.level - (skill/2)) chance
- *
- * lockpicking will play an ascending chromatic
- * scale on a loop, starting on C3 and ending
- * at G3, on synthbass (triangle wave)
- */
-
-struct encontyp {
-(self) *prev
-(self) *next
-eventdata eventident
-uchar tobeat	//of 10D20
-spawntyp spawn
-
-struct miscitembasetyp:
-bool key : 1
-bool pick : 1
-bool dig : 1
-bool music : 1
-bool light : 1
-bool book : 1
-bool spark : 1
-bool quest : 1
-bool fireproof : 1
-bool waterproof : 1
-bool elecproof : 1
-bool iceproof : 1
-bool stoneproof : 1
-bool arrow : 1
-bool poisoned : 1
-bool unbreak : 1
-unsigned uses : 8
-intptr_t metadata : 8
-
-struct eventdata {	//48-bit persistant event data
-unsigned identnumber : 15
-bool uses_race : 1
-bool uses_role : 1
-bool uses_class : 1
-unsigned race : 5
-unsigned role : 2
-unsigned class : 3
-unsigned align : 9
-unsigned element : 8
-unsigned lde : 3
-}
-
-struct eventdatastack_ele {	//list of events
-(self)* prev
-(self)* next
-eventdata data
-char * heylisten
-eventdatastack_garbage * head
-eventdatastack_garbage * tail
-}
-
-struct eventdatastack_garbage {
-(self) * next
-(self) * prev
-objid type
-void * data
-}
-
-enum eventdatastack_objid = {
-EDS_ROOMOBJ_FLAG
-EDS_QGLOBOBJ_FLAG
-EDS_EVENTTYP_FLAG
-EDS_QGLOBEV_FLAG
-EDS_ENCONTYP_FLAG
-EDS_PLACETYP_FLAG
-}
-
-struct eventtyp:
-(self) *prev
-(self) *next
-ucoord3 pos
-eventdata eventdatavals
-triggertyp whenthis
-const char* dothis	//object to be loaded. must be a shared object with C linkage; but not necissarily one written in C. if NULL, is a built-in function.
-int (*doit)(union unitype,union unitype,union unitype,union unitype)
-unsigned radius : 7
-bool show : 1
-unsigned up : 4
-unsigned down : 4
-uint32_t duration
-
-enum triggerenum {ALWAYS_FLAG,ILLUM_FLAG,LOOK_FLAG,FARLOOK_FLAG,BUMP_FLAG,HIT_FLAG,FIRST_FLAG,NEW_FLAG,DAY_FLAG,TIME_FLAG,MORN_FLAG,NOON_FLAG,EVE_FLAG,MIDNITE_FLAG,DAY_FLAG,NIGHT_FLAG}
-
-struct triggertyp {
-triggerenum key : 4
-unsigned value : 4
-}
-
-struct qglobobj: //queued global object
-(self) *prev
-(self) *next
-eventdata eventident
-qglobflags flags
-latlontyp latlon
-ucoord3 pos
-objid type
-void* data
-
-struct qglobev: //queued global event
-(self) *prev
-(self) *next
-qglobflags flags
-latlontyp latlon
-ucoord3 pos
-eventdata eventdatavals
-triggertyp whenthis
-const char* dothis	//object to be loaded. must be a shared object with C linkage; but not necissarily one written in C. if NULL, is a built-in function.
-int (*doit)(union unitype,union unitype,union unitype,union unitype)
-unsigned radius : 7
-bool show : 1
-unsigned up : 4
-unsigned down : 4
-uint32_t duration
-
-struct qglobflags {
-struct racetyp race
-race-specific : 1
-role : u2
-class : u3
-lawfulgood : 1
-neutralgood : 1
-chaoticgood : 1
-lawfulneutral : 1
-trueneutral : 1
-chaoticneutral : 1
-lawfulevil : 1
-neutralevil : 1
-chaoticevil : 1
-canforceload : 1
-}
-
-struct traptyp:
-char16_t unichar
-ushort duration
-magictyp element
-stattyp stat
-cursetyp curse
-diceodds odds
-trapflags flags
-sensetyp sense
-short hp
-short mp
-
-struct trapflags:
-bool fireproof : 1
-bool waterproof : 1
-bool elecproof : 1
-bool iceproof : 1
-bool tamperproof : 1
-bool stoneproof : 1
-bool warded : 1
-bool mode : 1
-aligntyp attacks : 8	//if mode is true, will only attack entitys that are of an alignment that is undefined or true; if mode is false, will not attack entitys with alignment that is undefined or false
-bool multiuse : 1
-bool magic : 1	//whether the trap is a mechanism or a rune
-unsigned color : 6
-
-struct subwarptyp {
-bool perm : 1
-bool blink : 1
-unsigned color : 6
-ucoord3 pos
-ucoord3 * dest
-short duration	//negative are uses, positive are turns
-}
-
-struct warptyp:
-bool perm : 1
-bool blink : 1
-unsigned color : 6
-latlontyp glob_loc
-ucoord3 pos
-latlontyp glob_dest
-ucoord3 * dest
-short duration
-
-char* gemcolors[8] = {"jet","sapphire","emerald","turquoise","ruby","amythest","heliodor","diamond"} //stoning has no effect
+char* gemcolors[8] = {
+#include "gemstones.csv"
+} //stoning has no effect
 /* cut varys by color:
  * diamond = {uncut,cushion-cut,princess-cut,perfect-cut}
  * beryls,emerald={uncut,oval-cut,emerald-cut,teardrop} redundancy of emerald-cut emerald is redundant
  * amythest={geode,prismatic,cushion-cut,teardrop}
  * jet,turquoise={piece of,byzantine,polyhedral,carved relif in}
  */
-
-struct gemstonetyp:
-unsigned color : 3
-unsigned quality : 2
-unsigned cut : 2
-
-struct meattyp:
-struct racetyp race
-uchar sellby
-uchar amount
-
-struct foodtyp:
-intptr_t itemid : 8
-intptr_t metadata : 8
-unsigned sellby : 8
-unsigned amount : 8
-
-foodbasetyp:
-effectyp effect
-diceodds odds
-uchar keepsfor	//0 means non-perishable
-uchar hp
-uchar nutri
-
-enum objid:
-WEAPON_FLAG : contains subobjtyp calling baseweaptyp
-LEGEND_FLAG : contains subobjtyp calling baseweaptyp
-POTION_FLAG : contains potiontyp
-READ_FLAG : contains readtyp
-FOOD_FLAG : contains subobjtyp containing foodtyp
-MEAT_FLAG : contains subobjtyp containing meattyp
-ARMOR_FLAG : contains subobjtyp calling basearmortyp
-SHLD_FLAG : contains subobjtyp calling baseshldtyp
-BAUB_FLAG : contains subobjtyp calling baubtyp
-CONLANG_FLAG : contains conlangtyp
-SPELL_FLAG : contains spelltyp
-MISC_FLAG : contains _8bitPtr
-GEM_FLAG : contains gemstonetyp
-TRAP_FLAG : contains traptyp
-WARP_FLAG : contains warptyp
-SUBWARP_FLAG : contains subwarptyp
-CHEST_FLAG : contains chestyp
-DOOR_FLAG : contains doortyp
-LOCK_FLAG : contains locktyp (gates are this)
-MONEY_FLAG : contains moneytyp
-SPAWN_FLAG : contains spawntyp
-SIGN_FLAG : contains signtyp
 
 /*blackbox*/radius
 /* uses floats to define a circle,
@@ -2123,17 +817,14 @@ layers are drawn from ground to sky; if the player or their shadow would be cove
 drawing is stopped and the player is drawn if they have not been already
 fluid tiles are transparent.
 
-to avoid confusion, by default the player always uses a unique character: ☻
-if so, then ☺ is used for your dopplganger.
-whether or not these symbols are used must be decided at library compile time
-
 symbols that are white or black based on being filled or unfilled might be
 switchable at startup in the same way as tilde vs tilde operator
 
 depening on difficulty of implementing such, characters might be stored in a lookup table
 that stores indexes between an anything and a unicode codepoint. this would require a byte
 encoding scheme for peeking anythings between runtimes, which is problematic considering
-the existing 2 ways require either names or pointers
+the existing 2 ways require either names (being computationally expensive),
+or pointers (which are volatile state)
 
 an UNDERLINE is a shadow
 
@@ -2145,13 +836,13 @@ note: unicode symbols are (mostly) used be their appearence, not by their meanin
 ¡ is a wand. ♮ ⇫ ⇪ is a ladder. ⋎ is a fountain or gyser. ⍾ is a bell. ⎋ is a clockface. ♠ ♣ ‡ are trees. ⋏ is fire. ♜ is a pedestal.
 ≋ is deep liquid's surface. ∬ is a waterfall. ≈ is a shallow liquid's surface, or a deep liquid below surface. ~ (centered) is a puddle. ≣ is a staircase. 
 ⌁ is electricity. * is ice. ⎈ spider web. ⌬ beehive. ↥ are spikes. ⎙ ⍝ ⎍ ∎ ⎅ are tombstones or signs. ␥ is glass.
-• is a boulder. . is a rock. : is a rockslide. ◇ is a gemstone. ◊ is a giant magic crystal. ? is somone wearing a cowled cloak.
+• is a boulder. . is a rock. ⑆ is a rockslide. ◇ is a gemstone. ◊ is a giant magic crystal. ? is somone wearing a cowled cloak.
 ∪ is a sink. ⏍ is a chest. ↯ is the thunderbolt. ∅ is a spacetime anomaly (do not touch). ⍍ ⍔ are level stairs.
 ⇡ ⇣ ← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles, or facing direction. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are ballistae. ✪ is a rune. ː ˑ are traps.
-# █ ▓ ▒ ░ ▞ ▚ ⑆ (etc) are thick walls or floor. ☁ ≎ are clouds. ☈ is a thundercloud (keep your head out of them).
-^ ␣ are holes. , is a plant. ; is a grain or sunflower (impassable). ⌸ is a door or gate. ⍯ is a locked door. ⎕ is an open door.
-box drawings are low walls or columns. ¦ ⑉ are iron bars. / \ " are sunbeams.
-⍽ is mud. ≃ ≊ is stagnent water (unbreathable). ¤ is a mirror. ♄ is an antimagic field.
+# █ ▓ ▒ ░ ▞ ▚ ⣿ (etc) are thick walls or floor. ☁ ≎ are clouds. ☈ is a thundercloud (keep your head out of them). ⁂ is fog.
+^ ␣ are holes. , is a plant. ; is a grain or sunflower (impassable). ⌸ is a door. ⍯ is a locked door. ⎕ is an open door.
+box drawings are low walls or columns. ¦ ⑉ are iron bars. / \ " are sunbeams. = is a gate. ≠ is a locked gate. : is an open gate
+⍽ is mud. ≃ ≊ is stagnent water (unbreathable). ☯ is a reflecting pool. ⍬ is a mirror. ♄ is an antimagic field.
 
 a prompt at launch uses user responce to choose between using ~ or ∼ for centered tilde.
 handling of solid vs outlined symbols will use the solid symbol for a forground different from the background,
@@ -2175,7 +866,7 @@ and will use the full range of ANSI SGR escape codes
 
 rune symbols
 ◬ air, ⍫ earth, △ fire, ▽ water
-⋇ ice, ☇ electricity, ⇡ metal, ♻ nature
+⋇ ice, ☇ electricity, ↥ metal, ♻ nature
 ❖ ☣ status effects, ∅ entropy
 ☼ light, ☽ dark, § polymorph, ↹ planer
 ♥ healing
@@ -2193,67 +884,6 @@ directional symbols:
 ◬, ⍫, △, ▽, ⋇, ↯, ♤, ♻, ☼, ☽, ∅, inner planes;
 LG, NG, CG, LN, CN, LE, NE, CE, TN, UN, ☠, outer planes;
 
-foods (* = uses meta)
-hardtak tortilla cornmeal cornbread
-flour cheese wine bread
-mead ale scotch ethenol
-grapes fig date plum
-apple banana apricot papaya
-orange pear pinapple coconut
-kiwi dragonfruit durin peach
-grapefruit lemon lime citron
-spinach artichoke asparagus bamboo
-cucumbers zuccini pickles squash
-carrot corn potato celery
-brocoli lettuce cabbage kale
-cauliflower raddish turnip beets
-rhubarb pumpkin avacodo jalapenos
-beans greenbeans tomato eggplant
-blackolives greenolives garlic onions
-watercress chives ketchup mustard
-parsly sage rosmary thyme
-basil oregano allspice nutmeg
-salt bellpeppers peppercorns redpepper
-vanillabean cinnimonstick cocoabean sugarbeet
-walnut pecan cashew peanut
-sunflowerseed pistachio almond chestnuts
-cranberrys blueberrys raspberry blackberry
-strawberry cherry peppermint pawpaw
-sugarcane syrup* molasses honey
-seseme poppy fennel eyeofnewt
-mushroom* truffel penecillin yeast
-barly wheat rye rice
-ginger sasafrass blueraspberries bubbles 
-geletin starch creamoftartar bakingpowder
-vinager bakingsoda calciumhydroxide hemlock
-popcorn nachos cookies milk*
-pasta(uncooked) pasta ramen(uncooked) ramen*
-dumplings(uncooked) dumplings* tofu(uncooked) tofu
-meatballs marinara alfredosauce parmisian
-lasagnia* pizza* spaghetti alfredo
-spaghetti&meatballs ramen&dumplings chickenalfredo brocllialfredo
-guacamole nachos* chili salsa
-pie* cake* soda* chips
-salad* hotdog* hamburger* fries
-vanilla cinnimon chocolate sugar
-cocoapowder cocoabutter cocoaliquor fudge
-egg fat* caramel butterscotch
-sourcream butter/shortening* mayo dressing*
-pie* pie_alamode* englishfruitcake bread*
-cake* pancake* waffle* stackofpancakes*
-frozenpancake frozenwaffle flavoredmilk* juice*
-roast* gravy foo&gravy* foo_chicken*
-bakedpotato loadedbakedpotato mashpotatos tatties&neeps
-sunnysideup overeasy scrambled hardboiled
-bacon* sausage* jerky* spam
-nutbrittle* trailmix rasin* peanutbuttersandwich*
-baconlettucetomatosandwich clubsandwich fingersandwich* coldcutsandwich*
-milkshake* icecream* sorbet* icecreamfloat*
-icecreamcone* banannasplit neopolitan rockyroad
-gumdrop* hardcandy* candycane filledchocolate*
-jelly* jam* preserves* peanutbutter
-icecube snow ember blacksoup
-broth* stew* ration mistake
 
 /*blackbox*/playervelocitycheck() velocitycheck(*entity)
 	/* if you have a nonzero velocity vector, when you try to move
@@ -2288,6 +918,7 @@ broth* stew* ration mistake
 	- checks if you're flying magically, on ice, or in a liquid
 	- if you are, adds {-xmove,-ymove,-zmove} to your velocity
 	  (half this value in liquids)
+
 
 roomscroll(direction,stairs)
 uchar direction
@@ -2523,7 +1154,6 @@ sleep(4);
 init__main() {
 termcheck();
 TILDEWIDE = setwidetilde();
-init__montable();
 }
 
 main() {

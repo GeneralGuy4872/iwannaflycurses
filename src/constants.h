@@ -65,12 +65,29 @@
 
 #define ROOM_STACK_MAX 40
 
-#define ROOM_UP 02
-#define ROOM_DOWN 03
-#define ROOM_NORTH 04
-#define ROOM_SOUTH 05
-#define ROOM_EAST 06
-#define ROOM_WEST 07
-#define ROOM_UPSTAIR 012
-#define ROOM_DOWNSTAIR 013
-#define ROOM_MIRROR 01
+#define ROOM_NORTH 0
+#define ROOM_SOUTH 1
+#define ROOM_WEST 2
+#define ROOM_EAST 3
+#define ROOM_DOWN 4
+#define ROOM_UP 5
+#define ROOM_DOWNSTAIR 6
+#define ROOM_UPSTAIR 7
+
+#define CAMERA_DEFAULT 0	//0000
+#define CAMERA_UP 2	//?010
+#define CAMERA_DOWN 3	//?011
+#define CAMERA_LEFT 4	//?100
+#define CAMERA_RIGHT 5	//?101
+#define CAMERA_PGUP 6	//?110
+#define CAMERA_PGDN 7	//?111
+#define CAMERA_FLAT 8	//1???
+//CAMERA_DEFAULT | CAMERA_FLAT must be corner-case handled to be 0xF instead of invalid value 0x8
+
+#define BUFFER_MAX 512
+#define FLOPPYSIZE 1474560
+#define DRUMSIZE 16384
+#define BGCOLORS 8
+#define FGCOLORS 8
+
+#define SQRT3 1.732050807568877293528
