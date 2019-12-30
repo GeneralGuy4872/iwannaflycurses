@@ -16,8 +16,10 @@ Iwannafly
 =========
 *roguelike game library written in C and Perl with extension interface useing minimal external propagating dependencies*
 
-Dependencies:
+## Dependencies:
 
+(under construction)
+<!--
 Build Deps:
 - Command <CODE>cp</CODE>
 - Command <CODE>ls</CODE>
@@ -110,6 +112,7 @@ Doc Build Deps:
 Doc Recommends:
 - Command <CODE>xdvi</CODE>
 - Command <CODE>texi2dvi</CODE>
+-->
 
 NEWS (and Olds)
 ---------------
