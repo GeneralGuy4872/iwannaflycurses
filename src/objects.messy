@@ -128,6 +128,19 @@ roomstackobj__makecurrent(roomstackobj * this,latlontyp query) {
 	roomstackobj__neighbor_reset();
 return 0;}
 
+roomstackobj__scroll(roomstackobj * this,playertyp * you,char dir) {
+	switch (dir & 07) :
+		case ROOM_EAST : roomstackobj__makecurrent(this,this->swapin->neighborhood.east);you->pos[0] = MAX_X - 1;return 0;
+		case ROOM_WEST : roomstackobj__makecurrent(this,this->swapin->neighborhood.west);you->pos[0] = 0;return 0;
+		case ROOM_NORTH : roomstackobj__makecurrent(this,this->swapin->neighborhood.north);you->pos[1] = MAX_Y - 1;return 0;
+		case ROOM_SOUTH : roomstackobj__makecurrent(this,this->swapin->neighborhood.south);you->pos[1] = 0;return 0;
+		case ROOM_UP : roomstackobj__makecurrent(this,this->swapin->neighborhood.up);you->pos[2] = 0;return 0;
+		case ROOM_UPSTAIR : roomstackobj__makecurrent(this,this->swapin->neighborhood.up);you->pos[0] = this->swapin->downstair[0];you->pos[1] = this->swapin->downstair[1];you->pos[2] = 0;return 0;
+		case ROOM_DOWN : roomstackobj__makecurrent(this,this->swapin->neighborhood.down);you->pos[2] = this->ceiling;return 0;
+		case ROOM_DOWNSTAIR : roomstackobj__makecurrent(this,this->swapin->neighborhood.down);you->pos[0] = this->swapin->upstair[0];you->pos[1] = this->swapin->upstair[1];you->pos[2] = this->swapin->ceiling;return 0;
+		default : return -1;
+	}
+
 roomstackobj__neighbor_reset (struct roomstack * this) {
 	for (int n = 0;n < 6;n++) {
 		for (int i = 0,i < n,i++) {
@@ -291,33 +304,81 @@ roomtyp * smrtloadroom (struct latlontyp query) {
 		}
 	}
 
-/* planetyp getplanetyp(latlontyp)
- */
-
-/* blitlineobj__load_room(blit_lineobj*,char,char*)	...load a bank of lines from a room
- * blitlineobj__load_plane(blit_lineobj*,char,char*)	...load a bank of lines from a plane
- * blitlineobj__load(blit_lineobj*,char,char*)	...load a bank of lines from the global library
- * blitobj__pallette_load_room(blitobj*,char,char*)	...load a pallette from a room
- * blitobj__pallette_load_plane(blitobj*,char,char*)	...load a pallette from a plane
- * blitobj__pallette_load(blitobj*,char,char*)	...load a pallette from the global library
- * blitobj__img_load_room(blitobj*,char*)	...load an imageset from a room
- * blitobj__img_load_plane(blitobj*,char*)	...load an imageset from a plane
- * blitobj__img_load(blitobj*,char*)	...load an imageset from the global library
- * blitobj__sprite_load_room(blitobj*,char*)	...load a spriteset from a room
- * blitobj__sprite_load_plane(blitobj*,char*)	...load a spriteset from a plane
- * blitobj__sprite_load(blitobj*,char*)	...load a spriteset from the global library
- */
-
-struct blitobj {
-	char *lines[8][32];	// ans file
-	_8bitPtr *img[4][8][8];	// hex file
-	struct blitele * head;
-	struct blitele * tail;
+/**getplanetyp**/
+struct planetyp getplanetyp(struct latlontyp input) {
+	struct planetype output;
+	output.rho = input.rho;
+	output.az = input.az;
+	output.el = input.el;
+	return output;
 	}
 
-blitele {
-	blitele * prev;
-	blitele * next;
-	int p[6];
-	uchar s[16];
+/**shiftstackobj**
+ * shiftstackobj__push(racetyp)
+ * shiftstackobj__popif()
+ * shiftstackobj__pop()
+ * shiftstackobj__destroy()
+ * shiftstackobj__base_swap()
+ * shiftstackobj__alter_set(char,altertimertyp)
+ * shiftstackobj__alter_wset(altertimerwtyp)
+ * playertyp__shiftstacksync()
+ */
+
+shiftstackobj__push (struct shiftstackobj * this,struct racetyp data,uchar timer) {
+	if (!(this->topdeck) {
+		this->depth++;
+		if (depth < 0) {
+			this->topdeck = 1;
+			this->swap = 0;
+			this->lycan = 0;
+			this->base[0] = data;
+			this->base[1] = (struct racetyp){0,0,0};
+			shiftstackobj__destroy(this);
+			this->depth = 0;
+			return this->depth;
+			}
+		else if (
+		 (this->poly.race == data.race)
+		  &&
+		 (this->poly.table == data.table)
+		  &&
+		 (this->poly.meta == data.meta)
+			) {
+			this->base[this->swap] = data;	
+			shiftstackobj__destroy(this);
+			this->depth = 0;
+			return this->depth;
+			}
+		else {
+			struct shiftstackele * tmp = malloc(sizeof(struct shiftstackele));
+			tmp->prev = this->poly;
+			tmp->polytimer = timer;
+			tmp->race = data.race;
+			tmp->table = data.table;
+			tmp->meta = data.meta;
+			this->poly = tmp;
+			return this->depth;
+			}
+		return -1;
+		}
+	else {
+		this->base[0] = data;
+		return 0;
+		}
 	}
+
+void shiftstackobj__pop (struct shiftstackobj * this) {
+	struct shiftstackobj * deadbeef = this->poly;
+	if ((this->poly != NULL) && (this->poly->prev != NULL)) {
+		this->poly = this->poly->prev;
+		free(deadbeef);
+		}
+	}
+
+/**blit functions**/
+
+dialouge(coord3 * pos,coord3 * meta,struct strarry * lines,struct chgat_args_typ * attrs,struct attrcolortyp default)
+
+spriteblit(coord3 * pos,coord2 * meta,struct strarry * lines,struct chgat_args_typ * attrs,struct attrcolortyp default,ucoord3 origin)
+
+

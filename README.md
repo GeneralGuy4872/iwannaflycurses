@@ -114,6 +114,8 @@ Doc Recommends:
 NEWS (and Olds)
 ---------------
 
+Mixed line endings are intentional.
+
 As of 28/10/2019, major changes to some of the oldest portions of the
 outline are underway. these changes need to be propogated through the
 entire project, and will result in major inconsistancies until finished.

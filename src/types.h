@@ -1,8 +1,9 @@
+#ifndef IWANNAFLY_TYPES_H_REENTRANT
+#define IWANNAFLY_TYPES_H_REENTRANT 1
+
 /* note: if the compiler complains about mixing tightly packed and loosly packed fields,
- * the tightly packed ones will be split off into a seperate type with "_bitfield" affixed to
- * the name, which will be placed in a consistantly-named member at the end of the struct.
- *
- * possible names:	1."β"	2."_b"
+ * the tightly packed ones will be split off into a seperate type with "_bits" affixed to
+ * the name, which will be placed in a consistantly-named member "_bits" at the end of the struct.
  */
 
 #define uint unsigned int
@@ -10,6 +11,21 @@
 #define ushort unsigned short
 #define ulong unsigned long
 #define 8BITPTR uint8_t
+
+struct odds_n_ends {
+uint64_t turn;
+turntype date;
+uchar roomturn;
+cameratyp camera;
+bool new : 1;
+bool first : 1;
+bool day : 1;
+bool night : 1;
+bool morn : 1;
+bool noon : 1;
+bool eve : 1;
+bool midnit : 1;
+}
 
 struct stringlistyp {
 (self) *prev
@@ -40,15 +56,16 @@ ushort lineno
 char * text
 }
 
+/*depracated
 struct blitimgcolor {
-	struct attr_t attr[6]
-	uchar fgcolor[4]
-	uchar bgcolor[4]
+	struct attr_t attr[6];
+	uchar fgcolor[4];
+	uchar bgcolor[4];
 	char ** img[16];
 	}
-	/*			[0]	[1]	[2]	[3]	fgcolor
-	 *			0	[0]	[1]	[2]	attr
-	 *	[0]	0	[0]	[1]	[2]	[3]	img
+	?*			[0]	[1]	[2]	[3]	fgcolor
+	 *			0x0000	[0]	[1]	[2]	attr
+	 *	[0]	0x0000	[0]	[1]	[2]	[3]	img
 	 *	[1]	[3]	[4]	[5]	[6]	[7]
 	 *	[2]	[4]	[8]	[9]	[10]	[11]
 	 *	[3]	[5]	[12]	[13]	[14]	[15]
@@ -71,25 +88,54 @@ struct drawvector {
  * ( char16_t unichar, struct attrcolortyp attrcolor, uchar az ¿, float dist?, ushort uslp)
  */
 
+/* not implemented yet
+struct glyphtyp {
+unsigned typ;
+int attrs;
+void *glyph;
+}
+?* cast void to (OR flags) :
+ *
+ * 0x80 : char16_t instead of char
+ * 0x70 : elements are nul terminated strings of whatevers
+ * 0xn0 : for 1 ≤ n ≤ 6, elements are fixed sized arrays of n whatevers
+ *
+ * 0x00 : toplevel is not an array
+ * 0x01 : [10] = {up,north,ne,left,se,south,sw,right,nw,down}
+ * 0x02 :  [2] = {left,right}
+ * 0x03 :  [2] = {north,south}
+ * 0x04 :  [4] = {north,left,south,right}
+ * 0x06 :  [6] = {up,north,left,south,right,down}
+ * 0x07 :  [8] = {north,ne,left,se,south,sw,right,nw}
+ */
+
 struct chaptertyp {
 unsigned c : 7;	//chapter number
 unsigned a : 9;	//alignment type
 }
 
 struct turntyp:
-uchar sec : 6
-uchar min : 6
-uchar hour : 5
-uchar day : 5
-uchar weekday : 3
-uchar month : 4
-ushort year : 11
+uchar sec : 6;
+uchar min : 6;
+uchar hour : 5;
+uchar day : 5;
+uchar weekday : 3;
+uchar month : 4;
+ushort year : 11;
 
-typedef uchar ucoord3[3]
-typedef uchar ucoord2[2]
-typedef char scoord3[3]
-typedef char scoord2[2]
+typedef uchar ucoord3[3];
+typedef uchar ucoord2[2];
+typedef char scoord3[3];
+typedef char scoord2[2];
 //sentinal for an array of coord3 is {0,0,-1}
+
+struct setcoord3 {
+struct setcoord3 * prev
+struct setcoord3 * next
+uchar x
+uchar y
+uchar z
+}
 
 typedef char *strarry[]
 typedef void *ptrarry[]
@@ -97,27 +143,26 @@ typedef void *ptrarry[]
 struct lightyp {
 struct lightyp * prev
 struct lightyp * next
-unsigned x : 7
-unsigned y : 5
-unsigned z : 4
-unsigned xx : 7
-unsigned yy : 5
-unsigned zz : 4
+unsigned x : 7;
+unsigned y : 5;
+unsigned z : 4;
+unsigned xx : 7;
+unsigned yy : 5;
+unsigned zz : 4;
 }
 
 struct agetyp {
-unsigned chrono : 16
-signed bio : 8	//entity dies on overflow
-unsigned rem : 8	/* bio remainder after chrono;
-			 * bio increments on the next
-			 * modulo_0 of the entity's current
-			 * aging factor (href basentyp). exploiting the
-			 * immediately apparent flaw of this behavior
-			 * by frequently shapeshifting is allowed;
-			 * but has it's own side effects.
-			 * (href shiftertyp)
-			 */
-}
+	unsigned chrono : 16;
+	signed bio : 8;	//entity dies on overflow
+	unsigned rem : 8;	/* bio remainder after chrono;
+	}			 * bio increments on the next modulo_0 of
+				 * the entity's current aging factor
+				 * (href basentyp). exploiting the
+				 * immediately apparent flaw of this
+				 * behavior by frequently shapeshifting
+				 * is allowed; but has it's own side
+				 * effects. (href shiftstackobj)
+				 */
 
 struct mapcoord3:
 unsigned x : 7
@@ -208,6 +253,18 @@ bool behind : 1	//EQUATOR/2 degrees are added to azimuth
  * next packet. set to 0 to send immidiately.
  */
 
+/* typedef short sprite[16]
+ * typedef sprite *voxel[5]	?/ top, bottom, sides, front, back. if front or back == NULL, side is substituted.
+ * typedef sprite vwing[2]	?/ front and back only
+ *
+ * for future use by a vector graphics library, for 3d rendering by algorithem
+ * in non-isogonal modes, single-point perspective is used; points are calculated by adverageing the boundries of a voxel box's perpendicular sides.
+ * perpindicular side sizes are calculated by altering the camera's distance and focal length
+ *
+ * these types provide an abstraction layer for an xlib- or xcb-like frontend,
+ * uses a 17*17 point vector grid, distorted according to the perspective, to draw squares for each 1-bit in the sprite array.
+ */
+
 //some specific use cases require spheres. these are simply numeric types.
 
 struct diceodds:
@@ -236,12 +293,12 @@ signed el : 2
  * rho 1 are the elemental planes
  * rho 2 are afterlives
  * rho 3 can be used for areas that are meant to not show up on a map.
- *				(said map is WIP)
+ *			(said map would be implemented with pipes)
  *
  * az	elemental	afterlife	corrilation
  * 0	water		neutral good	nurturer
  * 1	ice		chaotic good	the ends justify the means
- * 2	air		chaotic neutral	princess stealing
+ * 2	air		chaotic neutral	insert obscure fourswords reference here
  * 3	electricity	chaotic evil	force lightning
  * 4	fire		neutral evil	obviously
  * 5	metal		lawful evil	greed
@@ -367,14 +424,19 @@ bool r : 1
 bool w : 1
 bool x : 1	//can be spoken
 
+struct xtraplayertyp {
+chaptertyp chapter;
+uint64_t kills;
+uchar elecollect[8];
+uchar questcollect[3];
+}
+
 struct playertyp:
 char * name
 classtyp class[3]
 uchar element
 agetyp age
-struct racetyp baserace[2]
-struct racetyp polyrace
-shiftertyp polycounter
+struct shiftstackobj race
 ucoord3 pos
 polar facing
 vector3 velo
@@ -466,7 +528,7 @@ agetyp age
 classtyp class
 uchar element
 aggrotyp aggro
-struct racetyp race[2]
+struct shiftstackobj race
 ucoord3 pos
 polar facing
 vector3 velo
@@ -509,9 +571,7 @@ agetyp age
 classtyp class
 uchar element
 aggrotyp aggro
-struct racetyp baserace[2]
-struct racetyp polyrace
-shiftertyp polycounter
+struct shiftstackobj race
 ucoord3 pos
 polar facing
 vector3 velo
@@ -542,7 +602,7 @@ npctyp * depth
 classtyp class
 uchar element
 aggrotyp aggro
-struct racetyp race
+struct shiftstackobj race
 paffectyp paffect
 effectyp effect
 oneobjtyp loot
@@ -595,24 +655,53 @@ bool earth : 1
 unsigned lde : 3
 bool planer : 1
 
-struct shiftertyp {
-unsigned polytimer : 8	//time remaining in the current polymorph. if non-zero, polyrace is used instead of baserace.
-unsigned polydepth : 4	//polymorphing more than 10 times without returning to your base form first change your base form to the 15th one
-unsigned polycount : 4	//repeating the same polymorph 10 times will make it permenant
-unsigned altertimer : 8	//time remaining in the current alteration.
-unsigned gills : 4	//using an alteration spell, including intrensics from polymorph spells, 10 times will make them permenent.
-unsigned lungs : 4	//these counters can be reset by rest or spells
-unsigned wings : 4
-unsigned tail : 4
-unsigned claws : 4
-unsigned fangs : 4
-unsigned talons : 4
-bodytyp alterations	//keeps track of changes. if a change becomes permenent, it is moved to paffect.
+struct shiftstackobj {
+bool topdeck : 1; //does every shift change base[0]?
+bool lycan : 1;	//is base[1] valid?
+bool swap : 1 //base[swap]
+signed depth : 5;	//on overflow, the stack is freed an topdeck is set
+struct racetyp base[2];
+struct shiftstackele * poly;	//unless this is NULL, this overrides base[]
+struct shiftertyp alters;
 }
-/* non-player, non-follower entitys do not have this field,
- * and any polymorph or alteration is permenent. this may be
- * changed in future if memory footprint allows.
- */
+
+struct shiftstackele {
+struct shiftstackele * prev;
+unsigned polytimer : 8;	//time remaining in the current polymorph.
+intptr_t race : 8;
+intptr_t table : 4;
+unsigned meta : 4;
+}/* polymorphing to the same form twice causes your active base form to change.
+  * some ways of aquireing multi-form abilities may place restrictions on what your second form may be.
+  */
+
+struct altertimertyp {
+	signed n : 5;	//permenant on overflow
+	bool q : 1;
+	char : 0;
+	unsigned t : 8;
+	}
+
+struct altertimerwtyp {
+	signed n : 5;	//permenant on overflow
+	bool q : 1;
+	unsigned w_typ : 2;
+	bool w_sgn : 1;
+	unsigned t : 7;
+	}
+
+struct shiftertyp {
+struct altertimertyp gills;	//using an alteration spell, including intrensics from polymorph spells, 10 times will make them permenent.
+struct altertimertyp lungs;	//these counters can be reset by rest or spells
+struct altertimerwtyp wings;
+struct altertimertyp tail;
+struct altertimertyp claws;
+struct altertimertyp fangs;
+struct altertimertyp talons;
+}/* non-player, non-follower entitys do not have this field,
+  * and any polymorph or alteration is permenent. this may be
+  * changed in future if memory footprint allows.
+  */
 
 struct spelltyp:
 intptr_t itemid : 8
@@ -1293,3 +1382,4 @@ MONEY_FLAG : contains moneytyp
 SPAWN_FLAG : contains spawntyp
 SIGN_FLAG : contains signtyp
 
+#endif

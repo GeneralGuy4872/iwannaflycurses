@@ -2,7 +2,20 @@ enttyp__normalrender (int yzindex,int cullplane) {
 	struct enttyp * next_ent_ptr = ROOM->ent_ptr;
 	while (next_ent_ptr != NULL) {
 		if (raycast__visabledefault(next_ent_ptr->pos,cullplane) {
-			basentyp * basentity = &(montable[next_ent_ptr->race[0]->table][next_ent_ptr->race[0]->race]);
+			basentyp * basentity = (next_ent_ptr->race->poly == NULL) ? 
+				montable[
+					next_ent_ptr->race->base[
+						next_ent_ptr->race->swap
+					]->table
+				][
+					next_ent_ptr->race[
+						next_ent_ptr->race->swap
+					]->race
+				] : montable[
+					next_ent_ptr->race->poly->table
+				][
+					next_ent_ptr->race->poly->race
+				];
 			baseclasstyp * baseclass = next_ent_ptr->class.notnull ? &(classtable[next_ent_ptr->class.role][next_ent_ptr->class.class][next_ent_ptr->class.mastery]) : NULL;
 			char16_t this_sprite;
 			attr_t this_attr;

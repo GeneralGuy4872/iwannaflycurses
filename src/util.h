@@ -27,3 +27,4 @@ extern int sgnf(float n);
 extern double maxfd(double a,double b);
 extern double minfd(double a,double b);
 extern int sgnfd(float n);
+#endif

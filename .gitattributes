@@ -7,8 +7,13 @@ core.autocrlf=false
 
 *.c = linguist-language=C
 *.h = linguist-language=C
+*.ch = linguist-language=C
 *.cc = linguist-language=C++
 *.hh = linguist-language=C++
+*.cchh = linguist-language=C++
+*.C = linguist-language=C++
+*.H = linguist-language=C++
+*.CH = linguist-language=C++
 *.m = linguist-language=Objective-C
 *.mm = linguist-language=Objective-C++
 *.xs = linguist-language=XS

@@ -1,40 +1,27 @@
 #error NOT READY FOR INITIAL COMPILATION
-/* at the moment, this file is a scratchpad for outlining functions.
- * as development progresses, these outlines will be replaced with
- * tested and working equivilants.
- * to preserve the file history, this file will eventually become main.c
- * dummy.h will provide externs and macros for linkage.
- *
- * the bulk of it's contents, however, will be moved.
- *
- * comments may be deleted, may be moved into documentation, or may stay with what they describe
- *
- * work process:
+/* work process:
  * outline pseudocode top-down, using blackboxes as neccisary
  * write real code bottom-up
  *
- * optimized for memory footprint. speed is not a concern at the moment.
+ * Once the engine's first principles are fully implemented,
+ * the second stage of my development process will begin, which
+ * consists of making the first chunk of code compile and work;
+ * afterwards, development will continue in the more common
+ * poke-build-test method.
+ *
+ * I have been laboring under some false assumptions about memory
+ * management, and as a result, the program is optimized strangely,
+ * for memory footprint and swappiness. speed has not been a concern.
+ *
  * C++ was found unsuitable for the majority of the program, however
- * Perl is seeming more and more of an extravagance; a C/C++ hybrid 
- * may be called upon to replace it.
+ * Perl is seeming more and more of an extravagance; a C/C++ hybrid,
+ * using std::string, may be called upon to replace it.
  *
- * the idioms and formatting I am using throughout the project are based on the way my mind works
- * rather than a specific programming paradigm; I am borrowing from several.
+ * the idioms and formatting I am using throughout the project are
+ * based on the way my mind works rather than a specific programming
+ * paradigm; I am, however, borrowing from several.
  *
- * the program also uses various memory management paradigms,
- * including linked lists, stacks, queues, and page swapping.
- *
- * example: loading a room's file is swapping it into memory.
- * once it is loaded, the pointer is placed on the top of
- * the stack of loaded rooms, and the stack's depth counter
- * is increased. when the counter reaches the limit, the
- * stalest room is dropped. when warping, the room stack
- * is checked before an attempt is made to load another
- * room; when a room is recalled, it is moved to the top
- * of the stack, therefore (less stale) rooms are able to be
- * fetched faster than (more stale) rooms.
- *
- * additional indirection layers are used in an attempt to
+ * indirection layers are used in an attempt to
  * prevent larger data structures from being duplicated
  *
  * most function calls provide an (obfuscation|abstraction) layer,
@@ -49,17 +36,17 @@
  * in the documentation and comments,
  * an "unbounded" array refers to
  * a [0] array that resembles a
- * nul-terminated string literal.
- * they are used for fixed data where
+ * nul-terminated string.
+ * they are used for semi-const data where
  * linked lists would be bloaty, but the
  * size of the array is not consistent.
  *
  * both explicit and implicit int declarations are used.
- * functions declared <implicit int> return either zero (ok) or
- * nonzero (error) rather than a proper intergal value.
- * this is akin to certain C library functions, and inverse
- * to a perl sub or a function returning bool
- * for the same pourpouse.
+ * functions declared /*implicit*/ return either zero (ok) or
+ * nonzero (error), which is usually negative, rather than a
+ * proper intergal value. this is akin to certain C library
+ * functions, and inverse to a perl sub or a function returning
+ * bool for the same purpouse.
  * functions that return pointers return NULL on error;
  * functions returning "unbounded" arrays that cannot simply return NULL
  * return an equivilant to the empty string on error.
@@ -150,7 +137,8 @@
  * if such requirements arise, they will be considered a severe flaw and work
  * will focus on fixing them as soon as possible.
  *
- * commands are implemented by a Perl::Safe read,exec loop
+ * commands are implemented by a Perl::Safe read,exec loop for now;
+ * this may be changed later
  *
  * This program is divided into 3 layers:
  *
@@ -250,9 +238,10 @@
 #include <unistd.h>
 #include <signal.h>
 #include <locale.h>
+//#include <sys/types.h>
+//#include <sys/mman.h>
 //#include <regex.h>
 //#include <glob.h>
-//#include <sys/types.h>
 //#include <sys/ioctl.h>
 //#include <fcntl.h>
 //#include <sys/stat.h>
@@ -282,8 +271,11 @@
 #endif
 
 /**local libraries**/
+#include "util.h"
 #include "macro.h"
 #include "constants.h"
+#include "types.h"
+#include "objects.h"
 
 mvaddch16(int x,int y,char16_t raw,attr_t attrs) {
 const wchar_t wch = raw;
@@ -460,42 +452,46 @@ return lines;
  */
 
 /**GLOBALS**/
-playertyp PLAYER
-roomstackholder ROOMSTACK
-#define ROOM ROOMSTACK.swapin
+//further tests necissary before committing to mmap
+playertyp PLAYER;	//may be mmapped
+roomstackholder * ROOMSTACK;	//may be anonymously mmapped
+#define ROOM ROOMSTACK->swapin
 #define ROOM_NOT_NULL(X,Y) ((ROOM != NULL) ? X : Y)
-#define WORLD	ROOM_NOT_NULL( ROOM->latlon , (latlontyp){0,0,0,0,0,0} )
+#define WORLD ROOM_NOT_NULL( ROOM->latlon , (latlontyp){0,0,0,0,0,0} )
+//WORLD is a relic of an earlier design, and is not intended to be part of the API
 #define CEILING	ROOM_NOT_NULL( ROOM->ceiling , MAX_Z )
 #define OLDCEILING (CEILING + 1)
-planestackholder PLANESTACK
-uint64_t TURN
-nibbles TIMER
-char ALARM = -1
-turntyp DATE
-uchar ROOMTURN
-uchar ELECOLLECT[8]	//elemental collectibles
-uchar QUESTCOLLECT[3]	//light/dark/entropy collectibles
-uint64_t KILLS
-char* SAVEPATH
+/* several different variations on how to calculate/store CEILING have been used,
+ * and the one chosen was "off-by-one" from the original (last index vs length)
+ */
+struct xtraplayertyp PLAYERMETA	//may be mmapped
+#define KILLS PLAYERMETA->kills
+#define CHAPTER PLAYERMETA->chapter
+#define ELECOLLECT(N) PLAYERMETA->elecollect[N]
+#define QUESTCOLLECT(N) PLAYERMETA->questcollect[N]
+char* SAVEPATH	//unsaved; but needed to save
+//all linked lists are player-specific
 followtyp *FOLLOW_ptr	//followers/minions
 followtyp *PURS_ptr	//pursuers, i.e. paid assasins, ninjas, the reaper...
 eventtyp *EVNT_ptr	//FOO_ptr refers to the doubly linked list's head. the tail is FOO_ptr->prev. FOO_ptr->prev->next is always NULL.
 placetyp *PLACE_ptr
 stringlistyp *HINT_ptr
-eventdatastack_ele *EVSTACK_ptr
+eventdatastack_ele *EVSTACK_ptr	//B L A R G
 qglobobj * GLOBOBJ_ptr
 qglobev * GLOBEV_ptr
-chaptertyp CHAPTER
-bitfield globools
-#define NEW globools.a
-#define FIRST globools.b
-#define DAY globools.c
-#define NIGHT globools.d
-#define MORN globools.w
-#define NOON globools.x
-#define EVE globools.y
-#define MIDNIT globools.z
-cameratyp CAMERA
+struct odds_n_ends * GLOBOOLS	//shared; may be mmapped
+#define TURN GLOBOOLS->turn
+#define DATE GLOBOOLS->date
+#define ROOMTURN GLOBOOLS->roomturn
+#define CAMERA GLOBOOLS->camera
+#define NEW GLOBOOLS->new
+#define FIRST GLOBOOLS->first
+#define DAY GLOBOOLS->day
+#define NIGHT GLOBOOLS->night
+#define MORN GLOBOOLS->morn
+#define NOON GLOBOOLS->noon
+#define EVE GLOBOOLS->eve
+#define MIDNIT GLOBOOLS->midnit
 /*end GLOBALS*/
 
 bool ticktock() {
@@ -552,7 +548,7 @@ baseshldtyp* shldtable[256]
 baubtyp* baubtable[256]
 
 char* legendstabs[24] = {
-#include "legend.csv"
+#include "legend.carray"
 };
 legendtyp* legendtable[24];
 
@@ -562,25 +558,25 @@ char* psystabs[8] = {"detect alignment","charm","psychic lock","sleep","mind bla
 uchar id
 //switch case for each psionic ability
 
-char (*classnametable[8])[4] = {
+char (*classnametable[2])[8][4] = {
 	{
-#include "class_rogue.csv"
+#include "class_rogue.carray"
 	},{
-#include "class_fighter.csv"
+#include "class_fighter.carray"
 	},{
-#include "class_magic_user.csv"
+#include "class_magic_user.carray"
 	},{
-#include "class_cleric.csv"
+#include "class_cleric.carray"
 }}
 
 struct baseclasstyp classtable[4][8][4];
 
-char (*monstabs[256])[16] = {
-#include "monster0.csv"
+char (*monstabs[2])[256][16] = {
+#include "monster0.carray"
 	},{
-#include "monster1.csv"
+#include "monster1.carray"
 	},{
-#include "monster2.csv"
+#include "monster2.carray"
 }}
 
 basentyp (*montable[256])[16] = {
@@ -594,7 +590,7 @@ basentyp (*montable[256])[16] = {
  */
 
 /* MONSTERS BY LETTER
- * & : horned devil, balrog, jubilix,
+ * & : horned devil, balrog, jubilix, kerr,
  * @ : human, elf, half elf, drow, seaelf, siren,
  * A : angel, astral, ætherial, celestial, archon, half celestial,
  * a : newt, salamander, frog, 
@@ -609,7 +605,7 @@ basentyp (*montable[256])[16] = {
  * F : panther, lion, tiger, manticore, cat, lynx, bobcat,
  * f : turkey, rooster, chicken, peacock, duck, goose, swan, gull, dodo,
  * G : ghost, banshee, revenent, barrow wight,
- * g : gremlin, gargoyle, winged gargoyle,
+ * g : gremlin, gargoyle, winged gargoyle, goblin,
  * H : giant, cyclops,
  * h : dwarf, gnome, hobbit,
  * I : /giant (ant|roach|scarab|wasp|scorpion|spider)/
@@ -628,7 +624,7 @@ basentyp (*montable[256])[16] = {
  * o : ostrich, emu, moa,
  * P : dolphin, narwhal, orca, beluga,
  * p : penguin, puffin, auk, albatross,
- * Q : fiend, drider, erinys, kerr, harpy, tiefling,
+ * Q : fiend, drider, erinys, tiefling,
  * q : quasit, imp, homunculus,
  * R : eagle, falcon, owl, kite, vulture, phoenix, raven, rook, crow,
  * r : mouse, rat, dire rat, raccoon, badger, opossum, platypus, groundhog, 
@@ -638,7 +634,7 @@ basentyp (*montable[256])[16] = {
  * t : troll,
  * U : umber hulk,
  * u : unicorn, pegasus, griphon, hippogriph,
- * V : vampire, mind flayer, medusa, tengu,
+ * V : vampire, mind flayer, medusa, tengu, harpy,
  * v : bat,
  * W : wyrm, great wyrm, hydra,
  * w : purple worm, nightcrawler,
@@ -653,7 +649,7 @@ basentyp (*montable[256])[16] = {
  * × : lizard, geko, skink, 
  * ÷ : lobster, crab, shrimp,
  * £ : justice. (strictly-lawful neutral)
- * ¥ : [spoiler]
+ * ⊜ : [spoiler]
  * ¶ : da fuzz. (lawful neutral)
  * Ω : [spoiler]
  * ⑄ : retribution. (chaotic neutral)
@@ -792,8 +788,8 @@ set_collision_map (roomtyp * this,char x,char y,char z,bool q) {
 		}
 	}
 
-char* gemcolors[8] = {
-#include "gemstones.csv"
+char* gemcolors[2][8] = {
+#include "gemstones.carray"
 } //stoning has no effect
 /* cut varys by color:
  * diamond = {uncut,cushion-cut,princess-cut,perfect-cut}
@@ -831,17 +827,17 @@ an UNDERLINE is a shadow
 note: unicode symbols are (mostly) used be their appearence, not by their meaning
 ) is a sword or dagger. ⍏ are polearms. ! is a staff. ⇞ is a club or mace. ℓ is a whip. ␋ is a flail. ( is a bow. ⇤ is an arrow. ⇲ is a writing instrument.
 ⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves. ☜☝☞☟ is a gauntlet. % is meat. ± is food (don't shoot it). $ is gold. ¢ is copper.
-⌘ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♫ is a lyre. ƒ is a violin. ♪ is a lute.
+⌘ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♫ is a lyre. ƒ is a violin. ♪ is a lute. ≣ is a staircase or ladder.
 ¿ are potions (fragile). ∫ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet. ¬ is a crown.
-¡ is a wand. ♮ ⇫ ⇪ is a ladder. ⋎ is a fountain or gyser. ⍾ is a bell. ⎋ is a clockface. ♠ ♣ ‡ are trees. ⋏ is fire. ♜ is a pedestal.
-≋ is deep liquid's surface. ∬ is a waterfall. ≈ is a shallow liquid's surface, or a deep liquid below surface. ~ (centered) is a puddle. ≣ is a staircase. 
+¡ is a wand. ⋎ is a fountain or gyser. ⍾ is a bell. ⎋ is a clockface. ♠ ♣ ‡ are trees. ⋏ is fire. ♜ is a pedestal.
+≋ is deep liquid's surface. ∬ is a waterfall. ≈ is a shallow liquid's surface, or a deep liquid below surface. ~ (centered) is a puddle. 
 ⌁ is electricity. * is ice. ⎈ spider web. ⌬ beehive. ↥ are spikes. ⎙ ⍝ ⎍ ∎ ⎅ are tombstones or signs. ␥ is glass.
-• is a boulder. . is a rock. ⑆ is a rockslide. ◇ is a gemstone. ◊ is a giant magic crystal. ? is somone wearing a cowled cloak.
+• is a boulder. . is a rock. # ♯ is a rockslide. ◇ is a gemstone. ◊ is a giant magic crystal. ? is somone wearing a cowled cloak.
 ∪ is a sink. ⏍ is a chest. ↯ is the thunderbolt. ∅ is a spacetime anomaly (do not touch). ⍍ ⍔ are level stairs.
 ⇡ ⇣ ← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles, or facing direction. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are ballistae. ✪ is a rune. ː ˑ are traps.
-# █ ▓ ▒ ░ ▞ ▚ ⣿ (etc) are thick walls or floor. ☁ ≎ are clouds. ☈ is a thundercloud (keep your head out of them). ⁂ is fog.
+█ ▓ ▒ ░ ▞ ▚ ⣿ (etc) are thick walls or floor. ☁ ≎ are clouds. ☈ is a thundercloud (keep your head out of them). ⁂ is fog.
 ^ ␣ are holes. , is a plant. ; is a grain or sunflower (impassable). ⌸ is a door. ⍯ is a locked door. ⎕ is an open door.
-box drawings are low walls or columns. ¦ ⑉ are iron bars. / \ " are sunbeams. = is a gate. ≠ is a locked gate. : is an open gate
+box drawings are low walls or columns. ¦ Ⅲ are iron bars. / \ " are sunbeams. = is a gate. ≠ is a locked gate. : is an open gate
 ⍽ is mud. ≃ ≊ is stagnent water (unbreathable). ☯ is a reflecting pool. ⍬ is a mirror. ♄ is an antimagic field.
 
 a prompt at launch uses user responce to choose between using ~ or ∼ for centered tilde.

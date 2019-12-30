@@ -44,9 +44,30 @@ else {\
 
 enttyp__wingrender(enttyp * this,basentyp * basentity,baseclasstyp * baseclass,int yzindex,int cullplane,attr_t attrs) {
 	char16_t this_sprite[2];
-	if PREDICATE(this,effect) SWITCH_BODY(this,effect)
+	if (this->race->alters->wings->t) {
+		if (this->race->alters->wings->q) {
+			if (this->race->alters->wings->w_sgn) {
+				switch this->race->alters->wings->w_typ :
+					case 0 : this_sprite[0] = '>'; this_sprite[1] = '<'; break;
+					case 1 : this_sprite[0] = 0x2265; this_sprite[1] = 0x2264; break;
+					case 2 : this_sprite[0] = 0x226B; this_sprite[1] = 0x226A; break;
+					case 3 : this_sprite[0] = 0x2277; this_sprite[1] = 0x2276; break;
+					default : this_sprite[0] = 0xFFFD; this_sprite[1] = 0xFFFD; break;
+					}
+			else {
+				switch this->race->alters->wings->w_typ :
+					case 0 : this_sprite[0] = '<'; this_sprite[1] = '>'; break;
+					case 1 : this_sprite[0] = 0x2264; this_sprite[1] = 0x2265; break;
+					case 2 : this_sprite[0] = 0x226A; this_sprite[1] = 0x226B; break;
+					case 3 : this_sprite[0] = 0x2276; this_sprite[1] = 0x2277; break;
+					default : this_sprite[0] = 0xFFFD; this_sprite[1] = 0xFFFD; break;
+				}
+			}
+		else {return 0;}
+		}
+	else if PREDICATE(this,effect) SWITCH_BODY(this,effect)
 	else if PREDICATE(this,paffect) SWITCH_BODY(this,paffect)
-	esle if PREDICATE(baseclass,bonus) SWITCH_BODY(baseclass,bonus)
+	else if PREDICATE(baseclass,bonus) SWITCH_BODY(baseclass,bonus)
 	else if PREDICATE(basentity,base) SWITCH_BODY(basentity,base)
 	else {return 0;}
 	if (
