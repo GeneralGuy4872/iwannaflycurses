@@ -1,0 +1,407 @@
+typedef struct ucoord3list {
+struct ucoord3list * prev;
+struct ucoord3list * next;
+uchar x;
+uchar y;
+uchar z;
+} ucoord3list;
+
+ucoord3list * ucoord3list__new (ucoord3 data) {
+	ucoord3list * new = malloc(sizeof(ucoord3list));
+	new->prev = NULL;
+	new->next = NULL;
+	new->x = data[0];
+	new->y = data[1];
+	new->z = data[2];
+	return new;
+
+
+ucoord3list * ucoord3list__head_push_raw (ucoord3list * head,ucoord3list * new) {
+	new->prev = NULL;
+	new->next = head;
+	head->prev = new;
+	return new;
+	}
+
+#define ucoord3list__head_push_new(X,Y) ucoord3list__head_push_raw(X,ucoord3list__new(Y))
+
+ucoord3list * ucoord3list__head_pop (ucoord3list * head) {
+	ucoord3list * output = head->next;
+	free(head);
+	output->prev = NULL;
+	return output;
+	}
+
+ucoord3list * ucoord3list__head_pull(ucoord3list * head,ucoord3list * this) {
+	if (this->prev != NULL) {
+		if (this->next != NULL) {
+			this->next->prev = this->prev;
+			this->prev->next = this->next;
+			}
+		else {
+			this->prev->next = NULL;
+			}
+		this->next = head;
+		head->prev = this;
+		this->prev = NULL;
+		return this;
+	else if (this == head) {
+		return head;
+		}
+	else {
+		raise(SIGILL);
+		abort();
+		}
+	}		
+
+/**HR**/
+
+ucoord3list * ucoord3list__tail_push_raw (ucoord3list * tail,ucoord3list * new) {
+	new->prev = tail;
+	new->next = NULL;
+	tail->next = new;
+	return new;
+	}
+
+#define ucoord3list__tail_push_new(X,Y) ucoord3list__tail_push_raw(X,ucoord3list__new(Y))
+
+ucoord3list * ucoord3list__tail_pop(ucoord3list * tail) {
+	ucoord3list * output = tail->prev;
+	free(tail);
+	output->next = NULL;
+	return output;
+	}
+
+ucoord3list * ucoord3list__tail_punt(ucoord3list * tail,ucoord3list * that)
+	if (that->next != NULL) {
+		if (that->prev != NULL) {
+			that->next->prev = that->prev;
+			that->prev->next = that->next;
+			}
+		else {
+			that->next->prev = NULL;
+			}
+		this->next = head;
+		head->prev = this;
+		this->prev = NULL;
+		return this;
+	else if (this == tail) {
+		return tail;
+		}
+	else {
+		raise(SIGILL);
+		abort();
+		}
+	}
+
+
+/**HR**/
+
+ucoord3list * ucoord3list__insert_after_raw (ucoord3list * after,ucoord3list * new) {
+	if (after->next == NULL) {
+		return ucoord3list__tail_push(after,data);
+		}
+	else {
+		ucoord3list * before = after->next;
+
+		new->prev = after;
+		after->next = new;
+		new->next = before;
+		before->prev = new;
+		return new;
+		}
+	}
+
+#define ucoord3list__insert_after_new(X,Y) ucoord3list__insert_after_raw(X,ucoord3list__new(Y))
+			
+ucoord3list * ucoord3list__insert_before(ucoord3list * before,ucoord3list * new) {
+	if (before->next == NULL) {
+		return ucoord3list__head_push(before,data);
+		}
+	else {
+		ucoord3list * after = before->prev;
+
+		new->prev = after;
+		after->next = new;
+		new->next = before;
+		before->prev = new;
+		return new;
+		}
+	}
+
+#define ucoord3list__insert_before_new(X,Y) ucoord3list__insert_before_raw(X,ucoord3list__new(Y))
+
+ucoord3list * ucoord3list__drop(ucoord3list * deadbeef) {
+	if (deadbeef->next != NULL) {
+		deadbeef->next->prev = deadbeef->prev;
+		}
+	if (deadbeef->prev != NULL) {
+		deadbeef->prev->next = deadbeef->next;
+		}
+	return deadbeef;
+	}
+
+/**HR**/
+
+ucoord3list * ucoord3list__modify(ucoord3list * this,ucoord3 data) {
+	this->x = data[0];
+	this->y = data[1];
+	this->z = data[2];
+	return this;
+	}
+
+ucoord3list__swap(ucoord3list * this,ucoord3list * that) {
+	if ((this != that) && ((this->prev != NULL) || (this->next != NULL) || (that->prev != NULL) || (that->next != NULL))) {
+		if (this->next == that) {
+			if (that->prev == this) {
+				ucoord3list before = this->prev;
+				ucoord3list before = that->next;
+				that->prev = before;
+				that->prev->next = that;
+				this->prev = that;
+				this->prev->next = this;
+				after->prev = this;
+				after->prev->next = after;
+				}
+			else {
+				raise(SIGBUS);
+				abort();
+				}
+		else if (that->next == this) {
+			if (this->prev == that) {
+				ucoord3list before = that->prev;
+				ucoord3list after = this->next;
+				this->prev = before;
+				this->prev->next = this;
+				that->prev = this;
+				that->prev->next = that;
+				after->prev = that;
+				after->prev->next = after;
+				}
+			else {
+				raise(SIGBUS);
+				abort();
+				}
+			}
+		else {
+			ucoord3list beforethis = this->prev;
+			ucoord3list afterthis = this->next;
+			ucoord3list beforethat = that->prev;
+			ucoord3list afterthat = that->next;
+
+			that->prev = beforethis;
+			that->prev->next = that;
+			that->next = afterthis;
+			that->next->prev = that;
+
+			this->prev = beforethat;
+			this->prev->next = this;
+			this->next = afterthat;
+			this->next->prev = this;
+			}
+		}
+	}
+
+typedef struct scoord3list {
+struct scoord3list * prev;
+struct scoord3list * next;
+char x;
+char y;
+char z;
+} scoord3list;
+
+scoord3list * scoord3list__new (scoord3 data) {
+	scoord3list * new = malloc(sizeof(scoord3list));
+	new->prev = NULL;
+	new->next = NULL;
+	new->x = data[0];
+	new->y = data[1];
+	new->z = data[2];
+	return new;
+
+
+scoord3list * scoord3list__head_push_raw (scoord3list * head,scoord3list * new) {
+	new->prev = NULL;
+	new->next = head;
+	head->prev = new;
+	return new;
+	}
+
+#define scoord3list__head_push_new(X,Y) scoord3list__head_push_raw(X,scoord3list__new(Y))
+
+scoord3list * scoord3list__head_pop (scoord3list * head) {
+	scoord3list * output = head->next;
+	free(head);
+	output->prev = NULL;
+	return output;
+	}
+
+scoord3list * scoord3list__head_pull(scoord3list * head,scoord3list * this) {
+	if (this->prev != NULL) {
+		if (this->next != NULL) {
+			this->next->prev = this->prev;
+			this->prev->next = this->next;
+			}
+		else {
+			this->prev->next = NULL;
+			}
+		this->next = head;
+		head->prev = this;
+		this->prev = NULL;
+		return this;
+	else if (this == head) {
+		return head;
+		}
+	else {
+		raise(SIGILL);
+		abort();
+		}
+	}		
+
+/**HR**/
+
+scoord3list * scoord3list__tail_push_raw (scoord3list * tail,scoord3list * new) {
+	new->prev = tail;
+	new->next = NULL;
+	tail->next = new;
+	return new;
+	}
+
+#define scoord3list__tail_push_new(X,Y) scoord3list__tail_push_raw(X,scoord3list__new(Y))
+
+scoord3list * scoord3list__tail_pop(scoord3list * tail) {
+	scoord3list * output = tail->prev;
+	free(tail);
+	output->next = NULL;
+	return output;
+	}
+
+scoord3list * scoord3list__tail_punt(scoord3list * tail,scoord3list * that)
+	if (that->next != NULL) {
+		if (that->prev != NULL) {
+			that->next->prev = that->prev;
+			that->prev->next = that->next;
+			}
+		else {
+			that->next->prev = NULL;
+			}
+		this->next = head;
+		head->prev = this;
+		this->prev = NULL;
+		return this;
+	else if (this == tail) {
+		return tail;
+		}
+	else {
+		raise(SIGILL);
+		abort();
+		}
+	}
+
+
+/**HR**/
+
+scoord3list * scoord3list__insert_after_raw (scoord3list * after,scoord3list * new) {
+	if (after->next == NULL) {
+		return scoord3list__tail_push(after,data);
+		}
+	else {
+		scoord3list * before = after->next;
+
+		new->prev = after;
+		after->next = new;
+		new->next = before;
+		before->prev = new;
+		return new;
+		}
+	}
+
+#define scoord3list__insert_after_new(X,Y) scoord3list__insert_after_raw(X,scoord3list__new(Y))
+			
+scoord3list * scoord3list__insert_before(scoord3list * before,scoord3list * new) {
+	if (before->next == NULL) {
+		return scoord3list__head_push(before,data);
+		}
+	else {
+		scoord3list * after = before->prev;
+
+		new->prev = after;
+		after->next = new;
+		new->next = before;
+		before->prev = new;
+		return new;
+		}
+	}
+
+#define scoord3list__insert_before_new(X,Y) scoord3list__insert_before_raw(X,scoord3list__new(Y))
+
+scoord3list * scoord3list__drop(scoord3list * deadbeef) {
+	if (deadbeef->next != NULL) {
+		deadbeef->next->prev = deadbeef->prev;
+		}
+	if (deadbeef->prev != NULL) {
+		deadbeef->prev->next = deadbeef->next;
+		}
+	return deadbeef;
+	}
+
+/**HR**/
+
+scoord3list * scoord3list__modify(scoord3list * this,scoord3 data) {
+	this->x = data[0];
+	this->y = data[1];
+	this->z = data[2];
+	return this;
+	}
+
+scoord3list__swap(scoord3list * this,scoord3list * that) {
+	if ((this != that) && ((this->prev != NULL) || (this->next != NULL) || (that->prev != NULL) || (that->next != NULL))) {
+		if (this->next == that) {
+			if (that->prev == this) {
+				scoord3list before = this->prev;
+				scoord3list before = that->next;
+				that->prev = before;
+				that->prev->next = that;
+				this->prev = that;
+				this->prev->next = this;
+				after->prev = this;
+				after->prev->next = after;
+				}
+			else {
+				raise(SIGBUS);
+				abort();
+				}
+		else if (that->next == this) {
+			if (this->prev == that) {
+				scoord3list before = that->prev;
+				scoord3list after = this->next;
+				this->prev = before;
+				this->prev->next = this;
+				that->prev = this;
+				that->prev->next = that;
+				after->prev = that;
+				after->prev->next = after;
+				}
+			else {
+				raise(SIGBUS);
+				abort();
+				}
+			}
+		else {
+			scoord3list beforethis = this->prev;
+			scoord3list afterthis = this->next;
+			scoord3list beforethat = that->prev;
+			scoord3list afterthat = that->next;
+
+			that->prev = beforethis;
+			that->prev->next = that;
+			that->next = afterthis;
+			that->next->prev = that;
+
+			this->prev = beforethat;
+			this->prev->next = this;
+			this->next = afterthat;
+			this->next->prev = this;
+			}
+		}
+	}
