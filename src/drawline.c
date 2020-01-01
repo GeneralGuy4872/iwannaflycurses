@@ -1,4 +1,4 @@
-ucoord3list * attractorline(ucoord3 p1, ucoord3 p2,int glyph) {
+ucoord3list * attractorline(ucoord3 p1, ucoord3 p2) {
 
 x = p2[0] - p1[0];
 y = p2[1] - p1[1];
@@ -34,48 +34,3 @@ tail->prev = head;
 	}
 return head;
 }
-
-
-/*unfinished*/
-breshamline(char args,ucoord3 p1,ucoord3 p2,int glyph)
-	int deltx = p1[0] - p0[0];
-	int xdir = sgn(deltx);
-	if (xdir < 0) {
-		deltx *= -1;
-		}
-	int delty = p1[1] - p0[1];
-	int ydir = sgn(delty);
-	if (ydir < 0) {
-		delty *= -1;
-		}
-	int deltz = p1[2] - p0[2];
-	int zdir = sgn(deltz);
-	if (zdir < 0) {
-		deltz *= -1;
-		}
-	
-	/*HR*/
-
-	if ((abs(delty) ≤ 1) && (abs(deltz) ≤ 1)) {
-		goto(goforx);
-		}
-	else if ((abs(deltx) ≤ 1) && (abs(deltz) ≤ 1)) {
-		goto(gofory);
-		}
-	else if ((abs(deltx) ≤ 1) && (abs(delty) ≤ 1)) {
-		goto(goforz);
-		}
-
-	/*HR*/
-
-	goforx:
-	/*for*/{
-	int n = 0;
-	int x = p0[0];
-
-	while ((x != p1[0]) && (n < 100)) {
-		
-	/*and then*/
-	x += xdir;
-	n++;
-	}

@@ -15,6 +15,15 @@ ucoord3list * ucoord3list__new (ucoord3 data) {
 	new->z = data[2];
 	return new;
 
+ucoord3list * ucoord3list__new_int (int x,int y,int z) {
+	ucoord3list * new = malloc(sizeof(ucoord3list));
+	new->prev = NULL;
+	new->next = NULL;
+	new->x = x;
+	new->y = y;
+	new->z = z;
+	return new;
+
 
 ucoord3list * ucoord3list__head_push_raw (ucoord3list * head,ucoord3list * new) {
 	new->prev = NULL;
@@ -23,7 +32,8 @@ ucoord3list * ucoord3list__head_push_raw (ucoord3list * head,ucoord3list * new) 
 	return new;
 	}
 
-#define ucoord3list__head_push_new(X,Y) ucoord3list__head_push_raw(X,ucoord3list__new(Y))
+#define ucoord3list__head_push_new(A,B) ucoord3list__head_push_raw(A,ucoord3list__new(B))
+#define ucoord3list__head_push_int(A,X,Y,Z) ucoord3list__head_push_raw(A,ucoord3list__new_int(X,Y,Z))
 
 ucoord3list * ucoord3list__head_pop (ucoord3list * head) {
 	ucoord3list * output = head->next;
@@ -63,7 +73,8 @@ ucoord3list * ucoord3list__tail_push_raw (ucoord3list * tail,ucoord3list * new) 
 	return new;
 	}
 
-#define ucoord3list__tail_push_new(X,Y) ucoord3list__tail_push_raw(X,ucoord3list__new(Y))
+#define ucoord3list__tail_push_new(A,B) ucoord3list__tail_push_raw(A,ucoord3list__new(B))
+#define ucoord3list__tail_push_int(A,X,Y,Z) ucoord3list__tail_push_raw(A,ucoord3list__new_int(X,Y,Z))
 
 ucoord3list * ucoord3list__tail_pop(ucoord3list * tail) {
 	ucoord3list * output = tail->prev;
@@ -112,7 +123,8 @@ ucoord3list * ucoord3list__insert_after_raw (ucoord3list * after,ucoord3list * n
 		}
 	}
 
-#define ucoord3list__insert_after_new(X,Y) ucoord3list__insert_after_raw(X,ucoord3list__new(Y))
+#define ucoord3list__insert_after_new(A,B) ucoord3list__insert_after_raw(A,ucoord3list__new(B))
+#define ucoord3list__insert_after_int(A,X,Y,Z) ucoord3list__insert_after_raw(A,ucoord3list__new_int(X,Y,Z))
 			
 ucoord3list * ucoord3list__insert_before(ucoord3list * before,ucoord3list * new) {
 	if (before->next == NULL) {
@@ -129,7 +141,8 @@ ucoord3list * ucoord3list__insert_before(ucoord3list * before,ucoord3list * new)
 		}
 	}
 
-#define ucoord3list__insert_before_new(X,Y) ucoord3list__insert_before_raw(X,ucoord3list__new(Y))
+#define ucoord3list__insert_before_new(A,B) ucoord3list__insert_before_raw(A,ucoord3list__new(B))
+#define ucoord3list__insert_before_int(A,X,Y,Z) ucoord3list__insert_before_raw(X,ucoord3list__new_int(X,Y,Z))
 
 ucoord3list * ucoord3list__drop(ucoord3list * deadbeef) {
 	if (deadbeef->next != NULL) {
@@ -227,7 +240,8 @@ scoord3list * scoord3list__head_push_raw (scoord3list * head,scoord3list * new) 
 	return new;
 	}
 
-#define scoord3list__head_push_new(X,Y) scoord3list__head_push_raw(X,scoord3list__new(Y))
+#define scoord3list__head_push_new(A,B) scoord3list__head_push_raw(A,scoord3list__new(B))
+#define scoord3list__head_push_int(A,X,Y,Z) scoord3list__head_push_raw(A,scoord3list__new_int(X,Y,Z))
 
 scoord3list * scoord3list__head_pop (scoord3list * head) {
 	scoord3list * output = head->next;
@@ -267,7 +281,8 @@ scoord3list * scoord3list__tail_push_raw (scoord3list * tail,scoord3list * new) 
 	return new;
 	}
 
-#define scoord3list__tail_push_new(X,Y) scoord3list__tail_push_raw(X,scoord3list__new(Y))
+#define scoord3list__tail_push_new(A,B) scoord3list__tail_push_raw(A,scoord3list__new(B))
+#define scoord3list__tail_push_int(A,X,Y,Z) scoord3list__tail_push_raw(X,scoord3list__new_int(X,Y,Z))
 
 scoord3list * scoord3list__tail_pop(scoord3list * tail) {
 	scoord3list * output = tail->prev;
@@ -316,7 +331,8 @@ scoord3list * scoord3list__insert_after_raw (scoord3list * after,scoord3list * n
 		}
 	}
 
-#define scoord3list__insert_after_new(X,Y) scoord3list__insert_after_raw(X,scoord3list__new(Y))
+#define scoord3list__insert_after_new(X,Y) scoord3list__insert_after_raw(A,scoord3list__new(B))
+#define scoord3list__insert_after_int(A,X,Y,Z) scoord3list__insert_after_raw(A,scoord3list__new_int(X,Y,Z))
 			
 scoord3list * scoord3list__insert_before(scoord3list * before,scoord3list * new) {
 	if (before->next == NULL) {
@@ -333,7 +349,8 @@ scoord3list * scoord3list__insert_before(scoord3list * before,scoord3list * new)
 		}
 	}
 
-#define scoord3list__insert_before_new(X,Y) scoord3list__insert_before_raw(X,scoord3list__new(Y))
+#define scoord3list__insert_before_new(A,B) scoord3list__insert_before_raw(A,scoord3list__new(B))
+#define scoord3list__insert_before_int(A,X,Y,Z) scoord3list__insert_before_raw(A,scoord3list__new_int(X,Y,Z))
 
 scoord3list * scoord3list__drop(scoord3list * deadbeef) {
 	if (deadbeef->next != NULL) {
