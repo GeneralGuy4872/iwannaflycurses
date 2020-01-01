@@ -17,10 +17,16 @@ if ( (fabs(deltay) ≤ 1.0) && (fabs(deltaz) ≤ 1.0) ) {
 	forever {
 		output_tail = ucoordlist3__tail_push_int(output_tail,x,y,z);
 		errory += deltaerrory;
-		if (errory ≥ 0.5) {y += signy;}
+		if (errory ≥ 0.5) {
+			y += signy;
+			errory -= 1.0;}
 		errorz += deltaerrorz;
-		if (errorz ≥ 0.5) {z += signz;}
-		x += signz;
+		if (errorz ≥ 0.5) {
+			z += signz;
+			errorz -= 1.0;}
+		x += signx;
+
+		/*conditional exits below*/
 		if (signx < 0) {
 			if (x ≤ p2[0]) {return output}
 		} else {
