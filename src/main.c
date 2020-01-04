@@ -643,7 +643,7 @@ basentyp (*montable[256])[16] = {
  * Y : yeti, bigfoot,
  * y : ape, monkey, gorilla, chimp, leamur,
  * Z : <zombies>
- * {}: /(flesh|straw|clay|stone|glass|paper|leather) golem/, /(gold|copper|finite-state) automaton/, chest monster,
+ * {}: /(flesh|straw|clay|stone|glass|paper|leather) golem/, /(gold|copper|silver|brass|bronze|pewter|tin|lead|iron|steel|finite-state) automaton/, chest monster,
  * ? : mystery person
  * «»: bass, trout, salmon, tuna, carp, pike, halibut, herring, cod
  * × : lizard, geko, skink, 
@@ -857,7 +857,20 @@ A_INVIS is not able to be seen
 A_REVERSE video is a magic spell's area of effect
 A_UNDERLINE is the shadow of an entity
 
-text that is cat-ed from an nfo file, or otherwise printed using stdio, will not be restricted to ncurses formatting,
+(unimplemented)
+for playing a musical instrument:
+1234567 play a note on a diatonic scale
+prefixing with / makes the note one half-step flat
+prefixing with * makes the note one half-step sharp
+prefixing with - makes the note one quarter-step flat
+prefixing with + makes the note one quarter-step sharp
+prefixing with < makes the note one octave lower
+prefixing with > makes the note one octave higher
+the symbols must be entered in the order [<>][-+][*/][1234567]
+
+(mostly obsolete)
+text that is cat-ed from an nfo file, or otherwise printed using stdio,
+will not be restricted to ncurses formatting,
 and will use the full range of ANSI SGR escape codes
 
 rune symbols
@@ -879,7 +892,6 @@ directional symbols:
 ↹ different plane;
 ◬, ⍫, △, ▽, ⋇, ↯, ♤, ♻, ☼, ☽, ∅, inner planes;
 LG, NG, CG, LN, CN, LE, NE, CE, TN, UN, ☠, outer planes;
-
 
 /*blackbox*/playervelocitycheck() velocitycheck(*entity)
 	/* if you have a nonzero velocity vector, when you try to move

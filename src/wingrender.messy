@@ -6,14 +6,6 @@ X->Y.shape.wingoverride\
   ||\
  (\
   (\
-   basentity->base.skill.fly\
-    ||\
-   (\
-    (baseclass != NULL)\
-     &&\
-    baseclass->bonus.skill.fly\
-   )\
-    ||\
    this->paffect.skill.fly\
     ||\
    this->effect.skill.fly\
@@ -67,8 +59,6 @@ enttyp__wingrender(enttyp * this,basentyp * basentity,baseclasstyp * baseclass,i
 		}
 	else if PREDICATE(this,effect) SWITCH_BODY(this,effect)
 	else if PREDICATE(this,paffect) SWITCH_BODY(this,paffect)
-	else if PREDICATE(baseclass,bonus) SWITCH_BODY(baseclass,bonus)
-	else if PREDICATE(basentity,base) SWITCH_BODY(basentity,base)
 	else {return 0;}
 	if (
 	    ((next_ent_ptr->pos[0] + 1) < MAX_X)

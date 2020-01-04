@@ -394,18 +394,18 @@ unsigned mastery : 2
 
 struct baseclasstyp {
 struct paffectyp bonus
-uchar spd_plus
-uchar air_plus
-struct conlangtyp lang_plus
+uchar spd
+uchar air
+struct conlangtyp lang
 _8BITPTR spell[2]
 bitfield psyattack
 bool mindless : 1
 bool shadow : 1
 bool incoporeal : 1
 bool immortal : 1
-unsigned lde : 3
-unsigned alignment : 9
-unsigned element : 8
+unsigned lde : 3	//grants
+unsigned alignment : 9	//requires
+unsigned element : 8	//grants
 }
 
 struct the8stats:	//8* 5D6
@@ -431,6 +431,30 @@ uchar elecollect[8];
 uchar questcollect[3];
 }
 
+/* note: everything related to players and entitys is
+ * copied into the struct, because it might be changed.
+ * the base entities and base classes are only templates.
+ *
+ * whenever you "rest" in-game, all entities are re-verified;
+ * meaning that all effect registers are recalculated. this
+ * has the side effect of removing any non-item based buffs
+ * and debuffs. this should be one of the only times that
+ * a baseclasstyp or basentyp are referenced; the others
+ * being adding a class, looseing a class, advancing in a class,
+ * polymorphing, polylocking, by the renderer,
+ * and when spawning a new entity.
+ *
+ * some stats are spread out accross multiple fields in the structure;
+ * most effects have one field for permenant and one field for temporary
+ * versions of the effect. a handful of alteration spells have a third
+ * register, with the polymorph stack, for timed spells, since the
+ * other temporary slot has no timer.
+ *
+ * nearly all fields of the player struct are created by COMBINING the
+ * basentyp and baseclasstyp chosen at the creation of the savefile.
+ * the remainder are based on backstory and user input.
+ */
+
 struct playertyp:
 char * name
 classtyp class[3]
@@ -439,8 +463,8 @@ agetyp age
 struct shiftstackobj race
 ucoord3 pos
 polar facing
-vector3 velo
-float carryover	//leftover moves; never exceeds 2
+uchar spd
+float carryover	//leftover moves; maximum of 5
 paffectyp permenent
 effectyp fromequip
 trackalignplayertyp align
@@ -492,8 +516,7 @@ uchar hplvl
 uchar mplvl
 uchar xplvl
 uchar airmax	//how long you can hold your breath
-struct conlangtyp lang0
-struct conlangtyp lang1
+struct conlangtyp lang[2]
 _8BITPTR spell[4]
 bitfield psyattack
 char16_t sprite
@@ -531,7 +554,7 @@ aggrotyp aggro
 struct shiftstackobj race
 ucoord3 pos
 polar facing
-vector3 velo
+uchar spd
 float carryover
 paffectyp paffect
 effectyp effect
@@ -574,7 +597,7 @@ aggrotyp aggro
 struct shiftstackobj race
 ucoord3 pos
 polar facing
-vector3 velo
+uchar spd
 float carryover
 paffectyp permenent
 effectyp fromequip
@@ -818,7 +841,6 @@ bool atkwing : 1;	//affects unarmed attacks, swimming, flying
 bool bite : 1;
 bool breath : 1;
 bool engulf : 1;
-bool wingoveride : 1;	//needed because the next paramaters can't simply be maxed/ORed together
 bool permwings : 1;
 bool wingsign : 1;
 unsigned wingtype : 2;

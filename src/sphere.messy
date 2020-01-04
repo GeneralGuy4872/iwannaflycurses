@@ -1,0 +1,55 @@
+shadowmask ucoord3__sphere(ucoord3 omega,int r) {
+	shadowmask output;
+	ucoord2 xy[8],xz[8],yz[8];
+	for (int i = 0;;i++) {
+		xy[0][0] = omega[0] + i;
+		xy[0][1] = omega[1];
+		 xy[1][0] = omega[0];
+		 xy[1][1] = omega[1] - i;
+		xy[2][0] = omega[0];
+		xy[2][1] = omega[1] + i;
+		 xy[3][0] = omega[0] + i;
+		 xy[3][1] = omega[1];
+		xy[4][0] = omega[0] - i;
+		xy[4][1] = omega[1];
+		 xy[5][0] = omega[0];
+		 xy[5][1] = omega[1] - i;
+		xy[6][0] = omega[0];
+		xy[6][1] = omega[1] + i;
+		 xy[7][0] = omega[0] - i;
+		 xy[7][1] = omega[1];
+		/**HR**/
+		xz[0][0] = omega[0] + i;
+		xz[0][1] = omega[2];
+		 xz[1][0] = omega[0];
+		 xz[1][1] = omega[2] - i;
+		xz[2][0] = omega[0];
+		xz[2][1] = omega[2] + i;
+		 xz[3][0] = omega[0] + i;
+		 xz[3][1] = omega[2];
+		xz[4][0] = omega[0] - i;
+		xz[4][1] = omega[2];
+		 xz[5][0] = omega[0];
+		 xz[5][1] = omega[2] - i;
+		xz[6][0] = omega[0];
+		xz[6][1] = omega[2] + i;
+		 xz[7][0] = omega[0] - i;
+		 xz[7][1] = omega[2];
+		/**HR**/
+		yz[0][0] = omega[1] + i;
+		yz[0][1] = omega[2];
+		 yz[1][0] = omega[1];
+		 yz[1][1] = omega[2] - i;
+		yz[2][0] = omega[1];
+		yz[2][1] = omega[2] + i;
+		 yz[3][0] = omega[1] + i;
+		 yz[3][1] = omega[2];
+		yz[4][0] = omega[1] - i;
+		yz[4][1] = omega[2];
+		 yz[5][0] = omega[1];
+		 yz[5][1] = omega[2] - i;
+		yz[6][0] = omega[1];
+		yz[6][1] = omega[2] + i;
+		 yz[7][0] = omega[1] - i;
+		 yz[7][1] = omega[2];
+		/**HR**/
