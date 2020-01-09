@@ -1,8 +1,8 @@
-{"magic-user","magic-users"},
-{"wizard","wizards"},
-{"illusionist","illusionists"},
-{"enchanter","enchanters"},
-{"black mage","black mages"},
-{"red mage","red mages},
-{"psion","psions"},
-{"necromancer","necromancers"}
+{"magic-user","","s"},
+{"wizard","","s"},
+{"illusionist","","s"},
+{"enchanter","","s"},
+{"black mage","","s"},
+{"red mage","","s"},
+{"psion","","s"},
+{"necromancer","","s"}

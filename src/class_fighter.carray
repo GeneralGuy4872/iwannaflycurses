@@ -1,8 +1,8 @@
-{"fighter","fighters"}
-{"knight","knights"},
-{"paladin","paladins"},
-{"valkyrie","valkyries"},
-{"viking","vikings"},
-{"samuri","samuri"},
-{"ranger","rangers"},
-{"monk","monks}
+{"fighter","","s"}
+{"knight","","s"},
+{"paladin","","s"},
+{"valkyrie","","s"},
+{"viking","","s"},
+{"samuri","",""},
+{"ranger","","s"},
+{"monk","","s"}

@@ -48,33 +48,8 @@ cullplane = raycast__cullplane();
 			for (int x = 0;x < MAX_X;x++) {
 				if (ROOM->tiledata[z][y][x] < 0) {
 					mvaddch16(posy,posx,MAINTILES[ROOM->tiledata[z][y][x]]->unichar,(MAINTILES[ROOM->tiledata[z][y][x]]->blink * A_BLINK) | COLOR_PAIR(MAINTILES[ROOM->tiledata[z][y][x]]->color))
-					if (MAINTILES[ROOM->tiledata[z][y][x]]->solid) {
-						set_collision_map(ROOM,x,y,z,true)
-						}
-					else {
-						set_collision_map(ROOM,x,y,z,false)
-						}
-					}
-					if (MAINTILES[ROOM->tiledata[z][y][x]]->liquid) {
-						maskset(z,y,x,ROOM->collisionmap.liquid,true)
-						}
-					else {
-						maskset(z,y,x,ROOM->collisionmap.liquid,false)
-						}
 				else {
 					mvaddch16(posy,posx,ROOM->hightiles[ROOM->tiledata[z][y][x] ^ 0x80]->unichar,(ROOM->hightiles[ROOM->tiledata[z][y][x] ^ 0x80]->blink * A_BLINK) | COLOR_PAIR(ROOM->hightiles[ROOM->tiledata[z][y][x] ^ 0x80]->color))
-					if (ROOM->hightiles[ROOM->tiledata[z][y][x] ^ 0x80]->liquid) {
-						set_collision_map(ROOM,x,y,z,true)
-						}
-					else {
-						set_collision_map(ROOM,x,y,z,false)
-						}
-					if (ROOM->hightiles[ROOM->tiledata[z][y][x] ^ 0x80]->liquid) {
-						maskset(z,y,x,ROOM->collisionmap.liquid,true)
-						}
-					else {
-						maskset(z,y,x,ROOM->collisionmap.liquid,false)
-						}
 					}
 				posx++;
 				}

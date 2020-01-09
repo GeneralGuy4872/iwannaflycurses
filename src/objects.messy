@@ -18,7 +18,7 @@
  * implicit roomstackobj__setswap_ele(roomstackobj*,roomstackele*)	...push the room contained in an element to swap.
  * implicit roomstackobj__makecurrent(roomstackobj*,latlontyp)	...smart swap function. if an element doesn't exist, it is created. if it does, it is moved.
  * roomstackobj__neighbor_query(latlontyp)	...check if a room is in the neighbor register
- * roomstackobj__neighbor_reset()	...set the neighbors register according to the current room
+ * roomstackobj__neighbor_get()	...set the neighbors register according to the current room
  * roomstackobj__neighbor_clear()
  * roomstackobj__neighbor_pull(uchar)	...copy a pointer from the neighbors register to the swapin register and clear the neighbors register
  * roomstackobj__neighbor_pullset(uchar)	...copy a pointer from the neighbors register to the swapin register and repopulate the neighbors register
@@ -125,7 +125,7 @@ roomstackobj__makecurrent(roomstackobj * this,latlontyp query) {
 			roomstackobj__setswap(this,roomgen(query));
 			}
 		}
-	roomstackobj__neighbor_reset();
+	roomstackobj__neighbor_get();
 return 0;}
 
 roomstackobj__scroll(roomstackobj * this,playertyp * you,char dir) {
@@ -141,7 +141,7 @@ roomstackobj__scroll(roomstackobj * this,playertyp * you,char dir) {
 		default : return -1;
 	}
 
-roomstackobj__neighbor_reset (struct roomstack * this) {
+roomstackobj__neighbor_get (struct roomstack * this) {
 	for (int n = 0;n < 6;n++) {
 		for (int i = 0,i < n,i++) {
 			if (this.neighbor[1][i] == this.neighbor[1][n]) {

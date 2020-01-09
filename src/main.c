@@ -102,9 +102,13 @@
  * seem to meet all the requirements, but note: they predate the invention of unicode.
  * 
  * Controls:
+ * - ? show help
  * - number keys move in xy
  * - + or - followed by a number move in xyz
+ * - ++ or -- move in z
  * - < > strafe
+ * - ~ take flight without leaving your current space
+ * - ` land or dive
  * - backspace retreats (winged creatures also take flight)
  * - spacebar attacks
  * - tab picks up items
@@ -125,7 +129,7 @@
  * - F5 toggles dingbats (free action)
  * - . <movement control> face a direction
  * - . ( "<" | ">" ) rotate that direction
- * - . . turn around
+ * - , turn around
  * - \ initiates command entry. free action itself, but most commands are not.
  * more tbd
  *
@@ -319,31 +323,6 @@ char* TERM
  * a default one will be provided, however.
  */
 
-//anonomous pointers, could be anything. they're anonomous.
-struct drum {
-	char data[DRUMSIZE]
-	short top
-	}
-
-void* drumalloc (ptr,amount)
-struct drum ptr
-size_t amount
-{
-if ((ptr->top + amount) ≤ (DRUMSIZE)) {
-	void* output = ptr->data[ptr->top]
-	ptr->top += amount
-	return output
-	}
-else {return NULL}
-}
-
-drumpop (ptr,amount)
-struct drum ptr
-size_t amount
-{
-ptr->top = MAX(ptr->top - amount,0)
-}
-
 setlocale(LC_ALL, "");
 
 initialize() {
@@ -492,7 +471,31 @@ struct odds_n_ends * GLOBOOLS	//shared; may be mmapped
 #define NOON GLOBOOLS->noon
 #define EVE GLOBOOLS->eve
 #define MIDNIT GLOBOOLS->midnit
+char TMPBUFFERS[16][BUFFER_MAX];	//not saved
+uchar TMPBUFFERNEXT;	//not saved
 /*end GLOBALS*/
+
+char * tmpbufferalloc() {
+	char * output = TMPBUFFERS[TMPBUFFERNEXT][0];
+	if (output[0]) {
+		memset(output,0,strlen(output));
+		}
+	TMPBUFFERNEXT = (TMPBUFFERNEXT + 1) & 0x0F;
+	return output;
+	}/* this construct eliminates the need for using dynamic variables
+	  * to pass buffers, and thus eliminates the possibility of memory
+	  * leaks from doing so poorly. as a trade-off, however, only 16
+	  * strings may be held in the pseudoregisters at a time before
+	  * being overwritten. there is no conceivable reason this should
+	  * be a problem, however, with the paradigms I am working under.
+	  */
+
+char * getname(pluralwords this,bool plural) {
+	char * output = tmpbufferalloc();
+	strcpy(output,this[0]);
+	strcat(output,this[1 + plural]);
+	return output;
+	}
 
 bool ticktock() {
 TURN++;
@@ -558,7 +561,7 @@ char* psystabs[8] = {"detect alignment","charm","psychic lock","sleep","mind bla
 uchar id
 //switch case for each psionic ability
 
-char (*classnametable[2])[8][4] = {
+pluralwords classnametable[8][4] = {
 	{
 #include "class_rogue.carray"
 	},{
@@ -571,7 +574,7 @@ char (*classnametable[2])[8][4] = {
 
 struct baseclasstyp classtable[4][8][4];
 
-char (*monstabs[2])[256][16] = {
+pluralwords monstabs[256][16] = {
 #include "monster0.carray"
 	},{
 #include "monster1.carray"
@@ -580,14 +583,8 @@ char (*monstabs[2])[256][16] = {
 }}
 
 basentyp (*montable[256])[16] = {
-/* contains all polymorphable monsters, of type BASENTYPE.
- * all C0 controls should be valid starting races, or left empty,
- * any polymorphable race can BECOME your base race...
- * 
- * if you become polylocked to a non-player race, your class will be removed.
- * becoming polylocked to one of the C0 entrys has no negative effects.
- * commands can change your base race without negative side effects
- */
+// contains all polymorphable monsters, of type BASENTYPE.
+}
 
 /* MONSTERS BY LETTER
  * & : horned devil, balrog, jubilix, kerr,
@@ -596,10 +593,10 @@ basentyp (*montable[256])[16] = {
  * a : newt, salamander, frog, 
  * B : bear, polar bear, owlbear,
  * b : mockingbird, parkeet, parrot, macaw, cockatoo, songbird, sparrow, starling, jay, magpie, jackdaw,
- * C : satyr, centaur,
+ * C : satyr, centaur, minotaur,
  * c : chickatrice, cockatrice, pyrolisk,
  * D : /(△red|↯copper|◬white|*cyan|▽blue|♠green|⍫brown|$gold|☽black|☼silver|∅grey) dragon/,
- * d : hellhound, wolf, dire wolf, dog, fox, cyote,
+ * d : hellhound, wolf, dire wolf, dog, fox, cyote, dingo,
  * E : <elementals>, stalker,
  * e : floating eye,
  * F : panther, lion, tiger, manticore, cat, lynx, bobcat,
@@ -618,16 +615,16 @@ basentyp (*montable[256])[16] = {
  * l : leprachaun,
  * M : elephant, mammoth, rhino,
  * m : <mummies>
- * N : naga, half dragon,
+ * N : naga, half dragon, cecaelia,
  * n : merfolk, naiad, dryad, sea siren,
  * O : orc, half orc, uruk-hai, ogre,
  * o : ostrich, emu, moa,
  * P : dolphin, narwhal, orca, beluga,
  * p : penguin, puffin, auk, albatross,
- * Q : fiend, drider, erinys, tiefling,
+ * Q : fiend, drider, erinys, tiefling, scorpio,
  * q : quasit, imp, homunculus,
  * R : eagle, falcon, owl, kite, vulture, phoenix, raven, rook, crow,
- * r : mouse, rat, dire rat, raccoon, badger, opossum, platypus, groundhog, 
+ * r : mouse, rat, dire rat, raccoon, badger, opossum, platypus, groundhog, tasmanian devil,
  * S : shark, stingray, swordfish, barracuda, eel,
  * s : copperhead, cobra, rattlesnake, python, boa, viper, coral snake, king snake, anaconda,
  * T : lurker above, trapper, wallmaster, rust monster,
@@ -648,10 +645,12 @@ basentyp (*montable[256])[16] = {
  * «»: bass, trout, salmon, tuna, carp, pike, halibut, herring, cod
  * × : lizard, geko, skink, 
  * ÷ : lobster, crab, shrimp,
- * £ : justice. (strictly-lawful neutral)
- * ⊜ : [spoiler]
- * ¶ : da fuzz. (lawful neutral)
+ * ✯ : [spoiler]
+ * ✰ : [spoiler]
+ * ✪ : [spoiler]
  * Ω : [spoiler]
+ * ⏄ : justice. (strictly-lawful neutral)
+ * ¶ : da fuzz. (lawful neutral)
  * ⑄ : retribution. (chaotic neutral)
  * ∀ : ox, cow, pig, buffalo, goat, sheep,
  * ∄ : fear itself. (neutral somewhat-evil)
@@ -665,8 +664,7 @@ basentyp (*montable[256])[16] = {
  * ≷?≶ ≶?≷ <?> >?< ≤?≥ ≥?≤ ≪?≫ ≫?≪ wings
  * some wings disappear when not flying; others are permenantly visable
  *
- * z : asleep
- * not rendered in the pgup or pgdn views
+ * z indicates an entity is asleep. it is not rendered in pgup or pgdn view.
  *
  * these are rendered before (under) entities, but after tiles on each slice.
  */
@@ -699,6 +697,45 @@ char* conlangtab[32] = {"common language","middle elvish","old elvish","dwarvish
 char* wandmaterials[16] = {"oak","ash","yew","honeylocust","silver","bronze","iron","orichalcum","marble","bone","dragon fang","unicorn horn","glass","lead crystal","adamantine","stardust"} //stoning -> marble
 
 char* baubmaterials[8] = {"yew","bronze","silver","gold","soapstone","ivory","obsidian","stardust"} //stoning -> soapstone
+
+bool get_collision_map (roomtyp * this,char x,char y,char z) {
+	if (z < this->ceiling) {
+		switch (z) : {
+			case 0 : return this->collisionmap.solid[y + 1][x + 1] & 0x8000;
+			case 1 : return this->collisionmap.solid[y + 1][x + 1] & 0x4000;
+			case 2 : return this->collisionmap.solid[y + 1][x + 1] & 0x2000;
+			case 3 : return this->collisionmap.solid[y + 1][x + 1] & 0x1000;
+			case 4 : return this->collisionmap.solid[y + 1][x + 1] & 0x0800;
+			case 5 : return this->collisionmap.solid[y + 1][x + 1] & 0x0400;
+			case 6 : return this->collisionmap.solid[y + 1][x + 1] & 0x0200;
+			case 7 : return this->collisionmap.solid[y + 1][x + 1] & 0x0100;
+			case 8 : return this->collisionmap.solid[y + 1][x + 1] & 0x0080;
+			case 9 : return this->collisionmap.solid[y + 1][x + 1] & 0x0040;
+			case 0xA : return this->collisionmap.solid[y + 1][x + 1] & 0x0020;
+			case 0xB : return this->collisionmap.solid[y + 1][x + 1] & 0x0010;
+			case 0xC : return this->collisionmap.solid[y + 1][x + 1] & 0x0008;
+			case 0xD : return this->collisionmap.solid[y + 1][x + 1] & 0x0004;
+			case 0xE : return this->collisionmap.solid[y + 1][x + 1] & 0x0002;
+			case 0xF : return this->collisionmap.solid[y + 1][x + 1] & 0x0001;
+			default : return 0;
+			}
+		}
+	else if (z == this->ceiling) {
+		div_t tmp = div(x,8);
+		switch (tmp.quot) : {
+			case 0 : return this->collisionmap.holes[y][tmp.rem] & 0x80;
+			case 1 : return this->collisionmap.holes[y][tmp.rem] & 0x40;
+			case 2 : return this->collisionmap.holes[y][tmp.rem] & 0x20;
+			case 3 : return this->collisionmap.holes[y][tmp.rem] & 0x10;
+			case 4 : return this->collisionmap.holes[y][tmp.rem] & 0x08;
+			case 5 : return this->collisionmap.holes[y][tmp.rem] & 0x04;
+			case 6 : return this->collisionmap.holes[y][tmp.rem] & 0x02;
+			case 7 : return this->collisionmap.holes[y][tmp.rem] & 0x01;
+			default : return 0;
+			}
+		}
+	return 0;
+	}
 
 set_collision_map (roomtyp * this,char x,char y,char z,bool q) {
 	if (z < this->ceiling) {
@@ -788,14 +825,14 @@ set_collision_map (roomtyp * this,char x,char y,char z,bool q) {
 		}
 	}
 
-char* gemcolors[2][8] = {
+pluralwords gemcolors[24] = {
 #include "gemstones.carray"
 } //stoning has no effect
 /* cut varys by color:
- * diamond = {uncut,cushion-cut,princess-cut,perfect-cut}
- * beryls,emerald={uncut,oval-cut,emerald-cut,teardrop} redundancy of emerald-cut emerald is redundant
- * amythest={geode,prismatic,cushion-cut,teardrop}
- * jet,turquoise={piece of,byzantine,polyhedral,carved relif in}
+ * diamonds = {uncut,cushion-cut,princess-cut,perfect-cut}
+ * beryls,corundums,olivine,topaz = {uncut,oval-cut,emerald-cut,teardrop} (redundancy of emerald-cut emerald is redundant)
+ * quartzes = {geode,prismatic,cushion-cut,teardrop}
+ * others = {piece of,byzantine,polyhedral,carved relif in}
  */
 
 /*blackbox*/radius
@@ -825,20 +862,20 @@ or pointers (which are volatile state)
 an UNDERLINE is a shadow
 
 note: unicode symbols are (mostly) used be their appearence, not by their meaning
-) is a sword or dagger. ⍏ are polearms. ! is a staff. ⇞ is a club or mace. ℓ is a whip. ␋ is a flail. ( is a bow. ⇤ is an arrow. ⇲ is a writing instrument.
-⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves. ☜☝☞☟ is a gauntlet. % is meat. ± is food (don't shoot it). $ is gold. ¢ is copper.
-⌘ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♫ is a lyre. ƒ is a violin. ♪ is a lute. ≣ is a staircase or ladder.
-¿ are potions (fragile). ∫ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet. ¬ is a crown.
+) is a sword or dagger. ⍏ are polearms. | is a staff. ⇞ is a club or mace. ℓ is a whip. ↸ is a flail. ( is a bow. ➵ is an arrow. ⇲ is a writing instrument.
+⟦ is armor. [ is clothing. ] is a shield. ⟧ are cannons or greeves. ☜☝☞☟ is a gauntlet. % is meat. ± is food (don't shoot it). £ $ ſ ¢ ¼ ½ ⅛ are coins
+⌘ is a misc item. ↧ is a digging tool. ⌥ is a key or lockpick. ♫ is a lyre. ƒ is a violin. ♪ is a lute. ≣ is a staircase. # is a ladder.
+¿ are potions (fragile). ∫ is a scroll. ⊒ is a book. ∩ is a tablet. ° is a ring. º is a bracelet. ª is an amulet. ^ is a crown.
 ¡ is a wand. ⋎ is a fountain or gyser. ⍾ is a bell. ⎋ is a clockface. ♠ ♣ ‡ are trees. ⋏ is fire. ♜ is a pedestal.
-≋ is deep liquid's surface. ∬ is a waterfall. ≈ is a shallow liquid's surface, or a deep liquid below surface. ~ (centered) is a puddle. 
-⌁ is electricity. * is ice. ⎈ spider web. ⌬ beehive. ↥ are spikes. ⎙ ⍝ ⎍ ∎ ⎅ are tombstones or signs. ␥ is glass.
-• is a boulder. . is a rock. # ♯ is a rockslide. ◇ is a gemstone. ◊ is a giant magic crystal. ? is somone wearing a cowled cloak.
+≋ is deep liquid's surface. ∬ is a waterfall. ≈ is a shallow liquid's surface, or a deep liquid below surface. ~ is a puddle. 
+⌁ is electricity. * is ice. ⎈ spider web. ⌬ beehive. ⇫ are wooden spikes. ↥ are metal spikes. ⎙ ⍝ ⎍ ∎ ⎅ are tombstones or signs. ␥ is glass.
+• is a boulder. . is a rock. : is a rockslide. ◇ is a gemstone. ◊ is a giant magic crystal. ? is somone wearing a cowled cloak.
 ∪ is a sink. ⏍ is a chest. ↯ is the thunderbolt. ∅ is a spacetime anomaly (do not touch). ⍍ ⍔ are level stairs.
-⇡ ⇣ ← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles, or facing direction. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are ballistae. ✪ is a rune. ː ˑ are traps.
-█ ▓ ▒ ░ ▞ ▚ ⣿ (etc) are thick walls or floor. ☁ ≎ are clouds. ☈ is a thundercloud (keep your head out of them). ⁂ is fog.
-^ ␣ are holes. , is a plant. ; is a grain or sunflower (impassable). ⌸ is a door. ⍯ is a locked door. ⎕ is an open door.
-box drawings are low walls or columns. ¦ Ⅲ are iron bars. / \ " are sunbeams. = is a gate. ≠ is a locked gate. : is an open gate
-⍽ is mud. ≃ ≊ is stagnent water (unbreathable). ☯ is a reflecting pool. ⍬ is a mirror. ♄ is an antimagic field.
+⇡ ⇣ ← ↑ → ↓ ↖ ↗ ↘ ↙ are flying projectiles, or facing direction. ⇐ ⇑ ⇒ ⇓ ⇖ ⇗ ⇘ ⇙ are ballistae. ! is a trap. ⁂ is fog.
+█ ▓ ▒ ░ ▞ ▚ ⣿ (etc) are thick walls or floor. = is a board. ≠ is a rotten board. ☁ ≎ are clouds. ☈ is a thundercloud (keep your head out of them).
+` ␣ are holes. , is a plant. ; is a grain or sunflower (impassable). ⍠ is a door or gate. ⌹ is a locked door or gate. ⎕ is an open door or gate.
+box drawings are low walls or columns. ¦ Ⅲ are iron bars. ⊜ is a manhole cover. ♯ is a grate. / \ are sunbeams.
+¬ is mud. ☯ is a reflecting pool. ⍬ is a mirror. ♄ is an antimagic field.
 
 a prompt at launch uses user responce to choose between using ~ or ∼ for centered tilde.
 handling of solid vs outlined symbols will use the solid symbol for a forground different from the background,
@@ -974,7 +1011,7 @@ bool maskfetch(zcoord,ycoord,xcoord,mask)
 uchar zcoord
 uchar ycoord
 uchar xcoord
-shadowmask mask
+shadowmask * mask
 {
 switch (zcoord) : {
 	case 0 : return (bool) (mask[ycoord][xcoord] & 0x8000);

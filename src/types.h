@@ -202,8 +202,16 @@ struct attrcolortyp {
 	short color;
 	}
 
+typedef nanovector {
+signed x : 2
+signed y : 2
+signed z : 2
+signed w : 2
+}
+
 typedef float vector2[2]
 typedef float vector3[3]
+//not implemented
 /* used for velocity, a parameter that holds
  * motion that carries accross turns. this motion
  * is not always cleared after being done; horizontal
@@ -212,19 +220,28 @@ typedef float vector3[3]
  * accumulates and persists until the ground is encountered.
  */
 
-struct polar {
-unsigned az : 3	//azimuth
-signed el : 2	//elevation
-signed slope : 3	//negative is inverse slope, most negative is undefined. defines a cone.
-unsigned r : 5	//radius
-bool omni : 1	//omnidirectional
-bool not : 1	//invert the mask defined by slope
-bool behind : 1	//EQUATOR/2 degrees are added to azimuth
+typedef char *pluralwords[3];
+
+#define MOVETOKEN_LAND 4
+#define MOVETOKEN_FLY 1
+#define MOVETOKEN_SWIM 2
+
+struct selftyp {
+unsigned az : 3
+unsigned phi : 3
+unsigned fov : 2
+unsigned range : 5
+unsigned movetoken : 2
+bool no_air : 1
 }
-/* amoungst other uses, defines the cone of vision
- * and used to generate magic beams
- *
- * for all azimuths:
+
+struct beamtyp {
+unsigned az : 3	//azimuth
+unsigned phi : 3	//elevation in eighth turns. 07 is omnidirectional.
+unsigned ang : 4	//total solid angle of spread in twelfths of a circle.
+unsigned range : 6
+}
+/* for all azimuths:
  *
  * 701
  * 6 2
@@ -341,11 +358,6 @@ latlontyp latlon
 ucoord3 pos
 }
 
-struct moneytyp {
-unsigned gp : 17
-unsigned cp : 7
-}
-
 typedef short trackaligntyp[2]
 typedef short trackalignplayertyp[3]
 /* neutral is the area between -10,000 and 10,000
@@ -356,6 +368,8 @@ typedef short trackalignplayertyp[3]
  *
  * for players, proactivness/passivity is also
  * tracked
+ *
+ * most negative number in both fields is an antagonist
  */
 
 struct bitfield:
@@ -395,6 +409,7 @@ unsigned mastery : 2
 struct baseclasstyp {
 struct paffectyp bonus
 uchar spd
+char airspd
 uchar air
 struct conlangtyp lang
 _8BITPTR spell[2]
@@ -417,6 +432,17 @@ fort : u5
 intl : u5
 wis : u5
 bluff : u5
+
+struct movecount {
+uchar lungs
+uchar spd
+char airspd
+char wspd
+float move
+float fly
+float swim
+uchar breath
+}
 
 struct conlangtype:
 unsigned id : 5
@@ -462,20 +488,17 @@ uchar element
 agetyp age
 struct shiftstackobj race
 ucoord3 pos
-polar facing
-uchar spd
-float carryover	//leftover moves; maximum of 5
-paffectyp permenent
-effectyp fromequip
+selftyp etc
+struct movecount move
+paffectyp paffect	//permenant
+effectyp effect	//from equipment
 trackalignplayertyp align
 ushort hp	//they're fun and easy to...wait
 ushort mp
-uchar air
-ushort uptime
 uint32_t xp
 uchar lvl
 short food
-moneytyp gold
+float wallet
 langlistele *lang_ptr
 spellistele *spell_ptr
 heldobjtyp *bag_ptr
@@ -486,11 +509,13 @@ subobjtyp bow	//weapon
 subobjtyp armor	//armor
 subobjtyp cape	//armor
 subobjtyp amul	//baub
-armtyp * arms
-legtyp * legs
+unsigned n_arms : 4
+unsigned n_legs : 4
+armtyp *arms[2]
+legtyp *legs[2]
 
 struct armtyp {
-armtyp * next
+struct armtyp * next
 subobjtyp weap[2]
 subobjtyp ring[2]
 subobjtyp wrist[2]
@@ -511,11 +536,14 @@ ENUM_WRIST_RIGHT}
 struct basentyp:
 aggrotyp aggro	//here, shiftable denotes a monster's aggro state is locked. also gives the value that patience is set to when a monster calms down, the value that cooldown is set to when it is angered, and the default AI.
 paffectyp base
+unsigned n_arms : 4
+unsigned n_legs : 4
 uchar spd	//distance calculations use M_SQRT2 and local SQRT3 for diagonals
+char airspd
 uchar hplvl
 uchar mplvl
 uchar xplvl
-uchar airmax	//how long you can hold your breath
+uchar air	//how long you can hold your breath
 struct conlangtyp lang[2]
 _8BITPTR spell[4]
 bitfield psyattack
@@ -553,16 +581,15 @@ uchar element
 aggrotyp aggro
 struct shiftstackobj race
 ucoord3 pos
-polar facing
-uchar spd
-float carryover
+selftyp etc
+struct movecount move
 paffectyp paffect
 effectyp effect
 ushort hp
-uchar air
+ushort mp
 uint32_t xp
 uchar lvl
-moneytyp gold
+float wallet
 oneobjtyp loot
 oneobjtyp helm
 subobjtyp shield
@@ -570,8 +597,10 @@ subobjtyp bow
 subobjtyp armor
 subobjtyp cape
 subobjtyp amul
-armtyp * arms
-legtyp * legs
+unsigned n_arms : 4
+unsigned n_legs : 4
+armtyp *arms[2]
+legtyp *legs[2]
 
 struct npctyp {
 (self) *prev
@@ -596,19 +625,17 @@ uchar element
 aggrotyp aggro
 struct shiftstackobj race
 ucoord3 pos
-polar facing
-uchar spd
-float carryover
+selftyp etc
+struct movecount move
 paffectyp permenent
 effectyp fromequip
 trackaligntyp align
 ushort hp
 ushort mp
-uchar air
 uint32_t xp
 uchar lvl
 short food
-moneytyp gold
+float wallet
 bitfield psyattack
 oneobjtyp holding
 oneobjtyp helm
@@ -617,8 +644,10 @@ subobjtyp bow
 subobjtyp armor
 subobjtyp cape
 subobjtyp amul
-armtyp * arms
-legtyp * legs
+unsigned n_arms : 4
+unsigned n_legs : 4
+armtyp *arms[2]
+legtyp *legs[2]
 
 struct spawntyp:
 npctyp * depth
@@ -635,8 +664,10 @@ subobjtyp bow
 subobjtyp armor
 subobjtyp cape
 subobjtyp amul
-armtyp * arms
-legtyp * legs
+unsigned n_arms : 4
+unsigned n_legs : 4
+armtyp *arms[2]
+legtyp *legs[2]
 
 struct oneobjtyp {
 objid type
@@ -739,7 +770,7 @@ magictyp type
 char cost_typ : 2 //0 = at will, 1 = gold, -1 = mp, -2 = hp
 unsigned cost_amnt : 6
 potiontyp effect
-missiletyp delivery
+beamtyp delivery
 intptr_t polyref : 8
 
 struct psytyp:
@@ -752,12 +783,12 @@ struct missiletyp:
 bool psion : 1
 bool vamp : 1
 unsigned damage : 8
-signed recoil : 7
-unsigned spread : 2 //0 = line, 1 = narrow (1:3), 2 = wide (1:2), 3 = very wide (1:1)
+signed recoil : 8
+unsigned range : 6
+unsigned spread : 4
 unsigned splash : 3 //radius of damage on impact
-bool spz : 1 //spread and splash in the z plane.
 bool dig : 1 
-//if (.spread != 0), slope = 4-.spreaad
+}
 
 struct baseweaptyp:
 bool fire : 1
@@ -908,10 +939,9 @@ char spatk
 char def
 char spdef
 
-struct paffectyp
+struct paffectyp:
 the8stats eight
 bodytyp shape
-nibbles n_arms_legs
 elixtyp ails_ya
 resistyp resist
 sensetyp sense
@@ -1003,9 +1033,9 @@ char* tiledata[][MAX_Y][MAX_X]
 unsigned ceiling : 4
 unsigned bgcolor : 3
 bool visited : 1
-shadowmask seen
-shadowmask light
-collimaptyp collimap
+shadowmask * seen
+shadowmask * light
+shadowmask * collimap	//entity collision mask
 encontyp *encon_ptr
 enttyp *ent_ptr
 eventtyp *ev_ptr
@@ -1077,12 +1107,11 @@ typedef uchar collisionmapholes[MAX_Y][MAX_X/8]
 
 struct collisionmaptyp {
 	collisionmapcols solid
-	shadowmask liquid
 	collisionmapholes holes
 	shadowmask ents
 	}
 
-typedef tilemeta* tileset[128]
+typedef tilemeta tileset[128]
 
 struct tilemeta {
 bool ladder : 1
@@ -1400,7 +1429,7 @@ SUBWARP_FLAG : contains subwarptyp
 CHEST_FLAG : contains chestyp
 DOOR_FLAG : contains doortyp
 LOCK_FLAG : contains locktyp (gates are this)
-MONEY_FLAG : contains moneytyp
+MONEY_FLAG : contains float
 SPAWN_FLAG : contains spawntyp
 SIGN_FLAG : contains signtyp
 

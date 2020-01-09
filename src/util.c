@@ -1,5 +1,3 @@
-skip () {}
-
 /*---INTERGALS---*/
 
 signed __attribute__((const)) max(signed a,signed b) {

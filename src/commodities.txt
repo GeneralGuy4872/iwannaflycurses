@@ -1,0 +1,177 @@
+magnetite
+haematite
+limonite
+akome
+masa
+cuprite
+malachite
+stibnite
+calamine
+galena
+nickeline
+chromite
+cinnabar
+wolframite
+charcoal
+bitumous
+andersite	//contains jets if powdered
+graphite	//contains carbonados if powdered or burned
+manganese
+sulphur
+spiegeleisen
+meteorite	//contains stardust if powderized
+lapis lazuli
+red ocher
+yellow ocher
+bauxite
+sphalerite
+acanthite
+arquerite
+natural gold
+natural brass
+orichalcum
+ilmenite
+indigo
+tyrian purple
+kermes
+woad
+woad seed
+weld
+weld seed
+madder
+madder seed
+henna
+logwood
+saffron
+saffron seed
+titania
+gypsum
+gold dust
+stardust
+silk, thread
+silk, yarn
+silk, bolt
+spider silk, silver, thread
+spider silk, silver, yarn
+spider silk, silver, bolt
+spider silk, gold, thread
+spider silk, gold, yarn
+spider silk, gold, bolt
+spider silk, rope
+cotton, fluff	//also seeds
+cotton, thread
+cotton, yarn
+cotton, fabric
+cotton, rope
+linseed	//contains linseed oil if "powderized"
+linseed oil
+flax, thread
+flax, yarn
+flax, rope
+rayon, thread
+rayon, yarn
+rayon, fabric
+rayon, rope
+wool, fluff
+wool, thread
+wool, yarn
+wool, bolt
+coir, fiber	//coconut
+coir, twine
+coir, rope
+jute seed
+jute, fiber
+jute, twine
+jute, rope
+linen
+burlap
+pigiron ingot
+iron ingot
+iron plate
+carbon steel ingot	//flattens to steel plate
+sword steel ingot
+spring steel ingot
+tool steel ingot	//flattens to steel plate
+stainless steel ingot	//flattens to stainless steel plate
+damascus steel ingot
+steel plate
+stainless steel plate
+copper billet	//flattens to copper plate
+bronze billet	//flattens to bronze plate
+brass billet	//flattens to brass plate
+copper plate
+bronze plate
+brass plate
+gold ingot	//powders to gold dust, flattens to goldfoil
+silver ingot
+electrum ingot
+tin ingot	//flattens to tinfoil
+bellmetal billet
+ferrochrome ingot
+nickel ingot
+aluminum billet
+aluminum plate
+tungsten ingot
+titanium ingot	//flattens to titanium plate
+titanium gold ingot	//flattens to titanium gold plate
+titanium plate
+titanium gold plate
+fine pewter ingot
+ley pewter ingot
+aluminum amalgam
+gold amalgum
+gold foil
+tinfoil
+flint
+slate
+obsidian
+flugurite	//lightning glass
+bone	//metadata enabled
+tusk	//metadata enabled
+horn	//metadata enabled
+antler	//metadata enabled
+leather	//metadata enabled
+tooth	//metadata enabled
+feathers	//metadata enabled
+stick	//metadata enabled
+log	//metadata enabled
+gear	//metadata enabled
+spring
+hairspring
+clay
+papyrus
+paper
+brick
+tablet
+pumice
+limestone block	//contains flint if powderized
+dolomite block	//contains flint if powderized
+soapstone block
+marble block
+sandstone block
+quartzite block	//contains quartz (assorted) if powderized
+granite block
+gabbro block
+basalt column
+kimberlite chunk	//contains diamonds if powderized
+peridotite chunk	//contains peridots if powderized
+flint arrowhead
+obsidian arrowhead
+brass arrowhead
+bronze arrowhead
+steel arrowhead
+titanium arrowhead
+bone spearhead
+ivory spearhead
+copper spearhead
+bronze spearhead
+brass spearhead
+iron spearhead
+steel spearhead
+stainless steel spearhead
+damascus steel spearhead
+titanium spearhead
+stone hammerhead
+brass hammerhead
+iron hammerhead
+steel hammerhead

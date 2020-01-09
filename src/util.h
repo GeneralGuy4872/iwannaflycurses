@@ -1,5 +1,7 @@
 #ifndef UTIL_H_REENTERANT
 #define UTIL_H_REENTERANT 1
+
+#define UTIL_BEEP printf("\a")
 skip () {}
 
 extern signed max(signed a,signed b);
