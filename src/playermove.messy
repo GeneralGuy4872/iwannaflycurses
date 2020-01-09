@@ -29,8 +29,7 @@ playertyp__movecheck (playertyp * this,roomstackobj * roomstack,tileset * mainti
 		if (!(this->paffect.skill.swim || this->effect.skill.swim) {
 			x = 0;
 			y = 0;
-			z = 0;
-			this->etc.movetoken = 0;
+			z = -1;
 			}
 		}
 	else if (this->etc.movetoken & MOVETOKEN_FLY) {
@@ -260,9 +259,7 @@ playertyp__movecheck (playertyp * this,roomstackobj * roomstack,tileset * mainti
 			}
 		/*****/
 		default :
-			raise(SIGBUS);
-	/**********/
-	invalidwarp:
-		
+			raise(SIGSEGV);
+	/**********/		
 	}
 #define playermovecheck(X,Y,Z,W) playertyp__movecheck(PLAYER,ROOM,MAINTILES,X,Y,Z,W)
