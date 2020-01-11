@@ -1,3 +1,9 @@
+/* todo:
+ * tools implementation as a pair of arrays;
+ * one array of normal item data
+ * and a second that is a dispatch table.
+ */
+
 #ifndef IWANNAFLY_TYPES_H_REENTRANT
 #define IWANNAFLY_TYPES_H_REENTRANT 1
 
@@ -230,9 +236,10 @@ struct selftyp {
 unsigned az : 3
 unsigned phi : 3
 unsigned fov : 2
-unsigned range : 5
+unsigned range : 6
 unsigned movetoken : 2
-bool no_air : 1
+unsigned gravdir : 3 //not implemented
+char : 0 // 5 pad
 }
 
 struct beamtyp {
@@ -434,14 +441,26 @@ wis : u5
 bluff : u5
 
 struct movecount {
-uchar lungs
-uchar spd
-char airspd
-char wspd
-float move
-float fly
-float swim
-uchar breath
+uchar lungs //number of turns that you can go without air.
+uchar spd //added to move each turn
+char airspd	/* if this is negative, then it's value is immediately
+		 * subtracted from move whenever flying is attempted.
+		 * otherwise, added to fly each turn
+		 */
+char knots //ditto but added to swim
+float move //value is capped at 2*spd
+float fly 	/* carries the extra moves that can be used in the air;
+		 * they are used first when applicable
+		 */
+float swim //ditto but used in water
+scoord3 skillgain	/* [0] = ground, [1] = water, [2] = air.
+			 * when these overflow, a skill level is
+			 * gained if applicable, and they are zeroed.
+			 * the existance of a negative value other than
+			 * the most negative number in these fields
+			 * indicates that an error has occured
+			 */
+uchar breath //number of turns left before you drown
 }
 
 struct conlangtype:
@@ -975,10 +994,11 @@ unsigned monk : 4; //+(2*skill) to unarmed attack, unlocks more modes of attack.
 unsigned shield : 4; //skill in (damage-defense)+abs(damage-defense) chance of blocking
 unsigned locks : 4; //1 in 2^(lock.level - (skill)) chance of picking
 unsigned caster : 6; //-(skill-1)/4 to casting cost, +(skill-1)/4 to spatk and spdef, unlocks spells, 0 is non-caster
-signed swim : 8; //one's complement (href stattyp). may be lost by polymorphing to a form with different locomotion.
-signed walk : 8; //one's complement. may be lost by polymorphing to a form with different locomotion.
-signed flycounter : 8; //one's complement. may be lost by polymorphing to a form with different locomotion.
+bool swim : 1; //may be lost by polymorphing to a form with different locomotion.
+bool walk : 1; //may be lost by polymorphing to a form with different locomotion.
 unsigned fly : 2; //0 = never had wings, 1 = slow falling, 2 = cannot gain altitude, 3 = free flight. lvl1 learned by falling
+bool sink : 1; //overrides any swim or fly skills
+bool magnetic : 1;
 }
 /* damage = MAX( incoming-defense , 0 )
  *

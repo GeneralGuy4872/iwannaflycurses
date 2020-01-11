@@ -135,5 +135,5 @@ Manpages will be provided in Linux's ROFF-man and BSD's ROFF-mdoc;
 the documentation installed will be determined by uname.
 Extended documentation will be provided in plaintext, POD, Texinfo, and HTML
 
-Lore can be found at my Neocities site:
-https://generalguy4872.neocities.org/Games/
+documentation will be maintained by hand, because other options tend to
+result in wholly unhelpful, content-free, time wasters.

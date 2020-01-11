@@ -19,6 +19,7 @@ graphite	//contains carbonados if powdered or burned
 manganese
 sulphur
 spiegeleisen
+ytterbite
 meteorite	//contains stardust if powderized
 lapis lazuli
 red ocher
@@ -32,7 +33,10 @@ natural brass
 orichalcum
 ilmenite
 indigo
+muricidae shell
 tyrian purple
+abalone shell
+perl
 kermes
 woad
 woad seed

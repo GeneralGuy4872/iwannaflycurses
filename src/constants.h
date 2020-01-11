@@ -74,6 +74,16 @@
 #define ROOM_DOWNSTAIR 6
 #define ROOM_UPSTAIR 7
 
+//not implemented
+#define GRAV_DOWN 0
+#define GRAV_UP 7
+#define GRAV_EAST 1
+#define GRAV_WEST 6
+#define GRAV_NORTH 5
+#define GRAV_SOUTH 2
+#define GRAV_HOLE 4
+#define GRAV_NONE 3
+
 #define CAMERA_DEFAULT 0	//0000
 #define CAMERA_UP 2	//?010
 #define CAMERA_DOWN 3	//?011
